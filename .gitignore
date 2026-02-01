@@ -23,7 +23,7 @@ pip-delete-this-directory.txt
 *.joblib      # Scikit-Learn dumps
 *.pickle
 *.pkl
-data/         # Large datasets
+data/
 models/       # Checkpoints
 logs/
 tensorboard/

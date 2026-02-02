@@ -139,3 +139,61 @@ min    0.000000e+00    1900.000000  0.000000e+00
 75%    2.648575e+04    2017.000000  1.335425e+05
 max    3.736929e+09    2022.000000  1.000000e+07
 """
+
+# Step 4: Filter invalid and outlier values
+
+# The raw data contains many invalid entries that would hurt our models
+# Remove rows with unrealistic values before training
+
+# Store the starting row count so we can report how many rows we removed
+rows_before = len(df) # 426880
+
+# Price Filtering
+
+# We'll keep prices between $500 and $100,000
+# $500 minimum removes junk listings
+# $100,000 maximum removes exotic cards and data errors
+MIN_PRICE = 500
+MAX_PRICE = 100000
+
+# Filter rows where price is within our acceptable range
+df = df[(df['price'] >= MIN_PRICE) & (df['price'] <= MAX_PRICE)]
+
+# Report how many rows remain after price filtering
+print(f"\nAfter price filter (${MIN_PRICE}-{MAX_PRICE}){len(df)} rows") # 384131 rows
+
+# Year Filtering
+# Cars before 1990 are classics/antiques - different pricing dynamics
+# We want to focus on "normal" used car market
+MIN_YEAR = 1990 
+MAX_YEAR = 2026
+
+# Filter to keep only years within our range
+df = df[(df['year'] >= MIN_YEAR) & (df['year'] <= MAX_YEAR)]
+
+print(f"\nAfter year filter ({MIN_YEAR}-{MAX_YEAR}):{len(df)} rows") # 371172 rows
+
+# Odometer Filtering
+# - Min: 0 Miles (Could be new, but often means missing data)
+# - Max: 10 million miles (Not possible)
+# Average car is driven 12,000 miles/year
+MIN_ODOMETER = 100
+MAX_ODOMETER = 500000
+
+# Filter odometer to realstic range
+df = df[(df['odometer'] >= MIN_ODOMETER) & (df['odometer'] <= MAX_ODOMETER)]
+
+print(f"\nAfter odometer filter ({MIN_ODOMETER}-{MAX_ODOMETER}): {len(df)} rows") # 364546 rows
+
+# Summary of filtering
+rows_after = len(df)
+rows_removed = rows_before - rows_after
+
+# Calculate percentage of data retained
+percent_retained = (rows_after / rows_before) * 100
+
+print(f"\n--- Filtering Summary ---")
+print(f"Rows before filtering:  {rows_before}")             # 426880
+print(f"Rows after filtering:   {rows_after}")              # 364546
+print(f"Rows removed:           {rows_removed}")            # 62334
+print(f"Data retained:          {percent_retained:.1f}%")   # 85.4%

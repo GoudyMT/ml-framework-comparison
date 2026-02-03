@@ -325,3 +325,30 @@ type              int64
 state             int64
 dtype: object
 """
+
+# Step 7: Sample data to target size
+
+# We have 353,179 clean rows, but we decided with 100,000 for mangeable training
+# This is especially important for No-Framework where gradient descent runs in pure Python
+# Sampling randomly ensure we get a representative subset of the data
+
+# Target number of rows for our final dataset
+TARGET_SAMPLE_SIZE = 100000
+
+# Check if we need to sample
+if len(df) > TARGET_SAMPLE_SIZE:
+    # df.sample() randomly selects n rows from the df
+    # n= specifies the number of rows to select
+    # random_state= sets the seed for reproducibility
+    # This ensure all 4 frameworks work with the exact same 100k rows
+    df = df.sample(n=TARGET_SAMPLE_SIZE, random_state=RANDOM_SEED)
+
+    print(f"\nSampled {TARGET_SAMPLE_SIZE:,} rows from {353179:,} available rows")
+
+# Reset the index after sampling
+# When sampling, the original row indices are preserved (43, 8293, 104532)
+# reset_index() gives us clean sequential indices (0, 1, 2 .... 99999)
+# drop=True removes old index instead of adding it as a column
+df = df.reset_index(drop=True)
+
+print(f"\nFinal dataset shape: {df.shape}") # Final dataset shape: (100000, 12)

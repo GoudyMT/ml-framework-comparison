@@ -388,3 +388,30 @@ with open(MAPPINGS_PATH, 'w') as f:
     json.dump(encoding_mappings, f, indent=2)
 
 print(f"\nEncoding mappings saved to: {MAPPINGS_PATH}")
+
+# Step 10: Final Verification
+
+# Summary of the cleaned dataset to verify everything looks correct
+
+print("\n" + "=" * 60)
+print("DATA CLEANING COMPLETE")
+print("=" * 60)
+
+print(f"\nFinal Dataset Summary:")
+print(f"    Rows:       {len(df):,}")
+print(f"    Columns:    {len(df.columns)}")
+print(f"    Columns:    {df.columns.tolist()}")
+
+print(f"\nTarget Variable (price):")
+print(f"    Min:    ${df['price'].min():,.0f}")
+print(f"    Max:    ${df['price'].max():,.0f}")
+print(f"    Mean:   ${df['price'].mean():,.0f}")
+print(f"    Median: ${df['price'].median():,.0f}")
+
+print(f"\nFeature Ranges:")
+print(f"    Year:       {df['year'].min():.0f} - {df['year'].max():.0f}")
+print(f"    Odometer:   {df['odometer'].min():.0f} - {df['odometer'].max():.0f}")
+
+print(f"\nFiles created:")
+print(f"    1. {PROCESSED_DATA_PATH}")
+print(f"    2. {MAPPINGS_PATH}")

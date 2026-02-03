@@ -197,3 +197,53 @@ print(f"Rows before filtering:  {rows_before}")             # 426880
 print(f"Rows after filtering:   {rows_after}")              # 364546
 print(f"Rows removed:           {rows_removed}")            # 62334
 print(f"Data retained:          {percent_retained:.1f}%")   # 85.4%
+
+# Step 5: Handle missing values
+
+# My strategy:
+# - Required Columns (price, year, odometer, manufacturer): drop rows if missing
+# - Optional categorical columns: Fill missing with "unknown"
+
+REQUIRED_COLUMNS = ['price', 'year', 'odometer', 'manufacturer']
+
+# Store count before dropping so we can report the difference
+rows_before_drop = len(df)
+
+# dropna() removes rows with missing values
+# subset= specifies which columns to check for missing values
+df = df.dropna(subset=REQUIRED_COLUMNS)
+
+# Report how many rows were dropped due to missing required values
+rows_after_drop = len(df)
+print(f"\nDropped {rows_before_drop - rows_after_drop:,} rows with missing required values") # 11,367
+print(f"Rows remaining: {rows_after_drop}") # 353179
+
+# List of categorical columns where missing values become "unknown"
+CATEGORICAL_COLUMNS = [
+    'model',            
+    'condition',        
+    'cylinders',        
+    'fuel',
+    'title_status',     
+    'transmission',     
+    'drive',            
+    'type',             
+    'state'
+]
+
+# Loop through each categorical column and fill missing values
+for col in CATEGORICAL_COLUMNS:
+    # Count missing values in this column before filling
+    missing_count = df[col].isnull().sum()
+
+    # fillna() replaces NaN/null values with specified value
+    df[col] = df[col].fillna('unknown')
+
+    # Only print if there were actually missing values to fill
+    if missing_count > 0:
+        print(f"\nFilled {missing_count:,} missing values in '{col}' with 'unknown'")
+
+# Verify no missing values remain
+total_missing = df.isnull().sum().sum() # Sum of all missing across all columns
+print("\n --- Missing Value Check ---")
+print(f"Total missing values remaining: {total_missing}") # Total missing values remaining: 0

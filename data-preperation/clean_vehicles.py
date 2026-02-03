@@ -370,3 +370,21 @@ os.makedirs(output_dir, exist_ok=True)
 df.to_csv(PROCESSED_DATA_PATH, index=False)
 
 print(f"\nCleaned data saved to: {PROCESSED_DATA_PATH}")
+
+# Step 9: Save encoding mappings for reference
+
+# Save the encoding mappings to a JSON file
+# This lets us decode predictions back to human-readable labels later
+# Also ensures consistency if we need to encode new data the same way
+
+import json
+
+# Define path for the mappings file (same directory as cleaned data)
+MAPPINGS_PATH = os.path.join('data', 'processed', 'encoding_mappings.json')
+
+# Save mappings directory as JSON
+# indent=2 makes the file human-readable with nice formatting
+with open(MAPPINGS_PATH, 'w') as f:
+    json.dump(encoding_mappings, f, indent=2)
+
+print(f"\nEncoding mappings saved to: {MAPPINGS_PATH}")

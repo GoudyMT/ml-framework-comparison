@@ -352,3 +352,21 @@ if len(df) > TARGET_SAMPLE_SIZE:
 df = df.reset_index(drop=True)
 
 print(f"\nFinal dataset shape: {df.shape}") # Final dataset shape: (100000, 12)
+
+# Step 8: Save cleaned data
+
+# Saving the cleaned dataframe to a CSV file
+# This file will be used by all 4 frameworks for fair comparison
+
+# Ensure the output directory exists
+# os.makedirs() creates the directory
+# exist_ok=True prevents an error if the directory already exists
+output_dir = os.path.dirname(PROCESSED_DATA_PATH)
+os.makedirs(output_dir, exist_ok=True)
+
+# Save to CSV
+# index=False prevents pandas from adding a row number column to the CSV
+# This keeps our file clean - we don't need to save the index
+df.to_csv(PROCESSED_DATA_PATH, index=False)
+
+print(f"\nCleaned data saved to: {PROCESSED_DATA_PATH}")

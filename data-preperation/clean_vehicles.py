@@ -220,6 +220,7 @@ print(f"Rows remaining: {rows_after_drop}") # 353179
 
 # List of categorical columns where missing values become "unknown"
 CATEGORICAL_COLUMNS = [
+    'manufacturer',
     'model',            
     'condition',        
     'cylinders',        
@@ -247,3 +248,80 @@ for col in CATEGORICAL_COLUMNS:
 total_missing = df.isnull().sum().sum() # Sum of all missing across all columns
 print("\n --- Missing Value Check ---")
 print(f"Total missing values remaining: {total_missing}") # Total missing values remaining: 0
+
+# Step 6: Encode Categorical Variables
+
+# Machine learning models work with numbers, not strings
+# Need to convert categorical columns (text) to numeric values
+
+# Strategy: Label encoding - assign each unique category a number
+
+# Will save the mapping dictionaries so I can:
+# 1. Decode predictions back to human-readable labels
+# 2. Apply the same encoding consistently across all frameworks
+
+# List of columns that need encoding (all categorical columns)
+COLUMNS_TO_ENCODE = [
+    'manufacturer', # 41 unique values
+    'condition',    # 7 unique values        
+    'cylinders',    # 9 unique values
+    'fuel',         # 6 unique values
+    'title_status', # 7 unique values    
+    'transmission', # 4 unique values   
+    'drive',        # 4 unique values  
+    'type',         # 14 unique values    
+    'state'         # 51 unique values
+]
+
+# Dictionary to store all encoding mappings
+# Structure: {'column_name'}: {'category': number, ...}
+encoding_mappings = {}
+
+# Loop through each column and create a numeric encoding
+for col in COLUMNS_TO_ENCODE:
+    # Get all unique values in this column, sorted alphabetically
+    unique_values = sorted(df[col].unique())
+
+    # Create a mapping dictionary: {category_string: integer}
+    # enumerate() gives us (index, value) pairs starting from 0
+    mapping = {value: idx for idx, value in enumerate(unique_values)}
+
+    # Store the mapping for this column
+    encoding_mappings[col] = mapping
+
+    # Apply the mapping to convert strings to numbers
+    # .map(mapping) replaces each value using the dictionary
+    df[col] = df[col].map(mapping)
+
+    # Print summary for this column
+    print(f"\n{col}: {len(unique_values)} unique values")
+    print(f"Mapping: {mapping}\n")
+
+# Dropping 'model column
+# - Contains thousands of unique values
+# - Including it would create too many features or encoded values
+# - For linear regression, we'll rely on manufacturere + other features instead
+df = df.drop(columns=['model'])
+print("Dropped 'model' column (too many unique values for linear regression)")
+
+# Verify encoding worked
+# All categorical columns should now be integers
+print("\n Data Types After Encoding")
+print(df.dtypes)
+
+"""
+ Data Types After Encoding
+price             int64
+year            float64
+manufacturer      int64
+condition         int64
+cylinders         int64
+fuel              int64
+odometer        float64
+title_status      int64
+transmission      int64
+drive             int64
+type              int64
+state             int64
+dtype: object
+"""

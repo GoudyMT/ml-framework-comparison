@@ -69,19 +69,26 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 
 ## Folder Structure
 ├── README.md
-├── comparisons/               
+├── LICENSE
+├── data/
+│   ├── raw/
+│   │   └── vehicles.csv
+│   └── processed/
+│       ├── vehicles_clean.csv
+│       └── encoding_mappings.json
+├── No-Framework/
+│   └── 01-linear-regression/
+│       ├── pipeline.ipynb
+│       ├── README.md
+│       ├── requirements.txt
+│       └── results/
 ├── Scikit-Learn/
-│   ├── linear-regression/
-│   └── ... (one subfolder per model)
+│   └── 01-linear-regression/ (coming soon)
 ├── PyTorch/
-│   ├── linear-regression/
-│   └── ...
-├── TensorFlow/
-│   ├── linear-regression/
-│   └── ...
-└── No-Framework/
-    ├── linear-regression/
-    └── ...
+│   └── 01-linear-regression/ (coming soon)
+└── TensorFlow/
+    └── 01-linear-regression/ (coming soon)
+
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
 
@@ -89,8 +96,8 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. R²=0.50, RMSE=$10,058. Feature scaling critical for convergence. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
 - [Date] | [Model/Framework(s)] | [Key learnings, comparisons, time estimates] | [Link to subfolder/notebook]
-- (Add new bullet here after each major completion)
 
 ## How to Run / Setup
 

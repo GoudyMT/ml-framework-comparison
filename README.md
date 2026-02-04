@@ -68,6 +68,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 | Q-Learning (RL Basics)            | Reinforcement Learning        
 
 ## Folder Structure
+```
 ├── README.md
 ├── LICENSE
 ├── data/
@@ -77,18 +78,14 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── vehicles_clean.csv
 │       └── encoding_mappings.json
 ├── No-Framework/
-│   └── 01-linear-regression/
-│       ├── pipeline.ipynb
-│       ├── README.md
-│       ├── requirements.txt
-│       └── results/
+│   └── 01-linear-regression/                         
 ├── Scikit-Learn/
 │   └── 01-linear-regression/ (coming soon)
 ├── PyTorch/
 │   └── 01-linear-regression/ (coming soon)
 └── TensorFlow/
     └── 01-linear-regression/ (coming soon)
-
+```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
 

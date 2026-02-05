@@ -68,6 +68,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 | Q-Learning (RL Basics)            | Reinforcement Learning        
 
 ## Folder Structure
+
 ```
 ├── README.md
 ├── LICENSE

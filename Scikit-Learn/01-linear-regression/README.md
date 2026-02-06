@@ -16,7 +16,7 @@ This implementation predicts used car prices using Scikit-Learn's LinearRegressi
 ## Key Difference: Normal Equation vs Gradient Descent
 
 | Aspect | No-Framework (Gradient Descent) | Scikit-Learn (Normal Equation) |
-|--------|--------------------------------|-------------------------------|
+| -------- | -------------------------------- | ------------------------------- |
 | Method | Iterative optimization | Closed-form solution |
 | Formula | `weights -= lr * gradient` | `weights = (X.T @ X)^(-1) @ X.T @ y` |
 | Hyperparameters | Learning rate, iterations | None |
@@ -25,18 +25,18 @@ This implementation predicts used car prices using Scikit-Learn's LinearRegressi
 
 ## Results
 
-| Metric | Training Set | Test Set |
-|--------|--------------|----------|
+| Metric | Training Set | Test Set    |
+| -------- | ------------ | ----------- |
 | MSE    | 101,652,942  | 102,115,067 |
-| RMSE   | $10,082      | $10,105  |
-| R²     | 0.4933       | 0.4986   |
+| RMSE   | $10,082      | $10,105     |
+| R²     | 0.4933       | 0.4986      |
 
 **Interpretation**: The model explains ~50% of price variance with an average prediction error of ~$10,100. No overfitting detected (R² gap: -0.005).
 
 ## Comparison with No-Framework
 
 | Metric | No-Framework | Scikit-Learn | Difference |
-|--------|--------------|--------------|------------|
+| -------- | ------------ | ------------ | ---------- |
 | Test RMSE | $10,058 | $10,105 | +$47 |
 | Test R² | 0.4983 | 0.4986 | +0.0003 |
 | Lines of Code | ~200 | ~20 | -90% |

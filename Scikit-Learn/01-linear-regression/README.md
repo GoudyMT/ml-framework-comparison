@@ -73,14 +73,17 @@ This implementation predicts used car prices using Scikit-Learn's LinearRegressi
 ## Visualizations
 
 ### Predicted vs Actual
+
 ![Predictions](results/predictions_vs_actual.png)
 
 ### Residual Plot
+
 ![Residuals](results/residual_plot.png)
 
 **Residual Analysis**: The fan-shaped pattern (heteroscedasticity) shows that expensive cars have more price variability. Linear regression assumes constant variance, which is violated here. Non-linear models may perform better.
 
 ### Feature Importance
+
 ![Feature Importance](results/feature_importance.png)
 
 ## Key Learnings
@@ -97,7 +100,7 @@ This implementation predicts used car prices using Scikit-Learn's LinearRegressi
 
 ## Files
 
-```
+```text
 Scikit-Learn/01-linear-regression/
 ├── pipeline.ipynb              # Main implementation
 ├── README.md                   # This file

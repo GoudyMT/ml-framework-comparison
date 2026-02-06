@@ -96,7 +96,6 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 - 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. R²=0.50, RMSE=$10,105. Same results with 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
 - 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. R²=0.50, RMSE=$10,058. Feature scaling critical for convergence. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
-- [Date] | [Model/Framework(s)] | [Key learnings, comparisons, time estimates] | [Link to subfolder/notebook]
 
 ## How to Run / Setup
 

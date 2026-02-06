@@ -44,32 +44,32 @@ This project is my hands-on portfolio to deepen understanding of machine learnin
 
 Models progress from beginner (basic concepts) to advanced (latest deep learning tech). Not all are implemented in every framework due to practicality.
 
-| Model Name                        | Type                          
+| Model Name                        | Type
 |-----------------------------------|----------------------------
-| Linear Regression                 | Supervised Regression   
-| Logistic Regression               | Supervised Classification   
+| Linear Regression                 | Supervised Regression
+| Logistic Regression               | Supervised Classification
 | K-Nearest Neighbors (KNN)         | Supervised (non-parametric)  
-| K-Means Clustering                | Unsupervised Clustering    
-| Naive Bayes                       | Supervised Probabilistic   
-| Decision Trees / Random Forests   | Supervised Ensemble     
-| Support Vector Machines (SVM)     | Supervised with Kernels   
-| Principal Component Analysis      | Unsupervised Dim Reduction 
-| Deep Neural Networks (DNN)        | Supervised Feedforward     
-| Convolutional Neural Networks     | Image Supervised     
-| Recurrent Neural Networks (RNN)   | Sequence Supervised     
-| Long Short-Term Memory (LSTM)     | Advanced Sequence          
-| Autoencoders                      | Unsupervised Reconstruction   
-| Generative Adversarial Networks   | Unsupervised Generative 
-| Attention Mechanisms              | Sequence Focus                
-| Transformers                      | Self-Attention Models         
-| Vision Transformers (ViT)         | Image Attention               
-| Graph Neural Networks (GNN)       | Graph Data                    
-| Variational Autoencoders (VAE)    | Probabilistic Generative   
-| Q-Learning (RL Basics)            | Reinforcement Learning        
+| K-Means Clustering                | Unsupervised Clustering
+| Naive Bayes                       | Supervised Probabilistic
+| Decision Trees / Random Forests   | Supervised Ensemble
+| Support Vector Machines (SVM)     | Supervised with Kernels
+| Principal Component Analysis      | Unsupervised Dim Reduction
+| Deep Neural Networks (DNN)        | Supervised Feedforward
+| Convolutional Neural Networks     | Image Supervised
+| Recurrent Neural Networks (RNN)   | Sequence Supervised
+| Long Short-Term Memory (LSTM)     | Advanced Sequence
+| Autoencoders                      | Unsupervised Reconstruction
+| Generative Adversarial Networks   | Unsupervised Generative
+| Attention Mechanisms              | Sequence Focus
+| Transformers                      | Self-Attention Models
+| Vision Transformers (ViT)         | Image Attention
+| Graph Neural Networks (GNN)       | Graph Data
+| Variational Autoencoders (VAE)    | Probabilistic Generative
+| Q-Learning (RL Basics)            | Reinforcement Learning
 
 ## Folder Structure
 
-```
+```text
 ├── README.md
 ├── LICENSE
 ├── data/
@@ -81,7 +81,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ├── No-Framework/
 │   └── 01-linear-regression/                         
 ├── Scikit-Learn/
-│   └── 01-linear-regression/ (coming soon)
+│   └── 01-linear-regression/
 ├── PyTorch/
 │   └── 01-linear-regression/ (coming soon)
 └── TensorFlow/
@@ -94,6 +94,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. R²=0.50, RMSE=$10,105. Same results with 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
 - 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. R²=0.50, RMSE=$10,058. Feature scaling critical for convergence. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
 - [Date] | [Model/Framework(s)] | [Key learnings, comparisons, time estimates] | [Link to subfolder/notebook]
 

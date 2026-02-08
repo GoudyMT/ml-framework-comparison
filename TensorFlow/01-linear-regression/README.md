@@ -31,7 +31,7 @@ This implementation predicts used car prices using TensorFlow's Keras API. It se
 | RMSE   | $10,082      | $10,105    |
 | R²     | 0.4933       | 0.4986     |
 
-**Interpretation**: The model explains ~50% of price variance with an average prediction error of ~$10,100. No overfitting detected (R² gap: -0.005).
+**Interpretation**: The model explains 50% of price variance with an average prediction error of $10,100. No overfitting detected (R² gap: -0.005).
 
 ## Framework Comparison
 

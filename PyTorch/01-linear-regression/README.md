@@ -33,8 +33,8 @@ This implementation uses PyTorch to build a linear regression model predicting u
 - **PyTorch shines** on complex neural networks, not simple linear regression
 
 ## Files
-- `pipeline_baseline.ipynb` - Main implementation notebook
-- `results/baseline/` - Saved visualizations
+- `pipeline.ipynb` - Main implementation notebook
+- `results/` - Saved visualizations
   - `cost_curve.png`
   - `predictions_vs_actual.png`
   - `feature_importance.png`
@@ -42,8 +42,5 @@ This implementation uses PyTorch to build a linear regression model predicting u
 ## Usage
 ```bash
 pip install -r requirements.txt
-jupyter notebook pipeline_baseline.ipynb
+jupyter notebook pipeline.ipynb
 ```
-
-## Next Steps
-- `pipeline_optimized.ipynb` - Showcase PyTorch-specific features (Optuna, learning rate scheduling, early stopping)

@@ -93,11 +93,12 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Progress Log
 
 (Newest entries at top; grows downward as we complete models)
-- ### **All 4 frameworks achieve identical accuracy across Linear Regression: R²=0.50, RMSE=$10,105**
-- 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. R²=0.50, RMSE=$10,105.  | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
-- 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) due to computational graph overhead. R²=0.50, RMSE=$10,105. | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
-- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. R²=0.50, RMSE=$10,105. Same results with 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
-- 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. R²=0.50, RMSE=$10,058. Feature scaling critical for convergence. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
+
+- **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
+- 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
+- 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) due to computational graph overhead. | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
+- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. Same results with 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
+- 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
 
 ## How to Run / Setup
 
@@ -110,17 +111,29 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Updated over time)
 
-- High-level frameworks (Scikit-Learn) accelerate development for standard tasks but hide mechanics.
-- Deep learning libraries (PyTorch/TensorFlow) offer control over modern architectures while providing tools like autograd/optimizers.
-- From-scratch builds solidify fundamentals but scale poorly for complex models.
-- Framework choice depends on data type, team needs, and deployment goals.
+### Linear Regression (Completed)
+
+- **All 4 frameworks achieve identical accuracy** (R²≈0.50, RMSE≈$10,100) — proving framework choice doesn't affect model quality for equivalent algorithms
+- **Scikit-Learn is best for simple ML**: Normal Equation solves instantly (0.03s), 90% less code than manual implementation
+- **No-Framework builds understanding**: Manual gradient descent reveals the math behind the magic (but 0.38s vs 0.03s)
+- **PyTorch/TensorFlow have overhead for simple tasks**: Autograd and Keras abstraction add time (3.4s and 23.6s) but provide foundation for neural networks
+- **Memory vs Speed tradeoff**: No-Framework uses least memory (2MB), Scikit-Learn trades memory for speed (15MB), PyTorch uses most (54MB)
+
+### General Insights
+
+- High-level frameworks (Scikit-Learn) accelerate development for standard tasks but hide mechanics
+- Deep learning libraries (PyTorch/TensorFlow) offer control over modern architectures while providing tools like autograd/optimizers
+- From-scratch builds solidify fundamentals but scale poorly for complex models
+- Framework choice depends on data type, team needs, and deployment goals
 
 ## Future Plans
 
-- Complete beginner models first, then advance.
-- Add deployment examples (e.g., Flask/Streamlit wrappers).
-- Explore real-world datasets beyond toys.
-- Compare inference speed and memory on larger inputs.
+- ~~Complete Linear Regression across all 4 frameworks~~
+- Complete Logistic Regression (next model)
+- Complete remaining beginner models (KNN, K-Means, Naive Bayes)
+- Add deployment examples (Flask/Streamlit wrappers)
+- Explore real-world datasets beyond toys
+- Compare inference speed and memory on larger inputs
 
 ## License
 

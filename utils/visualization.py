@@ -52,7 +52,7 @@ def plot_confusion_matrix(y_true, y_pred, framework, save_path=None):
     plt.colorbar()
 
     # Label the axes
-    classes = ['Legitimate (0), Fraud (1)']
+    classes = ['Legitimate (0)', 'Fraud (1)']
     tick_marks = [0, 1]
     plt.xticks(tick_marks, classes, fontsize=11)
     plt.yticks(tick_marks, classes, fontsize=11)
@@ -89,7 +89,7 @@ def plot_roc_curve(y_true, y_proba, framework, save_path=None):
     auc = auc_score(y_true, y_proba)
 
     plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, 'b-', linewidth=1, label='Random Classifier')
+    plt.plot(fpr, tpr, 'b-', linewidth=2, label=f'ROC Curve (AUC = {auc:.4f})')
     plt.plot([0,1], [0,1], 'r--', linewidth=1, label='Random Classifier')
     plt.xlabel('False Positive Rate', fontsize=12)
     plt.ylabel('True Positive Rate', fontsize=12)

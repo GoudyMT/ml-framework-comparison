@@ -86,6 +86,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │           ├── y_test.npy
 │           └── preprocessing_info.json
 ├── data-preperation/
+│   └── clean_vehicles.py
 │   └── preprocess_logistic.py
 ├── utils/
 │   ├── __init__.py
@@ -97,13 +98,13 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   └── 02-logistic-regression/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/
+│   └── 02-logistic-regression/ # (Coming Soon)
 ├── PyTorch/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/
+│   └── 02-logistic-regression/ # (Coming Soon)
 └── TensorFlow/
     ├── 01-linear-regression/
-    └── 02-logistic-regression/
+    └── 02-logistic-regression/ # (Coming Soon)
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.

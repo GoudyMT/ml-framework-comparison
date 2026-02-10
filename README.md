@@ -74,18 +74,36 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ├── LICENSE
 ├── data/
 │   ├── raw/
-│   │   └── vehicles.csv
+│   │   ├── vehicles.csv
+│   │   └── creditcard.csv
 │   └── processed/
 │       ├── vehicles_clean.csv
-│       └── encoding_mappings.json
+│       ├── encoding_mappings.json
+│       └── logistic_regression/
+│           ├── X_train.npy
+│           ├── X_test.npy
+│           ├── y_train.npy
+│           ├── y_test.npy
+│           └── preprocessing_info.json
+├── data-preperation/
+│   └── preprocess_logistic.py
+├── utils/
+│   ├── __init__.py
+│   ├── metrics.py
+│   ├── performance.py
+│   └── visualization.py
 ├── No-Framework/
-│   └── 01-linear-regression/                         
+│   ├── 01-linear-regression/
+│   └── 02-logistic-regression/
 ├── Scikit-Learn/
-│   └── 01-linear-regression/
+│   ├── 01-linear-regression/
+│   └── 02-logistic-regression/
 ├── PyTorch/
-│   └── 01-linear-regression/
+│   ├── 01-linear-regression/
+│   └── 02-logistic-regression/
 └── TensorFlow/
-    └── 01-linear-regression/
+    ├── 01-linear-regression/
+    └── 02-logistic-regression/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -94,6 +112,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training, 83% recall on fraud detection. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
 - **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
 - 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
 - 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) due to computational graph overhead. | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
@@ -129,7 +148,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Future Plans
 
 - ~~Complete Linear Regression across all 4 frameworks~~
-- Complete Logistic Regression (next model)
+- Complete Logistic Regression — *In Progress (No-Framework ✓, 3 remaining)*
 - Complete remaining beginner models (KNN, K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

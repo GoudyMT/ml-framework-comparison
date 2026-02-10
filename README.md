@@ -98,7 +98,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   └── 02-logistic-regression/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/ # (Coming Soon)
+│   └── 02-logistic-regression/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   └── 02-logistic-regression/ # (Coming Soon)
@@ -113,6 +113,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s vs 18.3s). 82% recall. | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
 - 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training, 83% recall on fraud detection. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
 - **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
 - 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
@@ -149,7 +150,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Future Plans
 
 - ~~Complete Linear Regression across all 4 frameworks~~
-- Complete Logistic Regression — *In Progress (No-Framework ✓, 3 remaining)*
+- Complete Logistic Regression — *In Progress (No-Framework ✓, Scikit-Learn ✓, 2 remaining)*
 - Complete remaining beginner models (KNN, K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

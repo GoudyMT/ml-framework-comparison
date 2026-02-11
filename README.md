@@ -34,6 +34,7 @@ This project is my hands-on portfolio to deepen understanding of machine learnin
 
 - [Models Covered](#models-covered)
 - [Folder Structure](#folder-structure)
+- [Shared Utilities Architecture](#shared-utilities-architecture)
 - [Progress Log](#progress-log)
 - [How to Run / Setup](#how-to-run--setup)
 - [Overall Learnings & Conclusions](#overall-learnings--conclusions)
@@ -104,17 +105,53 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   └── 02-logistic-regression/
 └── TensorFlow/
     ├── 01-linear-regression/
-    └── 02-logistic-regression/ # (Coming Soon)
+    └── 02-logistic-regression/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
+
+## Shared Utilities Architecture
+
+Starting with Logistic Regression, created a shared `utils/` package to eliminate redundant code across frameworks. This package grows with each new model type as we implement new algorithms, we identify common patterns and add them here.
+
+### Current Utilities
+
+(Newest additions at top; table grows as new model types introduce shared patterns)
+
+| Module | Functions | Added In | Purpose |
+|--------|-----------|----------|---------|
+| `metrics.py` | `accuracy`, `precision`, `recall`, `f1_score`, `confusion_matrix_values`, `roc_curve`, `auc_score` | Logistic Regression | Classification evaluation |
+| `performance.py` | `track_performance()` | Logistic Regression | Context manager for timing and memory tracking |
+| `visualization.py` | `plot_cost_curve`, `plot_confusion_matrix`, `plot_roc_curve`, `plot_feature_importance` | Logistic Regression | Consistent plots across frameworks |
+
+### Benefits
+
+- **Zero inconsistency**: All frameworks use identical metric calculations
+- **Faster development**: 3 imports vs 50 lines of boilerplate per notebook
+- **Easier maintenance**: Fix a bug once, applies everywhere
+- **Framework-agnostic**: Works with NumPy arrays from any framework
+
+### Usage Pattern
+```python
+from utils.metrics import accuracy, precision, recall, f1_score, auc_score
+from utils.performance import track_performance
+from utils.visualization import plot_confusion_matrix, plot_roc_curve
+
+with track_performance() as result:
+    # Training code here
+    pass
+
+print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
+```
 
 ## Progress Log
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2025-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework 2.36s. | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
-- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework 0.32s. | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
+- **2025-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
+- 2025-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
+- 2025-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework (2.36s). | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
+- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s). | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
 - 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
 - **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
 - 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
@@ -132,6 +169,14 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Logistic Regression (Completed)
+
+- **All 4 frameworks achieve similar recall** (82-83%) on fraud detection — consistent results across implementations
+- **Scikit-Learn dominates speed**: L-BFGS optimizer converges in 0.32s (57x faster than No-Framework)
+- **Class imbalance is the real challenge**: 98.9% accuracy is misleading; precision (12%) matters more than accuracy for fraud detection
+- **SMOTE + filtering works well**: Oversampling then filtering unrealistic samples creates balanced training without losing model quality
+- **TensorFlow slowest for simple models**: 52.95s due to full-batch overhead, but `model.fit()` provides simplest code
 
 ### Linear Regression (Completed)
 
@@ -151,7 +196,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Future Plans
 
 - ~~Complete Linear Regression across all 4 frameworks~~
-- Complete Logistic Regression — *In Progress (No-Framework ✓, Scikit-Learn ✓, PyTorch ✓, 1 remaining)*
+- ~~Complete Logistic Regression across all 4 frameworks~~
 - Complete remaining beginner models (KNN, K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

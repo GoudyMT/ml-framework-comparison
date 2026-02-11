@@ -72,16 +72,16 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ```text
 ├── README.md
 ├── LICENSE
-├── data/
+├── data/       # .gitignore for entire folder (large files + processed data from data-preperation)
 │   ├── raw/
-│   │   ├── vehicles.csv
-│   │   └── creditcard.csv
+│   │   ├── vehicles.csv    
+│   │   └── creditcard.csv  
 │   └── processed/
-│       ├── vehicles_clean.csv
-│       ├── encoding_mappings.json
-│       └── logistic_regression/
-│           ├── X_train.npy
-│           ├── X_test.npy
+│       ├── vehicles_clean.csv      
+│       ├── encoding_mappings.json  
+│       └── logistic_regression/    
+│           ├── X_train.npy         
+│           ├── X_test.npy          
 │           ├── y_train.npy
 │           ├── y_test.npy
 │           └── preprocessing_info.json
@@ -101,7 +101,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   └── 02-logistic-regression/
 ├── PyTorch/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/ # (Coming Soon)
+│   └── 02-logistic-regression/
 └── TensorFlow/
     ├── 01-linear-regression/
     └── 02-logistic-regression/ # (Coming Soon)
@@ -113,12 +113,13 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s vs 18.3s). 82% recall. | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
-- 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training, 83% recall on fraud detection. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
+- 2025-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework 2.36s. | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
+- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework 0.32s. | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
+- 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
 - **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
 - 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
-- 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) due to computational graph overhead. | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
-- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. Same results with 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
+- 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
+- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
 - 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
 
 ## How to Run / Setup
@@ -150,7 +151,7 @@ Each model subfolder contains: pipeline notebook/script, README with framework n
 ## Future Plans
 
 - ~~Complete Linear Regression across all 4 frameworks~~
-- Complete Logistic Regression — *In Progress (No-Framework ✓, Scikit-Learn ✓, 2 remaining)*
+- Complete Logistic Regression — *In Progress (No-Framework ✓, Scikit-Learn ✓, PyTorch ✓, 1 remaining)*
 - Complete remaining beginner models (KNN, K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

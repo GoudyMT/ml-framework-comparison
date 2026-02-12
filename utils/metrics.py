@@ -168,7 +168,7 @@ def confusion_matrix_multiclass(y_true, y_pred, n_classes):
         cm[int(true_label), int(pred_label)] += 1
     return cm
 
-def macro_f1_score(y_true, y_pred):
+def macro_f1_score(y_true, y_pred, return_per_class=False):
     """
     Macro-averaged F1 score for multi-class classification.
 
@@ -179,9 +179,12 @@ def macro_f1_score(y_true, y_pred):
     Args:
         y_true: Actual class labels
         y_pred: Predicted class labels
+        return_per_class: If true, also return the per-class F1 score list
 
     Returns:
-        float: Average F1 score across all classes (0.0, 1.0)
+        float: Average F1 score across all classes
+        OR
+        tuple: (macro_f1, per_class_score) if return_per_class=True
 
     Note:
         Macro F1 is preferred over accuracy for imbalanced multi-class problems
@@ -198,4 +201,8 @@ def macro_f1_score(y_true, y_pred):
         # Use existing f1_score function (already defined above)
         f1_scores.append(f1_score(y_true_binary, y_pred_binary))
 
-    return np.mean(f1_scores)
+    macro = np.mean(f1_scores)
+
+    if return_per_class:
+        return macro, f1_scores
+    return macro

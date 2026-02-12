@@ -52,16 +52,86 @@ FEATURE_NAMES = [
 
 # Step 2: Train/Test Split (Stratified)
 
-print(f"\n{"="*50}")
+print(f"\n{"=" * 50}")
 print("TRAIN/TEST SPLIT")
-print(f"{"="*50}")
+print(f"{"=" * 50}")
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y,
-    test_size=0.2,               # 80/20 Split
+    test_size=0.2,              # 80/20 Split
     random_state=RANDOM_SEED,   # Reproducibility
     stratify=y                  # Maintain class proportions in both sets    
 )
 
 print(f"Training set: {X_train.shape[0]:,} samples ({X_train.shape[0]/len(X)*100:.1f}%)")
 print(f"Test set: {X_test.shape[0]:,} samples ({X_test.shape[0]/len(X)*100:.1f}%)")
+
+# Step 3: Feature Scaling (StandardScaler)
+
+"""
+KNN uses distance calculations, so features must be on the same scale.
+Without scaling, high-magnitude features (like elevation 3000)
+would dominate over low-magnitude features (like Slope 14).
+"""
+
+print(f"\n{"=" * 50}")
+print("FEATURE SCALING")
+print("=" * 50)
+
+scaler = StandardScaler()
+
+# Fit on training data only (prevent data leakage)
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+print(f"Scaler fit on training data: {X_train.shape[0]:,} samples")
+print(f"Before scaling - Train mean: {X_train[:, 0].mean():.2f}, std: {X_train[:, 0].std():.2f}")
+print(f"After scaling  - Train mean: {X_train_scaled[:, 0].mean():.2f}, std: {X_train_scaled[:, 0].std():.2f}")
+
+# Step 4: Save Processed Data
+
+print(f"\n{"=" * 50}")
+print("SAVING PROCESSED DATA")
+print("=" * 50)
+
+# Create output directory
+output_dir = './data/processed/knn'
+os.makedirs(output_dir, exist_ok=True)
+
+# Save numpy arrays
+np.save(f'{output_dir}/X_train.npy', X_train_scaled)
+np.save(f'{output_dir}/X_test.npy', X_test_scaled)
+np.save(f'{output_dir}/y_train.npy', y_train)
+np.save(f'{output_dir}/y_test.npy', y_test)
+
+# Save Metadata for reference
+metadata = {
+    'dataset': 'Covertype (Forest Cover Type)',
+    'source': 'sklearn.datasets.fetch_covtype / UCI ML Repository',
+    'total_samples': int(X.shape[0]),
+    'n_features': int(X.shape[1]),
+    'n_classes': len(CLASS_NAMES),
+    'class_names': CLASS_NAMES,
+    'feature_names': FEATURE_NAMES,
+    'train_samples': int(X_train.shape[0]),
+    'test_samples': int(X_test.shape[0]),
+    'test_size': 0.2,
+    'random_seed': RANDOM_SEED,
+    'scaling': 'StandardScaler',
+    'scaler_mean': scaler.mean_.tolist(),   # type: ignore
+    'scaler_std': scaler.scale_.tolist()    # type: ignore
+}
+
+with open(f'{output_dir}/preprocessing_info.json', 'w') as f:
+    json.dump(metadata, f, indent=2)
+
+print(f"Saved to: {output_dir}/")
+print(f"  - X_train.npy: {X_train_scaled.shape}")
+print(f"  - X_test.npy: {X_test_scaled.shape}")
+print(f"  - y_train.npy: {y_train.shape}")
+print(f"  - y_test.npy: {y_test.shape}")
+print(f"  - preprocessing_info.json")
+
+print(f"\n{'='*50}")
+print("PREPROCESSING COMPLETE!")
+print(f"{'='*50}")

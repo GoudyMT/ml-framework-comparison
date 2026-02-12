@@ -144,3 +144,58 @@ def auc_score(y_true, y_proba):
 
     # Trapezoidal integration: area under the curve
     return np.trapezoid(tpr_sorted, fpr_sorted)
+
+# MULTI-CLASS METRICS (Added during KNN Prep)
+
+def confusion_matrix_multiclass(y_true, y_pred, n_classes):
+    """
+    Build NxN confusion matrix for multi-class classification.
+
+    Unlike binary confusion matrix (2x2), this handles any number of classes.
+    Rows represent actual classes, columns represent predicted classes.
+    Diagonal values are correct predictions; off-diagonal are misclassifications.
+
+    Args:
+        y_true: Actual class labels (0 to n_classes-1)
+        y_pred: Predicted class labels (0 to n_classes-1)
+        n_classes: Total number of classes
+
+    Returns: 
+        numpy array: NxN confusion matrix where cm[i,j] = count of samples with true label i predicted as label j
+    """
+    cm = np.zeros((n_classes, n_classes), dtype=int)
+    for true_label, pred_label in zip(y_true, y_pred):
+        cm[int(true_label), int(pred_label)] += 1
+    return cm
+
+def macro_f1_score(y_true, y_pred):
+    """
+    Macro-averaged F1 score for multi-class classification.
+
+    Calculates F1 score for each class independently (one-vs-all),
+    then takes the unweighted average. This treats all classes equally,
+    regardless of their frequency in the dataset.
+
+    Args:
+        y_true: Actual class labels
+        y_pred: Predicted class labels
+
+    Returns:
+        float: Average F1 score across all classes (0.0, 1.0)
+
+    Note:
+        Macro F1 is preferred over accuracy for imbalanced multi-class problems
+        because it doesn't let majority classes dominate the metric.
+    """
+    classes = np.unique(y_true)
+    f1_scores = []
+
+    for cls in classes:
+        # Create binary masks: "this class" vs "all other classes"
+        y_true_binary = (y_true == cls).astype(int)
+        y_pred_binary = (y_pred == cls).astype(int)
+
+        # Use existing f1_score function (already defined above)
+        f1_scores.append(f1_score(y_true_binary, y_pred_binary))
+
+    return np.mean(f1_scores)

@@ -78,41 +78,43 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── vehicles.csv    
 │   │   └── creditcard.csv  
 │   └── processed/
-│       ├── vehicles_clean.csv      
-│       ├── encoding_mappings.json  
-│       └── logistic_regression/    
-│           ├── X_train.npy         
-│           ├── X_test.npy          
-│           ├── y_train.npy
-│           ├── y_test.npy
-│           └── preprocessing_info.json
+│       ├── linear_regression/     
+│       ├── logistic_regression/
+│       └── knn/
 ├── data-preperation/
-│   └── clean_vehicles.py
-│   └── preprocess_logistic.py
+│   ├── clean_vehicles.py
+│   ├── preprocess_logistic.py
+│   └── preprocess_knn.py
 ├── utils/
 │   ├── __init__.py
+│   ├── data_loader.py
 │   ├── metrics.py
 │   ├── performance.py
 │   └── visualization.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/
+│   ├── 02-logistic-regression/
+│   └── 03-knn/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/
+│   ├── 02-logistic-regression/
+│   └── 03-knn/
 ├── PyTorch/
 │   ├── 01-linear-regression/
-│   └── 02-logistic-regression/
+│   ├── 02-logistic-regression/
+│   └── 03-knn/
 └── TensorFlow/
     ├── 01-linear-regression/
-    └── 02-logistic-regression/
+    ├── 02-logistic-regression/
+    └── 03-knn/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
 
 ## Shared Utilities Architecture
 
-Starting with Logistic Regression, created a shared `utils/` package to eliminate redundant code across frameworks. This package grows with each new model type as we implement new algorithms, we identify common patterns and add them here.
+Began implementation during Logistic Regression and introduced a shared `utils/` package to avoid duplicating code across frameworks.
+The package evolves organically: during the planning phase when new model types are started, recurring patterns are identified and moved here.
 
 ### Current Utilities
 
@@ -120,6 +122,9 @@ Starting with Logistic Regression, created a shared `utils/` package to eliminat
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `data_loader.py` | `load_processed_data` | KNN | Generic data loader for any model |
+| `metrics.py` | `confusion_matrix_multiclass`, `macro_f1_score` | KNN | Multi-class evaluation |
+| `visualization.py` | `plot_confusion_matrix_multiclass`, `plot_validation_curve`, `plot_per_class_f1` | KNN | Multi-class visualizations |
 | `metrics.py` | `accuracy`, `precision`, `recall`, `f1_score`, `confusion_matrix_values`, `roc_curve`, `auc_score` | Logistic Regression | Classification evaluation |
 | `performance.py` | `track_performance()` | Logistic Regression | Context manager for timing and memory tracking |
 | `visualization.py` | `plot_cost_curve`, `plot_confusion_matrix`, `plot_roc_curve`, `plot_feature_importance` | Logistic Regression | Consistent plots across frameworks |
@@ -148,6 +153,7 @@ print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
 - **2025-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
 - 2025-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
 - 2025-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework (2.36s). | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
@@ -197,7 +203,8 @@ print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
 
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
-- Complete remaining beginner models (KNN, K-Means, Naive Bayes)
+- Complete KNN across all 4 frameworks (1/4 done)
+- Complete remaining beginner models (K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

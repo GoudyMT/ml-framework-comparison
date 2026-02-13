@@ -1,0 +1,22 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "KNeighborsClassifier",
+  "best_params": {
+    "metric": "manhattan",
+    "n_neighbors": 3,
+    "weights": "distance"
+  },
+  "test_accuracy": 0.937703845855959,
+  "macro_f1": 0.8935156936386226,
+  "per_class_f1": {
+    "Spruce/Fir": 0.9386290141078641,
+    "Lodgepole Pine": 0.9481209222165555,
+    "Ponderosa Pine": 0.9198879551820728,
+    "Cottonwood/Willow": 0.8136234626300851,
+    "Aspen": 0.8276234151605071,
+    "Douglas-fir": 0.8566150348159727,
+    "Krummholz": 0.9501100513573002
+  },
+  "prediction_time_seconds": 57.42167663574219,
+  "peak_memory_mb": 19.400829315185547
+}

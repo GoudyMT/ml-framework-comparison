@@ -164,8 +164,14 @@ def confusion_matrix_multiclass(y_true, y_pred, n_classes):
         numpy array: NxN confusion matrix where cm[i,j] = count of samples with true label i predicted as label j
     """
     cm = np.zeros((n_classes, n_classes), dtype=int)
+
+    # Get unique classes and create mapping to 0-index positions
+    # This handles labels like 1-7 (Covertype) or 0-6 or any range
+    classes = np.unique(y_true)
+    classes_to_idx = {cls: idx for idx, cls in enumerate(classes)}
+
     for true_label, pred_label in zip(y_true, y_pred):
-        cm[int(true_label), int(pred_label)] += 1
+        cm[classes_to_idx[true_label], classes_to_idx[pred_label]] += 1
     return cm
 
 def macro_f1_score(y_true, y_pred, return_per_class=False):

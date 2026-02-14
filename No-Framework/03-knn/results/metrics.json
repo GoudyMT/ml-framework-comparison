@@ -1,0 +1,19 @@
+{
+  "framework": "No-Framework",
+  "model": "Manual KNN (Manhattan + Distance Weighting)",
+  "best_k": 3,
+  "test_accuracy": 0.9378657487091222,
+  "macro_f1": 0.8969270805737235,
+  "per_class_f1": {
+    "Spruce/Fir": 0.9360451446038092,
+    "Lodgepole Pine": 0.9491317312752149,
+    "Ponderosa Pine": 0.9211678832116788,
+    "Cottonwood/Willow": 0.8141592920353982,
+    "Aspen": 0.8477611940298508,
+    "Douglas-fir": 0.8615384615384615,
+    "Krummholz": 0.9486858573216521
+  },
+  "prediction_time_seconds": 7757.269618272781,
+  "test_samples": 11620,
+  "train_samples": 464809
+}

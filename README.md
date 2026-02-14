@@ -153,6 +153,7 @@ print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
 - 2025-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
 - **2025-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
 - 2025-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
@@ -203,7 +204,7 @@ print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
 
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
-- Complete KNN across all 4 frameworks (1/4 done)
+- Complete KNN across all 4 frameworks (2/4 done)
 - Complete remaining beginner models (K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

@@ -1,0 +1,27 @@
+{
+  "framework": "PyTorch",
+  "model": "KNN (GPU-accelerated)",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 4090",
+  "best_params": {
+    "n_neighbors": 3,
+    "metric": "manhattan",
+    "weights": "distance"
+  },
+  "test_accuracy": 0.937703845855959,
+  "macro_f1": 0.8935156936386226,
+  "per_class_f1": {
+    "Spruce/Fir": 0.9386290141078641,
+    "Lodgepole Pine": 0.9481209222165555,
+    "Ponderosa Pine": 0.9198879551820728,
+    "Cottonwood/Willow": 0.8136234626300851,
+    "Aspen": 0.8276234151605071,
+    "Douglas-fir": 0.8566150348159727,
+    "Krummholz": 0.9501100513573002
+  },
+  "prediction_time_seconds": 99.8295226097107,
+  "peak_gpu_memory_mb": 7217.8974609375,
+  "throughput_samples_per_sec": 1164.0143813399004,
+  "test_samples": 116203,
+  "train_samples": 464809
+}

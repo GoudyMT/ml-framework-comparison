@@ -1,0 +1,27 @@
+{
+  "framework": "TensorFlow",
+  "model": "KNN (CPU tensor operations)",
+  "device": "CPU",
+  "note": "TF 2.11+ dropped native Windows GPU support",
+  "best_params": {
+    "n_neighbors": 3,
+    "metric": "manhattan",
+    "weights": "distance"
+  },
+  "test_accuracy": 0.937703845855959,
+  "macro_f1": 0.8935156936386226,
+  "per_class_f1": {
+    "Spruce/Fir": 0.9386290141078641,
+    "Lodgepole Pine": 0.9481209222165555,
+    "Ponderosa Pine": 0.9198879551820728,
+    "Cottonwood/Willow": 0.8136234626300851,
+    "Aspen": 0.8276234151605071,
+    "Douglas-fir": 0.8566150348159727,
+    "Krummholz": 0.9501100513573002
+  },
+  "prediction_time_seconds": 1055.3373293876648,
+  "peak_memory_mb": 24.29819965362549,
+  "throughput_samples_per_sec": 110.10981679897945,
+  "test_samples": 116203,
+  "train_samples": 464809
+}

@@ -122,11 +122,12 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `performance.py` | `track_performance(gpu=True)` | KNN (PyTorch) | GPU memory tracking for PyTorch/TensorFlow |
 | `data_loader.py` | `load_processed_data` | KNN | Generic data loader for any model |
 | `metrics.py` | `confusion_matrix_multiclass`, `macro_f1_score` | KNN | Multi-class evaluation |
 | `visualization.py` | `plot_confusion_matrix_multiclass`, `plot_validation_curve`, `plot_per_class_f1` | KNN | Multi-class visualizations |
 | `metrics.py` | `accuracy`, `precision`, `recall`, `f1_score`, `confusion_matrix_values`, `roc_curve`, `auc_score` | Logistic Regression | Classification evaluation |
-| `performance.py` | `track_performance()` | Logistic Regression | Context manager for timing and memory tracking |
+| `performance.py` | `track_performance()` | Logistic Regression | Context manager for timing and CPU memory tracking |
 | `visualization.py` | `plot_cost_curve`, `plot_confusion_matrix`, `plot_roc_curve`, `plot_feature_importance` | Logistic Regression | Consistent plots across frameworks |
 
 ### Benefits
@@ -142,17 +143,24 @@ from utils.metrics import accuracy, precision, recall, f1_score, auc_score
 from utils.performance import track_performance
 from utils.visualization import plot_confusion_matrix, plot_roc_curve
 
-with track_performance() as result:
+# CPU-only tracking (Scikit-Learn, No-Framework)
+with track_performance() as perf:
     # Training code here
     pass
+print(f"Time: {perf['time']:.2f}s, Memory: {perf['memory']:.2f} MB")
 
-print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
+# GPU tracking (PyTorch, TensorFlow)
+with track_performance(gpu=True) as perf:
+    # GPU training/inference code here
+    torch.cuda.synchronize()  # Ensure GPU ops complete
+print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 ```
 
 ## Progress Log
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2025-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
 - 2025-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
 - 2025-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
 - **2025-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
@@ -204,7 +212,7 @@ print(f"Time: {result['time']:.2f}s, Memory: {result['memory']:.2f} MB")
 
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
-- Complete KNN across all 4 frameworks (2/4 done)
+- Complete KNN across all 4 frameworks (3/4 done)
 - Complete remaining beginner models (K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

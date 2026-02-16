@@ -160,6 +160,8 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2025-02-15 | KNN Summary: *All 4 frameworks achieve 93.77% accuracy | Scikit-Learn KD-tree fastest (57s)***
+- 2025-02-15 | KNN / TensorFlow | Chunked broadcasting on CPU (TF 2.11+ no Windows GPU). 93.77% accuracy, 110/sec. | [TensorFlow/03-knn](TensorFlow/03-knn/)
 - 2025-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
 - 2025-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
 - 2025-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
@@ -184,6 +186,15 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### K-Nearest Neighbors (Completed)
+
+- **All 4 frameworks achieve identical accuracy** (93.77%) — proving KNN results are implementation-agnostic
+- **Scikit-Learn's KD-tree wins**: O(log n) lookups beat brute-force GPU computation for 464K training samples (57s vs 100s)
+- **GPU helps but isn't magic**: PyTorch GPU (1,164/sec) is 776x faster than No-Framework (1.5/sec) but still slower than Scikit-Learn's optimized trees (2,000/sec)
+- **TensorFlow limited by Windows GPU support**: TF 2.11+ dropped native Windows GPU, forcing CPU-only execution (110/sec). WSL2 planned for neural networks
+- **No tf.cdist equivalent**: TensorFlow requires chunked broadcasting for pairwise distances, creating memory management challenges PyTorch avoids with `torch.cdist`
+- **Rare classes struggle across all frameworks**: Cottonwood/Willow (0.47% of data) consistently has lowest F1 (~0.81)
 
 ### Logistic Regression (Completed)
 
@@ -212,7 +223,7 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
-- Complete KNN across all 4 frameworks (3/4 done)
+- ~~Complete KNN across all 4 frameworks~~
 - Complete remaining beginner models (K-Means, Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

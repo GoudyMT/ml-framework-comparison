@@ -368,7 +368,7 @@ def plot_silhouette_analysis(X, labels, framework, save_path=None):
         y_upper = y_lower + cluster_size
 
         # Fill between creates the blade shape
-        color = plt.cm.tab10(i / n_clusters)
+        color = plt.cm.tab10(i / n_clusters)    # type: ignore
         plt.fill_betweenx(np.arange(y_lower, y_upper), 0, cluster_scores,
                           facecolor=color, edgecolor=color, alpha=0.7)
 
@@ -378,7 +378,7 @@ def plot_silhouette_analysis(X, labels, framework, save_path=None):
         y_lower = y_upper + 10  # Gap between clusters
 
     # Vertical line for mean silhouette score
-    plt.axvline(x=mean_score, color='red', linestyle='--',
+    plt.axvline(x=mean_score, color='red', linestyle='--',  # type: ignore
                 label=f'Mean: {mean_score:.3f}')
 
     plt.xlabel('Silhouette Score', fontsize=12)

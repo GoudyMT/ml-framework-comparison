@@ -1,0 +1,9 @@
+{
+  "framework": "Scikit-Learn",
+  "inertia": 9981.064172067025,
+  "silhouette": 0.30606136002270284,
+  "ari": 0.6685757131047172,
+  "iterations": 26,
+  "training_time": 0.06135392189025879,
+  "peak_memory_mb": 2.710542678833008
+}

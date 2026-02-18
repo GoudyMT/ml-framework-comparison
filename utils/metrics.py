@@ -290,3 +290,74 @@ def silhouette_samples(X, labels):
         silhouette_vals[i] = (b_i - a_i) / max(a_i, b_i)
 
     return silhouette_vals
+
+def silhouette_score(X, labels):
+    """
+    Mean Silhouette score across all samples.
+
+    Thin wrapper around silhouette_samples() - avoids duplicating the 
+    O(n^2) distance computation when both the aggregate score and
+    per-sample values are needed.
+
+    Args:
+        X: Feature matrix (n_samples, n_features)
+        labels: Cluster assignments
+
+    Returns:
+        float: Mean silhouette score. Range -1 to +1, higher = better.
+    """
+    return np.mean(silhouette_samples(X, labels))
+
+def adjusted_rand_index(labels_true, labels_pred):
+    """
+    Adjusted Rand Index - agreement between clusters and ground truth.
+
+    Measures how well cluster assignments match known class labels,
+    adjusted for chance. Unlike accuracy, doesn't require cluster IDs
+    to match class IDs (cluster 0 doesn't need to be class 0).
+
+    Range: -0.5 (worse than random) to 1.0 (perfect agreement).
+    Score of 0.0 means no better than random assignment.
+
+    Args:
+        labels_true: Ground truth class labels (n_samples,)
+        labels_pred: Predicted cluster assignments
+
+    Returns:
+        float: Adjusted Rand Index score.
+    """
+    # Build contingency table: how many samples share each (true, pred) pair
+    true_classes = np.unique(labels_true)
+    pred_clusters = np.unique(labels_pred)
+
+    contingency = np.zeros((len(true_classes), len(pred_clusters)), dtype=int)
+    true_map = {c: i for i, c in enumerate(true_classes)}
+    pred_map = {c: i for i, c in enumerate(pred_clusters)}
+
+    for t, p in zip(labels_true, labels_pred):
+        contingency[true_map[t], pred_map[p]] += 1
+
+    # Sum of combinations C(n, 2) = n * (n-1) / 2
+    def comb2(n):
+        return n * (n - 1) / 2
+    
+    # Rows sums, column sums
+    row_sums = contingency.sum(axis=1)
+    col_sums = contingency.sum(axis=0)
+    n_total = len(labels_true)
+
+    # Index = sum of C(n_ij, 2) for all cells
+    index = sum(comb2(n) for n in contingency.flatten())
+
+    # Expected index under random assignment
+    sum_row_comb = sum(comb2(n) for n in row_sums)
+    sum_col_comb = sum(comb2(n) for n in col_sums)
+    expected = sum_row_comb * sum_col_comb / comb2(n_total)
+
+    # Max index
+    max_index = (sum_row_comb + sum_col_comb) / 2
+
+    # ARI = (Index - Expected) / (Max - Expected)
+    if max_index == expected:
+        return 1.0 # Perfect agreement edge case
+    return (index - expected) / (max_index - expected)

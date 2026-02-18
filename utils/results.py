@@ -42,7 +42,7 @@ def save_results(results, save_dir='results'):
         json.dump(results, f, indent=2)
     print(f"    Results saved to: {path}")
 
-def add_result(modle_name, result_dict):
+def add_result(model_name, result_dict):
     """
     Append a framework's results to the shared comparison file.
 
@@ -55,7 +55,7 @@ def add_result(modle_name, result_dict):
         result_dict: Dict of metrics. Must include 'framework' key.
     """
     if 'framework' not in result_dict:
-        raise ValueError("result_dict must incldue 'framework' key")
+        raise ValueError("result_dict must include 'framework' key")
     
     os.makedirs(RESULTS_DIR, exist_ok=True)
     path = RESULTS_DIR / f'{model_name}.json' # type: ignore
@@ -77,3 +77,64 @@ def add_result(modle_name, result_dict):
 
     print(f"    Added '{framework}' to {path}")
     print(f"    Frameworks recorded: {len(results_list)}/4")
+
+def print_comparison(model_name):
+    """
+    Pretty-print cross-framework comparison table.
+
+    Reads {PROJECT_ROOT}/data/results/{model_name}.json and formats
+    an aligned table. Auto-detects metrics from the stored results, 
+    so it works for both supervised and unsupervised models.
+
+    Args:
+        model_name: Model identifier (e.g., 'kmeans', 'knn')
+    """
+    path = RESULTS_DIR / f'{model_name}.json'
+
+    if not path.exists():
+        print(f"    No results found for '{model_name}'")
+        return
+    
+    with open(path, 'r') as f:
+        results_list = json.load(f)
+
+    if not results_list:
+        print(f"    No entries in {path}")
+        return
+    
+    # Auto-detect all metric keys (exclude 'framework')
+    all_keys = []
+    for r in results_list:
+        for k in r.keys():
+            if k not in all_keys:
+                all_keys.append(k)
+    all_keys.remove('framework')
+
+    # Print header
+    print(f"\n{'=' * 60}")
+    print(f"CROSS-FRAMEWORK COMPARISON: {model_name.upper()}")
+    print(f"{'=' * 60}")
+
+    # Column widths: metric name + one column per framework
+    metric_width = max(len(k) for k in all_keys) + 2
+    fw_width = max(len(r['framework']) for r in results_list) + 2
+
+    # Header row
+    header = f"{'Metric':<{metric_width}}"
+    for r in results_list:
+        header += f"{r['framework']:>{fw_width}}"
+    print(header)
+    print("-" * len(header))
+
+    # Data rows
+    for key in all_keys:
+        row = f"{key:<{metric_width}}"
+        for r in results_list:
+            val = r.get(key, 'N/A')
+            if isinstance(val, float):
+                row += f"{val:>{fw_width}.4f}"
+            else:
+                row += f"{str(val):>{fw_width}}"
+        print(row)
+
+    print(f"\n    Frameworks: {len(results_list)}/4 recorded")

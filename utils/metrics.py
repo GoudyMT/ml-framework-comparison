@@ -212,3 +212,27 @@ def macro_f1_score(y_true, y_pred, return_per_class=False):
     if return_per_class:
         return macro, f1_scores
     return macro
+
+# CLUSTERING METRICS (Added during K-Means)
+
+def inertia(X, labels, centroids):
+    """
+    Within-cluster sum of squares (WCSS).
+
+    Measures cluster compactness by summing the squared euclidean distance
+    from each sample to its assigned centroid. Lower = tighter clusters.
+    Used in the elbow method to find optimal K.
+
+    Args:
+        X: Feature matrix (n_samples, n_features)
+        labels: Cluster assignments (n_samples,)
+        centroids: Cluster centers (K, n_features)
+
+    Returns:
+        float: Total WCSS across all clusters.
+    """
+    total = 0.0
+    for k in range(len(centroids)):
+        cluster_points = X[labels == k]
+        total += np.sum((cluster_points - centroids[k]) ** 2)
+    return total

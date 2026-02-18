@@ -265,3 +265,155 @@ def plot_per_class_f1(y_true, y_pred, class_names, framework, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# CLUSTERING VISUALIZATIONS (Added during K-Means)
+
+def plot_elbow_curve(k_values, inertias, framework, best_k=None, save_path=None):
+    """
+    Inertia vs K plot for finding optimal cluster count.
+
+    The "elbow" point where inertia stops dropping sharply suggests
+    the best K — adding more clusters beyond that gives diminishing returns.
+
+    Args:
+        k_values: List of K values tested.
+        inertias: Inertia (WCSS) for each K.
+        framework: Name for the title.
+        best_k: Optional K to highlight with a vertical line.
+        save_path: Optional path to save the figure.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(k_values, inertias, 'b-o', linewidth=2, markersize=8)
+
+    if best_k is not None:
+        plt.axvline(x=best_k, color='red', linestyle='--', alpha=0.7,
+                    label=f'Best K={best_k}')
+        plt.legend(fontsize=11)
+
+    plt.xlabel('K (Number of Clusters)', fontsize=12)
+    plt.ylabel('Inertia (WCSS)', fontsize=12)
+    plt.title(f'{framework} — Elbow Curve', fontsize=14)
+    plt.xticks(k_values)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_silhouette_comparison(k_values, silhouette_scores, framework, best_k=None, save_path=None):
+    """
+    Silhouette Score vs K to confirm optimal cluster count.
+
+    Complements the elbow curve — the K with the highest silhouette
+    score has the best-defined cluster boundaries.
+
+    Args:
+        k_values: List of K values tested.
+        silhouette_scores: Silhouette score for each K.
+        framework: Name for the title.
+        best_k: Optional K to highlight with a vertical line.
+        save_path: Optional path to save the figure.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(k_values, silhouette_scores, 'g-o', linewidth=2, markersize=8)
+
+    if best_k is not None:
+        plt.axvline(x=best_k, color='red', linestyle='--', alpha=0.7,
+                    label=f'Best K={best_k}')
+        plt.legend(fontsize=11)
+
+    plt.xlabel('K (Number of Clusters)', fontsize=12)
+    plt.ylabel('Silhouette Score', fontsize=12)
+    plt.title(f'{framework} — Silhouette Comparison', fontsize=14)
+    plt.xticks(k_values)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_silhouette_analysis(X, labels, framework, save_path=None):
+    """
+    Per-sample silhouette plot grouped by cluster.
+
+    Each cluster is shown as a horizontal blade of sorted silhouette values.
+    Wide, uniform blades = well-defined clusters. Thin or negative blades =
+    fuzzy/overlapping clusters. More insightful than 2D PCA scatter
+    for high-dimensional data (16 features).
+
+    Args:
+        X: Feature matrix (n_samples, n_features).
+        labels: Cluster assignments (n_samples,).
+        framework: Name for the title.
+        save_path: Optional path to save the figure.
+    """
+    from .metrics import silhouette_samples, silhouette_score
+
+    sample_scores = silhouette_samples(X, labels)
+    mean_score = np.mean(sample_scores)
+    unique_labels = np.unique(labels)
+    n_clusters = len(unique_labels)
+
+    plt.figure(figsize=(10, 8))
+    y_lower = 10  # Starting y position for first cluster blade
+
+    for i, label in enumerate(unique_labels):
+        # Get silhouette values for this cluster, sorted ascending
+        cluster_scores = sample_scores[labels == label]
+        cluster_scores.sort()
+
+        cluster_size = len(cluster_scores)
+        y_upper = y_lower + cluster_size
+
+        # Fill between creates the blade shape
+        color = plt.cm.tab10(i / n_clusters)
+        plt.fill_betweenx(np.arange(y_lower, y_upper), 0, cluster_scores,
+                          facecolor=color, edgecolor=color, alpha=0.7)
+
+        # Label each cluster at its midpoint
+        plt.text(-0.05, y_lower + 0.5 * cluster_size, str(label), fontsize=10)
+
+        y_lower = y_upper + 10  # Gap between clusters
+
+    # Vertical line for mean silhouette score
+    plt.axvline(x=mean_score, color='red', linestyle='--',
+                label=f'Mean: {mean_score:.3f}')
+
+    plt.xlabel('Silhouette Score', fontsize=12)
+    plt.ylabel('Cluster', fontsize=12)
+    plt.title(f'{framework} — Silhouette Analysis ({n_clusters} Clusters)', fontsize=14)
+    plt.legend(fontsize=11)
+    plt.yticks([])
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_convergence_curve(inertia_history, framework, save_path=None):
+    """
+    Inertia per iteration showing algorithm convergence.
+
+    A well-behaved K-Means run shows inertia dropping steeply at first,
+    then flattening as centroids stabilize.
+
+    Args:
+        inertia_history: List of inertia values, one per iteration.
+        framework: Name for the title.
+        save_path: Optional path to save the figure.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(inertia_history) + 1), inertia_history,
+             'b-o', linewidth=2, markersize=6)
+
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Inertia (WCSS)', fontsize=12)
+    plt.title(f'{framework} — Convergence Curve', fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

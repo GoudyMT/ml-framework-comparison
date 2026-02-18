@@ -236,3 +236,57 @@ def inertia(X, labels, centroids):
         cluster_points = X[labels == k]
         total += np.sum((cluster_points - centroids[k]) ** 2)
     return total
+
+def silhouette_samples(X, labels):
+    """
+    Per-sample silhouette values for cluster quality assessment.
+
+    For each sample, measures how similar it is to its own cluster (a)
+    versus the nearest neighboring cluster (b):
+        s(i) = (b(i) - a(i)) / max(a(i), b(i))
+
+    Range: -1 (wrong cluster) to +1 (well-matched to cluster).
+    Values near 0 indicate samples on cluster boundaries.
+
+    Args:
+        X: Feature matrix (n_samples, n_features)
+        labels: Cluster assignments (n_samples,)
+
+    Returns:
+        numpy array: Silhouette value for each sample (n_samples,)
+    """
+    n_samples = len(X)
+    unique_labels = np.unique(labels)
+    silhouette_vals = np.zeros(n_samples)
+
+    # Precompute pairwise euclidean distances (0(n^2) but tractable for ~10k)
+    # Diff shape: (n, n, features) -> squared distances -> sum -> sqrt
+    diffs = X[:, np.newaxis, :] - X[np.newaxis, :, :]
+    dist_matrix = np.sqrt(np.sum(diffs ** 2, axis=2))
+
+    for i in range(n_samples):
+        current_label = labels[i]
+        same_mask = labels == current_label
+        same_count = np.sum(same_mask) - 1  # exclude self
+
+        if same_count == 0:
+            # Only member of cluster — silhouette undefined, set to 0
+            silhouette_vals[i] = 0.0
+            continue
+
+        # a(i): mean distance to other samples in same cluster
+        a_i = np.sum(dist_matrix[i, same_mask]) / same_count
+
+        # b(i): min mean distance to any other cluster
+        b_i = np.inf
+        for label in unique_labels:
+            if label == current_label:
+                continue
+            other_mask = labels == label
+            mean_dist = np.mean(dist_matrix[i, other_mask])
+            if mean_dist < b_i:
+                b_i = mean_dist
+
+        silhouette_vals[i] = (b_i - a_i) / max(a_i, b_i)
+
+    return silhouette_vals

@@ -1,0 +1,9 @@
+{
+  "framework": "PyTorch",
+  "inertia": 9976.284798257622,
+  "silhouette": 0.30643302478339024,
+  "ari": 0.6683871676374171,
+  "iterations": 17,
+  "training_time": 0.3358943462371826,
+  "peak_memory_mb": 0.009154319763183594
+}

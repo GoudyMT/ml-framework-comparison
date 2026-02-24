@@ -1,0 +1,9 @@
+{
+  "framework": "TensorFlow",
+  "inertia": 9976.28482400193,
+  "silhouette": 0.30643302478339024,
+  "ari": 0.6683871676374171,
+  "iterations": 24,
+  "training_time": 2.014484167098999,
+  "peak_memory_mb": 0.10967159271240234
+}

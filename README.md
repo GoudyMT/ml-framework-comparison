@@ -75,38 +75,47 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ├── LICENSE
 ├── data/       # .gitignore for entire folder (large files + processed data from data-preperation)
 │   ├── raw/
-│   │   ├── vehicles.csv    
-│   │   └── creditcard.csv  
-│   └── processed/
-│       ├── linear_regression/     
-│       ├── logistic_regression/
-│       └── knn/
+│   │   ├── vehicles.csv
+│   │   └── creditcard.csv
+│   ├── processed/
+│   │   ├── linear_regression/
+│   │   ├── logistic_regression/
+│   │   ├── knn/
+│   │   └── kmeans/
+│   └── results/            # Cross-framework comparison JSONs (one per model)
+│       └── kmeans.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
-│   └── preprocess_knn.py
+│   ├── preprocess_knn.py
+│   └── preprocess_kmeans.py
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
 │   ├── metrics.py
 │   ├── performance.py
-│   └── visualization.py
+│   ├── visualization.py
+│   └── results.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
-│   └── 03-knn/
+│   ├── 03-knn/
+│   └── 04-k-means/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
-│   └── 03-knn/
+│   ├── 03-knn/
+│   └── 04-k-means/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
-│   └── 03-knn/
+│   ├── 03-knn/
+│   └── 04-k-means/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
-    └── 03-knn/
+    ├── 03-knn/
+    └── 04-k-means/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -122,6 +131,9 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `results.py` | `save_results`, `add_result`, `print_comparison` | K-Means | Cross-framework result saving and comparison |
+| `metrics.py` | `inertia`, `silhouette_score`, `silhouette_samples`, `adjusted_rand_index` | K-Means | Unsupervised clustering evaluation |
+| `visualization.py` | `plot_elbow_curve`, `plot_silhouette_comparison`, `plot_silhouette_analysis`, `plot_convergence_curve` | K-Means | Clustering visualizations |
 | `performance.py` | `track_performance(gpu=True)` | KNN (PyTorch) | GPU memory tracking for PyTorch/TensorFlow |
 | `data_loader.py` | `load_processed_data` | KNN | Generic data loader for any model |
 | `metrics.py` | `confusion_matrix_multiclass`, `macro_f1_score` | KNN | Multi-class evaluation |
@@ -160,21 +172,25 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 
 (Newest entries at top; grows downward as we complete models)
 
-- **2025-02-15 | KNN Summary: *All 4 frameworks achieve 93.77% accuracy | Scikit-Learn KD-tree fastest (57s)***
-- 2025-02-15 | KNN / TensorFlow | Chunked broadcasting on CPU (TF 2.11+ no Windows GPU). 93.77% accuracy, 110/sec. | [TensorFlow/03-knn](TensorFlow/03-knn/)
-- 2025-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
-- 2025-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
-- 2025-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
-- **2025-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
-- 2025-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
-- 2025-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework (2.36s). | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
-- 2025-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s). | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
-- 2025-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
-- **2025-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
-- 2025-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
-- 2025-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
-- 2025-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
-- 2025-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
+- 2026-02-22 | K-Means / PyTorch | GPU-accelerated torch.cdist + torch.vmap/torch.compile showcases. 0.3064 silhouette, 0.6684 ARI. | [PyTorch/04-k-means](PyTorch/04-k-means/)
+- 2026-02-21 | K-Means / No-Framework | From-scratch Lloyd's algorithm, K-Means++ init. Matches sklearn metrics, 17x slower. | [No-Framework/04-k-means](No-Framework/04-k-means/)
+- 2026-02-18 | K-Means / Scikit-Learn | KMeans + MiniBatchKMeans comparison. K=7, 0.3061 silhouette, 0.6686 ARI. | [Scikit-Learn/04-k-means](Scikit-Learn/04-k-means/)
+- 2026-02-17 | K-Means utilities | Preprocessing script, results.py, clustering metrics + visualizations in utils/ | [utils/](utils/)
+- **2026-02-15 | KNN Summary: *All 4 frameworks achieve 93.77% accuracy | Scikit-Learn KD-tree fastest (57s)***
+- 2026-02-15 | KNN / TensorFlow | Chunked broadcasting on CPU (TF 2.11+ no Windows GPU). 93.77% accuracy, 110/sec. | [TensorFlow/03-knn](TensorFlow/03-knn/)
+- 2026-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
+- 2026-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
+- 2026-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
+- **2026-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
+- 2026-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
+- 2026-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework (2.36s). | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
+- 2026-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s). | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
+- 2026-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
+- **2026-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
+- 2026-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
+- 2026-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
+- 2026-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
+- 2026-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
 
 ## How to Run / Setup
 
@@ -186,6 +202,16 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### K-Means Clustering (In Progress — 3/4 frameworks)
+
+- **First unsupervised model** — no labels during training. Evaluation shifts from accuracy/F1 to inertia, silhouette score, and ARI
+- **Metrics match across all 3 frameworks** (inertia ~9,976, silhouette ~0.3064, ARI ~0.6684) — algorithm is implementation-agnostic
+- **K=3 vs K=7 tradeoff**: Silhouette peaks at K=3 (3 natural geometric groupings), but K=7 matches ground truth bean types for ARI evaluation
+- **Scikit-Learn fastest (0.06s)**, No-Framework 17x slower (1.02s), PyTorch GPU in between (0.34s) — GPU minimal benefit at 10K samples
+- **torch.compile limited on Windows**: TorchInductor backend doesn't fully support Windows in PyTorch 2.5.1. Manual broadcasting was 1.9x faster than torch.cdist
+- **torch.vmap works**: 1.15x speedup for parallel n_init runs. Modest at this scale but demonstrates vectorized map pattern
+- **New `results.py` utility**: Automated cross-framework comparison — `add_result()` collects results as each framework finishes, `print_comparison()` displays aligned table
 
 ### K-Nearest Neighbors (Completed)
 
@@ -224,7 +250,8 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
-- Complete remaining beginner models (K-Means, Naive Bayes)
+- Complete K-Means across all 4 frameworks (3/4 Completed)
+- Complete remaining beginner models (Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

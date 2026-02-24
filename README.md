@@ -172,6 +172,8 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-02-24 | K-Means Summary: *All 4 frameworks achieve identical clustering quality | ARI 0.6684, Silhouette 0.3064***
+- 2026-02-24 | K-Means / TensorFlow | CPU tensor ops, tf.TensorArray for immutable tensors. 0.3064 silhouette, 0.6684 ARI, slowest at 2.01s. | [TensorFlow/04-k-means](TensorFlow/04-k-means/)
 - 2026-02-22 | K-Means / PyTorch | GPU-accelerated torch.cdist + torch.vmap/torch.compile showcases. 0.3064 silhouette, 0.6684 ARI. | [PyTorch/04-k-means](PyTorch/04-k-means/)
 - 2026-02-21 | K-Means / No-Framework | From-scratch Lloyd's algorithm, K-Means++ init. Matches sklearn metrics, 17x slower. | [No-Framework/04-k-means](No-Framework/04-k-means/)
 - 2026-02-18 | K-Means / Scikit-Learn | KMeans + MiniBatchKMeans comparison. K=7, 0.3061 silhouette, 0.6686 ARI. | [Scikit-Learn/04-k-means](Scikit-Learn/04-k-means/)
@@ -203,12 +205,13 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 
 (Updated over time)
 
-### K-Means Clustering (In Progress — 3/4 frameworks)
+### K-Means Clustering (Completed)
 
 - **First unsupervised model** — no labels during training. Evaluation shifts from accuracy/F1 to inertia, silhouette score, and ARI
-- **Metrics match across all 3 frameworks** (inertia ~9,976, silhouette ~0.3064, ARI ~0.6684) — algorithm is implementation-agnostic
+- **Metrics match across all 4 frameworks** (inertia ~9,976, silhouette ~0.3064, ARI ~0.6684) — algorithm is implementation-agnostic
 - **K=3 vs K=7 tradeoff**: Silhouette peaks at K=3 (3 natural geometric groupings), but K=7 matches ground truth bean types for ARI evaluation
-- **Scikit-Learn fastest (0.06s)**, No-Framework 17x slower (1.02s), PyTorch GPU in between (0.34s) — GPU minimal benefit at 10K samples
+- **Scikit-Learn fastest (0.06s)**, PyTorch GPU (0.34s), No-Framework (1.02s), TensorFlow CPU slowest (2.01s) — GPU minimal benefit at 10K samples
+- **TensorFlow slowest due to CPU + eager overhead**: 33x slower than Scikit-Learn, even 2x slower than No-Framework's pure NumPy
 - **torch.compile limited on Windows**: TorchInductor backend doesn't fully support Windows in PyTorch 2.5.1. Manual broadcasting was 1.9x faster than torch.cdist
 - **torch.vmap works**: 1.15x speedup for parallel n_init runs. Modest at this scale but demonstrates vectorized map pattern
 - **New `results.py` utility**: Automated cross-framework comparison — `add_result()` collects results as each framework finishes, `print_comparison()` displays aligned table
@@ -250,7 +253,7 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 - ~~Complete Linear Regression across all 4 frameworks~~
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
-- Complete K-Means across all 4 frameworks (3/4 Completed)
+- ~~Complete K-Means across all 4 frameworks~~
 - Complete remaining beginner models (Naive Bayes)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys

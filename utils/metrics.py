@@ -361,3 +361,37 @@ def adjusted_rand_index(labels_true, labels_pred):
     if max_index == expected:
         return 1.0 # Perfect agreement edge case
     return (index - expected) / (max_index - expected)
+
+# PROBABILISTIC METRICS (Added during Naive Bayes)
+
+def log_loss(y_true, y_proba, eps=1e-15):
+    """
+    Cross-entropy loss for probabilistic predictions.
+
+    Measures how well predicted probabilities match actual class labels.
+    Penalizes confident wrong predictions heavily (log(0) -> -inf).
+    Lower is better. Perfect predictions give log_loss = 0.
+
+    Binary: -mean(y * log(p) + (1-y) * log(1-p))
+    Multiclass: -mean(sum_k y_k * log(p_k))
+
+    Args:
+        y_true: True labels. Binary: (n_samples,) with 0/1.
+            Multiclass: (n_samples,) with integer class labels.
+        y_proba: Predicted probabilities. Binary: (n_samples,) with P(class=1).
+            Multiclass: (n_samples, n_classes).
+        eps: Small value to clip probabilities, preventing log(0).
+
+    Returns:
+        float: Mean cross-entropy loss.
+    """
+    y_proba = np.clip(y_proba, eps, 1 - eps)
+
+    if y_proba.ndim == 1:
+        # Binary classification
+        return -np.mean(y_true * np.log(y_proba) + (1 - y_true) * np.log(1 - y_proba))
+    else:
+        # Multiclass — convert labels to one-hot
+        n_classes = y_proba.shape[1]
+        y_one_hot = np.eye(n_classes)[y_true.astype(int)]
+        return -np.mean(np.sum(y_one_hot * np.log(y_proba), axis=1))

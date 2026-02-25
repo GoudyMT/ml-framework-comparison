@@ -395,3 +395,85 @@ def log_loss(y_true, y_proba, eps=1e-15):
         n_classes = y_proba.shape[1]
         y_one_hot = np.eye(n_classes)[y_true.astype(int)]
         return -np.mean(np.sum(y_one_hot * np.log(y_proba), axis=1))
+    
+def brier_score(y_true, y_proba):
+    """
+    Brier score: mean squared error of probability predictions.
+
+    Measures calibration quality - how close predicted probabilities
+    are to actual outcomes. Unlike log_loss, doesn't penalize confident
+    wrong predictions as harshly.
+
+    Range: 0 (perfect) to 1 (worst). Random binary classifier = 0.25.
+
+    Binary: mean((p - y)^2)
+    Multiclass: mean(sum_k (p_k - y_k)^2)
+
+    Args:
+        y_true: True labels (n_samples,). Binary (0/1) or multiclass integers.
+        y_proba: Predicted probabilities. Binary: (n_samples,).
+            Multiclass: (n_samples, n_classes).
+
+    Returns:
+        float: Mean Brier score.
+    """
+    if y_proba.ndim == 1:
+        # Binary classification
+        return np.mean((y_proba - y_true) ** 2)
+    else:
+        # Multiclass - convert labels to one-hot
+        n_classes = y_proba.shape[1]
+        y_one_hot = np.eye(n_classes)[y_true.astype(int)]
+        return np.mean(np.sum((y_proba - y_one_hot) ** 2, axis=1))
+    
+def expected_calibration_error(y_true, y_proba, n_bins=10):
+    """
+    Expected calibration error (ECE).
+
+    Measures how well predicted probabilities match observed frequencies.
+    Bins predictions by confidence, then compares average predicted
+    probability to actual accuracy in each bin.
+
+    A well-calibrated model with ECE=0 means: when it says "80 confident",
+    it's correct 80% of the time.
+
+    Args:
+        y_true: True labels (n_samples,).
+        y_proba: Predicted probabilities. Binary: (n_samples,),
+            Multiclass: (n_samples, n_classes).
+        n_bins: Number of bins for grouping predictions by confidence.
+
+    Returns:
+        float: Weighted average of |accuracy - confidence| per bin.
+    """
+    if y_proba.ndim == 1:
+        # Binary: confidence is predicted probability, correct if label matches threshold
+        confidences = y_proba
+        accuracies = (y_true == (y_proba >= 0.5).astype(int)).astype(float)
+    else:
+        # Multiclass: confidence is max predicted probability
+        confidences = np.max(y_proba, axis=1)
+        predicted_labels = np.argmax(y_proba, axis=1)
+        accuracies = (predicted_labels == y_true).astype(float)
+
+    # Bin predictions by confidence level
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+    ece = 0.0
+    n_total = len(y_true)
+
+    for i in range(n_bins):
+        # Samples in this confidence bin
+        bin_mask = (confidences > bin_edges[i]) & (confidences <= bin_edges[i + 1])
+        bin_count = np.sum(bin_mask)
+
+        if bin_count == 0:
+            continue
+
+        # Average accuracy and confidence in this bin
+        bin_accuracy = np.mean(accuracies[bin_mask])
+        bin_confidence = np.mean(confidences[bin_mask])
+
+        # Weighted contribution to ECE
+        ece += (bin_count / n_total) * np.abs(bin_accuracy - bin_confidence)
+
+    return ece

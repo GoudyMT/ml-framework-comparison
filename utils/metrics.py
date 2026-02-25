@@ -434,7 +434,7 @@ def expected_calibration_error(y_true, y_proba, n_bins=10):
     Bins predictions by confidence, then compares average predicted
     probability to actual accuracy in each bin.
 
-    A well-calibrated model with ECE=0 means: when it says "80 confident",
+    A well-calibrated model with ECE=0 means: when it says "80% confident",
     it's correct 80% of the time.
 
     Args:
@@ -477,3 +477,78 @@ def expected_calibration_error(y_true, y_proba, n_bins=10):
         ece += (bin_count / n_total) * np.abs(bin_accuracy - bin_confidence)
 
     return ece
+
+# EVALUATION HELPERS (Added during Naive Bayes)
+
+def evaluate_classifier(y_true, y_pred, y_proba=None):
+    """
+    Compute all applicable classification metrics in one call.
+
+    Auto-detects binary vs multiclass from the labels. Includes
+    probabilistic metrics (log-loss, Brier, ECE) when y_proba is provided.
+
+    Binary (2 classes): accuracy, precision, recall, f1, + auc if y_proba.
+    Multiclass (3+ classes): accuracy, macro_f1.
+    Probabilistic (any, if y_proba): log_loss, brier_score, ece.
+
+    Args:
+        y_true: True labels (n_samples,).
+        y_pred: Predicted labels (n_samples,).
+        y_proba: Predicted probabilities. Optional.
+            Binary: (n_samples,) with P(class=1).
+            Multiclass: (n_samples, n_classes).
+
+    Returns:
+        dict: Metric names mapped to float values.
+    """
+    n_classes = len(np.unique(y_true))
+    metrics = {}
+
+    if n_classes == 2:
+        # Binary classification
+        metrics['accuracy'] = float(accuracy(y_true, y_pred))
+        metrics['precision'] = float(precision(y_true, y_pred))
+        metrics['recall'] = float(recall(y_true, y_pred))
+        metrics['f1'] = float(f1_score(y_true, y_pred))
+        if y_proba is not None:
+            metrics['auc'] = float(auc_score(y_true, y_proba))
+    else:
+        # Multiclass classification
+        metrics['accuracy'] = float(accuracy(y_true, y_pred))
+        metrics['macro_f1'] = float(macro_f1_score(y_true, y_pred)) # type: ignore
+
+    # Probabilistic metrics — applicable to both binary and multiclass
+    if y_proba is not None:
+        metrics['log_loss'] = float(log_loss(y_true, y_proba))
+        metrics['brier_score'] = float(brier_score(y_true, y_proba))
+        metrics['ece'] = float(expected_calibration_error(y_true, y_proba))
+
+    return metrics
+
+def print_metrics(train_metrics, test_metrics, title=""):
+    """
+    Print formatted train/test comparison table.
+
+    Generic - takes any two dicts with matching keys and prints
+    them side by side. Works for classification, regression, clustering.
+
+    Args:
+        train_metrics: Dict of metric_name -> float (training set).
+        test_metrics: Dict of metric_name -> float (test set).
+        title: Optional title for the table header.
+    """
+    print(f"\n{'=' * 60}")
+    if title:
+        print(f"METRICS — {title}")
+    else:
+        print("METRICS")
+    print(f"{'=' * 60}")
+    print(f"{'Metric':<25} {'Train':>12} {'Test':>12}")
+    print(f"{'-' * 49}")
+
+    for key in train_metrics:
+        train_val = train_metrics[key]
+        test_val = test_metrics.get(key, float('nan'))
+        print(f"{key:<25} {train_val:>12.4f} {test_val:>12.4f}")
+
+    print(f"{'=' * 60}")

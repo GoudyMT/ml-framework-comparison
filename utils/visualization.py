@@ -417,3 +417,84 @@ def plot_convergence_curve(inertia_history, framework, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+
+# PROBABILISTIC VISUALIZATIONS (Added during Naive Bayes)
+
+def plot_calibration_curve(y_true, y_proba, framework, n_bins=10, save_path=None):
+    """
+    Reliability diagram showing predicted vs actual probability.
+
+    A perfectly calibrated model follows the diagonal (y=x).
+    Points above the diagonal: model is under-confident.
+    Points below the diagonal: model is over-confident.
+
+    Two-panel layout:
+    - Top: calibration curve with perfect diagonal reference
+    - Bottom: histogram of prediction counts per bin
+
+    For multiclass: uses max predicted probability and checks if
+    the predicted class matches the true class.
+
+    Args:
+        y_true: True labels (n_samples,).
+        y_proba: Predicted probabilities. Binary: (n_samples,).
+            Multiclass: (n_samples, n_classes).
+        framework: Name for the title.
+        n_bins: Number of bins for grouping predictions.
+        save_path: Optional path to save the figure.
+    """
+    # Extract confidences and correctness
+    if y_proba.ndim == 1:
+        confidences = y_proba
+        correct = (y_true == (y_proba >= 0.5).astype(int)).astype(float)
+    else:
+        confidences = np.max(y_proba, axis=1)
+        correct = (np.argmax(y_proba, axis=1) == y_true).astype(float)
+
+    # Bin predictions by confidence
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+    bin_centers = []
+    bin_accuracies = []
+    bin_counts = []
+
+    for i in range(n_bins):
+        mask = (confidences > bin_edges[i]) & (confidences <= bin_edges[i + 1])
+        count = np.sum(mask)
+        bin_counts.append(count)
+
+        if count == 0:
+            continue
+
+        bin_centers.append(np.mean(confidences[mask]))
+        bin_accuracies.append(np.mean(correct[mask]))
+
+    # Two-panel layout: calibration curve on top, histogram on bottom
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8),
+                                    gridspec_kw={'height_ratios': [3, 1]})
+
+    # Top panel: calibration curve
+    ax1.plot([0, 1], [0, 1], 'r--', linewidth=1, label='Perfect calibration')
+    ax1.plot(bin_centers, bin_accuracies, 'b-o', linewidth=2, markersize=8,
+             label=f'{framework}')
+    ax1.set_xlabel('Mean Predicted Probability', fontsize=12)
+    ax1.set_ylabel('Fraction of Positives', fontsize=12)
+    ax1.set_title(f'{framework} — Calibration Curve (Reliability Diagram)', fontsize=14)
+    ax1.legend(loc='lower right', fontsize=11)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim([0, 1])
+    ax1.set_ylim([0, 1])
+
+    # Bottom panel: histogram of prediction counts
+    ax2.bar(range(n_bins), bin_counts, color='steelblue', alpha=0.7)
+    ax2.set_xlabel('Confidence Bin', fontsize=12)
+    ax2.set_ylabel('Count', fontsize=12)
+    ax2.set_xticks(range(n_bins))
+    ax2.set_xticklabels([f'{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f}'
+                         for i in range(n_bins)], rotation=45, fontsize=8)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

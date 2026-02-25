@@ -81,14 +81,17 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── linear_regression/
 │   │   ├── logistic_regression/
 │   │   ├── knn/
-│   │   └── kmeans/
+│   │   ├── kmeans/
+│   │   ├── naive_bayes_gaussian/
+│   │   └── naive_bayes_text/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       └── kmeans.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
 │   ├── preprocess_knn.py
-│   └── preprocess_kmeans.py
+│   ├── preprocess_kmeans.py
+│   └── preprocess_naive_bayes.py
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -100,22 +103,26 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
-│   └── 04-k-means/
+│   ├── 04-k-means/
+│   └── 05-naive-bayes/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
-│   └── 04-k-means/
+│   ├── 04-k-means/
+│   └── 05-naive-bayes/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
-│   └── 04-k-means/
+│   ├── 04-k-means/
+│   └── 05-naive-bayes/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
     ├── 03-knn/
-    └── 04-k-means/
+    ├── 04-k-means/
+    └── 05-naive-bayes/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -131,6 +138,10 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `metrics.py` | `log_loss`, `brier_score`, `expected_calibration_error` | Naive Bayes | Probabilistic evaluation (calibration quality) |
+| `metrics.py` | `evaluate_classifier`, `print_metrics` | Naive Bayes | Streamlined evaluation helpers — auto-detect binary/multiclass, formatted tables |
+| `performance.py` | `track_inference`, `get_model_size` | Naive Bayes | Inference speed (per-sample μs, throughput) and model size tracking |
+| `visualization.py` | `plot_calibration_curve` | Naive Bayes | Reliability diagram (two-panel: calibration curve + confidence histogram) |
 | `results.py` | `save_results`, `add_result`, `print_comparison` | K-Means | Cross-framework result saving and comparison |
 | `metrics.py` | `inertia`, `silhouette_score`, `silhouette_samples`, `adjusted_rand_index` | K-Means | Unsupervised clustering evaluation |
 | `visualization.py` | `plot_elbow_curve`, `plot_silhouette_comparison`, `plot_silhouette_analysis`, `plot_convergence_curve` | K-Means | Clustering visualizations |
@@ -151,33 +162,36 @@ The package evolves organically: during the planning phase when new model types 
 
 ### Usage Pattern
 ```python
-from utils.metrics import accuracy, precision, recall, f1_score, auc_score
-from utils.performance import track_performance
-from utils.visualization import plot_confusion_matrix, plot_roc_curve
+from utils.metrics import evaluate_classifier, print_metrics
+from utils.performance import track_performance, track_inference, get_model_size
+from utils.visualization import plot_calibration_curve
 
-# CPU-only tracking (Scikit-Learn, No-Framework)
+# Training with performance tracking
 with track_performance() as perf:
-    # Training code here
-    pass
-print(f"Time: {perf['time']:.2f}s, Memory: {perf['memory']:.2f} MB")
+    model.fit(X_train, y_train)
 
-# GPU tracking (PyTorch, TensorFlow)
-with track_performance(gpu=True) as perf:
-    # GPU training/inference code here
-    torch.cuda.synchronize()  # Ensure GPU ops complete
-print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
+# Streamlined evaluation (auto-detects binary/multiclass, includes probabilistic metrics)
+train_metrics = evaluate_classifier(y_train, train_pred, train_proba)
+test_metrics = evaluate_classifier(y_test, test_pred, test_proba)
+print_metrics(train_metrics, test_metrics, title='MultinomialNB — 20 Newsgroups')
+
+# Inference speed + model size (new from Naive Bayes onward)
+inference = track_inference(model.predict_proba, X_test, n_runs=100)
+model_size = get_model_size(model, framework='sklearn')
 ```
 
 ## Progress Log
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-02-24 | Naive Bayes / Preprocessing | Breast Cancer (GaussianNB baseline: 569 samples, 30 features) + 20 Newsgroups (MultinomialNB: 11,314 train, 10K TF-IDF features, 20 categories) | [data-preperation/](data-preperation/)
+- 2026-02-24 | Naive Bayes / Utilities | Added probabilistic metrics (log-loss, Brier, ECE), evaluation helpers (evaluate_classifier, print_metrics), inference tracking, model size, calibration curves | [utils/](utils/)
 - **2026-02-24 | K-Means Summary: *All 4 frameworks achieve identical clustering quality | ARI 0.6684, Silhouette 0.3064***
 - 2026-02-24 | K-Means / TensorFlow | CPU tensor ops, tf.TensorArray for immutable tensors. 0.3064 silhouette, 0.6684 ARI, slowest at 2.01s. | [TensorFlow/04-k-means](TensorFlow/04-k-means/)
 - 2026-02-22 | K-Means / PyTorch | GPU-accelerated torch.cdist + torch.vmap/torch.compile showcases. 0.3064 silhouette, 0.6684 ARI. | [PyTorch/04-k-means](PyTorch/04-k-means/)
 - 2026-02-21 | K-Means / No-Framework | From-scratch Lloyd's algorithm, K-Means++ init. Matches sklearn metrics, 17x slower. | [No-Framework/04-k-means](No-Framework/04-k-means/)
 - 2026-02-18 | K-Means / Scikit-Learn | KMeans + MiniBatchKMeans comparison. K=7, 0.3061 silhouette, 0.6686 ARI. | [Scikit-Learn/04-k-means](Scikit-Learn/04-k-means/)
-- 2026-02-17 | K-Means utilities | Preprocessing script, results.py, clustering metrics + visualizations in utils/ | [utils/](utils/)
+- 2026-02-17 | K-Means / Utilities | Preprocessing script, results.py, clustering metrics + visualizations in utils/ | [utils/](utils/)
 - **2026-02-15 | KNN Summary: *All 4 frameworks achieve 93.77% accuracy | Scikit-Learn KD-tree fastest (57s)***
 - 2026-02-15 | KNN / TensorFlow | Chunked broadcasting on CPU (TF 2.11+ no Windows GPU). 93.77% accuracy, 110/sec. | [TensorFlow/03-knn](TensorFlow/03-knn/)
 - 2026-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
@@ -254,7 +268,7 @@ print(f"Time: {perf['time']:.2f}s, GPU Memory: {perf['gpu_memory']:.2f} MB")
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
-- Complete remaining beginner models (Naive Bayes)
+- Complete Naive Bayes across all 4 frameworks (Utils/Preprocessing complete)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

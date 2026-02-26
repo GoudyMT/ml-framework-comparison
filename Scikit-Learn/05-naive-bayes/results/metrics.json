@@ -1,0 +1,13 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "MultinomialNB",
+  "accuracy": 0.668348380244291,
+  "macro_f1": 0.6393831044163554,
+  "log_loss": 1.5576246467116979,
+  "brier_score": 0.6008300894637943,
+  "ece": 0.32287769179181675,
+  "training_time": 0.20843172073364258,
+  "inference_time_per_sample_us": 17.06687878385176,
+  "model_size_bytes": 3200480,
+  "peak_memory_mb": 869.7087993621826
+}

@@ -85,7 +85,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── naive_bayes_gaussian/
 │   │   └── naive_bayes_text/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
-│       └── kmeans.json
+│       ├── kmeans.json
+│       └── naive_bayes.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -141,7 +142,7 @@ The package evolves organically: during the planning phase when new model types 
 | `metrics.py` | `log_loss`, `brier_score`, `expected_calibration_error` | Naive Bayes | Probabilistic evaluation (calibration quality) |
 | `metrics.py` | `evaluate_classifier`, `print_metrics` | Naive Bayes | Streamlined evaluation helpers — auto-detect binary/multiclass, formatted tables |
 | `performance.py` | `track_inference`, `get_model_size` | Naive Bayes | Inference speed (per-sample μs, throughput) and model size tracking |
-| `visualization.py` | `plot_calibration_curve` | Naive Bayes | Reliability diagram (two-panel: calibration curve + confidence histogram) |
+| `visualization.py` | `plot_calibration_curve`, `plot_calibration_comparison` | Naive Bayes | Reliability diagrams — single model + multi-model overlay for before/after comparison |
 | `results.py` | `save_results`, `add_result`, `print_comparison` | K-Means | Cross-framework result saving and comparison |
 | `metrics.py` | `inertia`, `silhouette_score`, `silhouette_samples`, `adjusted_rand_index` | K-Means | Unsupervised clustering evaluation |
 | `visualization.py` | `plot_elbow_curve`, `plot_silhouette_comparison`, `plot_silhouette_analysis`, `plot_convergence_curve` | K-Means | Clustering visualizations |
@@ -184,6 +185,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-02-25 | Naive Bayes / Scikit-Learn | GaussianNB (89.5%) + MultinomialNB (66.8%). Showcase: CalibratedClassifierCV reduces ECE 0.32 → 0.14 (58% improvement). | [Scikit-Learn/05-naive-bayes](Scikit-Learn/05-naive-bayes/)
 - 2026-02-24 | Naive Bayes / Preprocessing | Breast Cancer (GaussianNB baseline: 569 samples, 30 features) + 20 Newsgroups (MultinomialNB: 11,314 train, 10K TF-IDF features, 20 categories) | [data-preperation/](data-preperation/)
 - 2026-02-24 | Naive Bayes / Utilities | Added probabilistic metrics (log-loss, Brier, ECE), evaluation helpers (evaluate_classifier, print_metrics), inference tracking, model size, calibration curves | [utils/](utils/)
 - **2026-02-24 | K-Means Summary: *All 4 frameworks achieve identical clustering quality | ARI 0.6684, Silhouette 0.3064***
@@ -268,7 +270,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
-- Complete Naive Bayes across all 4 frameworks (Utils/Preprocessing complete)
+- Complete Naive Bayes across all 4 frameworks (Scikit-Learn complete, 1/4)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

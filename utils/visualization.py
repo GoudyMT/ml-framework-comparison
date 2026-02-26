@@ -498,3 +498,90 @@ def plot_calibration_curve(y_true, y_proba, framework, n_bins=10, save_path=None
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+def plot_calibration_comparison(y_true, probas_dict, n_bins=10, save_path=None):
+    """
+    Overlay multiple models' calibration curves for before/after comparison.
+
+    Same two-panel layout as plot_calibration_curve but with multiple
+    models on the same axes. Useful for comparing uncalibrated vs
+    calibrated probabilities (e.g., NB vs Platt-scaled NB).
+
+    Args:
+        y_true: True labels (n_samples,).
+        probas_dict: Dict of {model_name: y_proba}. Each y_proba is
+            either (n_samples,) for binary or (n_samples, n_classes)
+            for multiclass.
+        n_bins: Number of bins for grouping predictions.
+        save_path: Optional path to save the figure.
+    """
+    colors = ['#1f77b4', '#2ca02c', '#ff7f0e', '#d62728']  # blue, green, orange, red
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8),
+                                    gridspec_kw={'height_ratios': [3, 1]})
+
+    # Perfect calibration reference line
+    ax1.plot([0, 1], [0, 1], 'r--', linewidth=1, label='Perfect calibration')
+
+    bar_width = 0.8 / len(probas_dict)
+
+    for idx, (name, y_proba) in enumerate(probas_dict.items()):
+        # Extract confidences and correctness (same logic as plot_calibration_curve)
+        if y_proba.ndim == 1:
+            confidences = y_proba
+            correct = (y_true == (y_proba >= 0.5).astype(int)).astype(float)
+        else:
+            confidences = np.max(y_proba, axis=1)
+            correct = (np.argmax(y_proba, axis=1) == y_true).astype(float)
+
+        # Bin predictions by confidence
+        bin_centers = []
+        bin_accuracies = []
+        bin_counts = []
+
+        for i in range(n_bins):
+            mask = (confidences > bin_edges[i]) & (confidences <= bin_edges[i + 1])
+            count = np.sum(mask)
+            bin_counts.append(count)
+
+            if count == 0:
+                continue
+
+            bin_centers.append(np.mean(confidences[mask]))
+            bin_accuracies.append(np.mean(correct[mask]))
+
+        color = colors[idx % len(colors)]
+
+        # Top panel: calibration curve
+        ax1.plot(bin_centers, bin_accuracies, '-o', color=color,
+                 linewidth=2, markersize=8, label=name)
+
+        # Bottom panel: grouped histogram bars
+        offsets = np.arange(n_bins) + idx * bar_width
+        ax2.bar(offsets, bin_counts, width=bar_width, color=color,
+                alpha=0.7, label=name)
+
+    # Format top panel
+    ax1.set_xlabel('Mean Predicted Probability', fontsize=12)
+    ax1.set_ylabel('Fraction of Positives', fontsize=12)
+    ax1.set_title('Calibration Comparison (Reliability Diagram)', fontsize=14)
+    ax1.legend(loc='lower right', fontsize=11)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim([0, 1])
+    ax1.set_ylim([0, 1])
+
+    # Format bottom panel
+    ax2.set_xlabel('Confidence Bin', fontsize=12)
+    ax2.set_ylabel('Count', fontsize=12)
+    center_offsets = np.arange(n_bins) + bar_width * (len(probas_dict) - 1) / 2
+    ax2.set_xticks(center_offsets)
+    ax2.set_xticklabels([f'{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f}'
+                         for i in range(n_bins)], rotation=45, fontsize=8)
+    ax2.legend(fontsize=9)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

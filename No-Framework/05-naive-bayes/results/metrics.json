@@ -1,0 +1,13 @@
+{
+  "framework": "No-Framework",
+  "model": "MultinomialNB",
+  "accuracy": 0.668348380244291,
+  "macro_f1": 0.6393831044163554,
+  "log_loss": 1.5576246699258858,
+  "brier_score": 0.6008300933882036,
+  "ece": 0.3228776976366635,
+  "training_time": 0.13449358940124512,
+  "inference_time_per_sample_us": 14.657934944237306,
+  "model_size_bytes": 1600160,
+  "peak_memory_mb": 47.246150970458984
+}

@@ -185,6 +185,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-02-26 | Naive Bayes / No-Framework | Pure NumPy GaussianNB + MultinomialNB from scratch. Faster (0.13s vs 0.21s), 18x less memory. Showcase: log-sum-exp trick. | [No-Framework/05-naive-bayes](No-Framework/05-naive-bayes/)
 - 2026-02-25 | Naive Bayes / Scikit-Learn | GaussianNB (89.5%) + MultinomialNB (66.8%). Showcase: CalibratedClassifierCV reduces ECE 0.32 → 0.14 (58% improvement). | [Scikit-Learn/05-naive-bayes](Scikit-Learn/05-naive-bayes/)
 - 2026-02-24 | Naive Bayes / Preprocessing | Breast Cancer (GaussianNB baseline: 569 samples, 30 features) + 20 Newsgroups (MultinomialNB: 11,314 train, 10K TF-IDF features, 20 categories) | [data-preperation/](data-preperation/)
 - 2026-02-24 | Naive Bayes / Utilities | Added probabilistic metrics (log-loss, Brier, ECE), evaluation helpers (evaluate_classifier, print_metrics), inference tracking, model size, calibration curves | [utils/](utils/)
@@ -270,7 +271,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
-- Complete Naive Bayes across all 4 frameworks (Scikit-Learn complete, 1/4)
+- Complete Naive Bayes across all 4 frameworks (Scikit-Learn + No-Framework complete, 2/4)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

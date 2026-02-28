@@ -185,9 +185,11 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-02-27 | Naive Bayes / PyTorch | GPU-accelerated NB on RTX 4090. Fastest: 0.028s training, 3.5 μs/sample inference. Showcase: CPU vs GPU matmul — 2.8x speedup. | [PyTorch/05-naive-bayes](PyTorch/05-naive-bayes/)
-- 2026-02-26 | Naive Bayes / No-Framework | Pure NumPy GaussianNB + MultinomialNB from scratch. Faster (0.13s vs 0.21s), 18x less memory. Showcase: log-sum-exp trick. | [No-Framework/05-naive-bayes](No-Framework/05-naive-bayes/)
-- 2026-02-25 | Naive Bayes / Scikit-Learn | GaussianNB (89.5%) + MultinomialNB (66.8%). Showcase: CalibratedClassifierCV reduces ECE 0.32 → 0.14 (58% improvement). | [Scikit-Learn/05-naive-bayes](Scikit-Learn/05-naive-bayes/)
+- **2026-02-28 | Naive Bayes Summary: *All 4 frameworks achieve identical metrics | accuracy 66.83%, macro F1 63.94%***
+- 2026-02-28 | Naive Bayes / TensorFlow | CPU tensor ops (TF 2.20.0, no Windows GPU). 0.10s training, 7.62 μs/sample. | [TensorFlow/05-naive-bayes](TensorFlow/05-naive-bayes/)
+- 2026-02-27 | Naive Bayes / PyTorch | GPU-accelerated NB on RTX 4090. Fastest: 0.028s training, 3.5 μs/sample inference. | [PyTorch/05-naive-bayes](PyTorch/05-naive-bayes/)
+- 2026-02-26 | Naive Bayes / No-Framework | Pure NumPy GaussianNB + MultinomialNB. Faster (0.13s vs 0.21s), 18x less memory. | [No-Framework/05-naive-bayes](No-Framework/05-naive-bayes/)
+- 2026-02-25 | Naive Bayes / Scikit-Learn | GaussianNB (89.5%) + MultinomialNB (66.8%). | [Scikit-Learn/05-naive-bayes](Scikit-Learn/05-naive-bayes/)
 - 2026-02-24 | Naive Bayes / Preprocessing | Breast Cancer (GaussianNB baseline: 569 samples, 30 features) + 20 Newsgroups (MultinomialNB: 11,314 train, 10K TF-IDF features, 20 categories) | [data-preperation/](data-preperation/)
 - 2026-02-24 | Naive Bayes / Utilities | Added probabilistic metrics (log-loss, Brier, ECE), evaluation helpers (evaluate_classifier, print_metrics), inference tracking, model size, calibration curves | [utils/](utils/)
 - **2026-02-24 | K-Means Summary: *All 4 frameworks achieve identical clustering quality | ARI 0.6684, Silhouette 0.3064***
@@ -222,6 +224,16 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Naive Bayes (Completed)
+
+- **All 4 frameworks produce identical metrics** — accuracy 0.6683, macro F1 0.6394, log-loss 1.5576, Brier 0.6008, ECE 0.3229. Probabilistic metrics (log-loss, Brier, ECE) now complement accuracy/F1
+- **Two datasets, two variants**: GaussianNB on Breast Cancer (89.5% accuracy, 30 continuous features) validates the baseline; MultinomialNB on 20 Newsgroups (66.8% accuracy, 10K TF-IDF features) is the main event
+- **PyTorch GPU fastest across the board**: 0.03s training, 3.50 μs/sample inference — GPU's cuBLAS matmul dominates the (7532, 10000) × (10000, 20) prediction
+- **Float64 required for GaussianNB**: float32 caused NaN log-loss and ECE mismatch in PyTorch due to `torch.zeros()` defaulting to float32 regardless of input dtype. TF avoided this with list + `tf.stack()` pattern
+- **TensorFlow CPU-only limitation**: TF 2.11+ dropped native Windows GPU, resulting in 7.62 μs/sample (2x slower than PyTorch GPU, but competitive with No-Framework/sklearn)
+- **Each framework showcased a unique strength**: Scikit-Learn (CalibratedClassifierCV — ECE 0.32→0.14), No-Framework (log-sum-exp trick), PyTorch (CPU vs GPU matmul — 2.8x), TensorFlow (tf.function eager vs graph — 1.12x)
+- **Model size halves per abstraction layer**: sklearn 3.05 MB (diagnostic arrays) → No-Framework 1.53 MB (float64) → PyTorch/TF 0.76 MB (float32)
 
 ### K-Means Clustering (Completed)
 
@@ -272,7 +284,8 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Logistic Regression across all 4 frameworks~~
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
-- Complete Naive Bayes across all 4 frameworks (Scikit-Learn + No-Framework + PyTorch complete, 3/4)
+- ~~Complete Naive Bayes across all 4 frameworks~~
+- Complete Decision Trees/Random Forest across all 4 frameworks (Next focus - planning stage currently)
 - Add deployment examples (Flask/Streamlit wrappers)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

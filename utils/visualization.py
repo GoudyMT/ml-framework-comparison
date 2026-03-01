@@ -102,30 +102,41 @@ def plot_roc_curve(y_true, y_proba, framework, save_path=None):
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
 
-def plot_feature_importance(weights, feature_names, framework, save_path=None, top_n=15):
+def plot_feature_importance(weights, feature_names, framework, save_path=None, top_n=15, mode='coefficient'):
     """
     Plot feature importance as horizontal bar chart.
-    Green = positive coefficient
-    Red = negative coefficient
+
+    Two modes for different model types:
+    - 'coefficient': Green/red for positive/negative coefficients (linear models)
+    - 'importance': Single color for non-negative importances (tree-based models)
 
     Args:
-        weights: Model coefficients/weights array
+        weights: Model coefficients/weights array (or importance scores)
         feature_names: List of feature names
         framework: Name for the title
-        save_path: Optinal path to save the figure
+        save_path: Optional path to save the figure
         top_n: Number of top features to display
+        mode: 'coefficient' (default) for linear models, 'importance' for tree models
     """
-    # Sort by absolute value to find most important features
-    indices = np.argsort(np.abs(weights))[::-1][:top_n]
+    if mode == 'importance':
+        # Tree-based models: importances are always non-negative
+        # Sort by value descending (no absolute value needed)
+        indices = np.argsort(weights)[::-1][:top_n]
 
-    plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(10, 8))
+        plt.barh(range(len(indices)), weights[indices], color='steelblue', alpha=0.7)
+        plt.xlabel('Importance Score', fontsize=12)
+    else:
+        # Linear models: coefficients can be positive or negative
+        # Sort by absolute value to find most impactful features
+        indices = np.argsort(np.abs(weights))[::-1][:top_n]
 
-    # Color based on coefficient sign
-    colors = ['green' if weights[i] > 0 else 'red' for i in indices]
+        plt.figure(figsize=(10, 8))
+        colors = ['green' if weights[i] > 0 else 'red' for i in indices]
+        plt.barh(range(len(indices)), weights[indices], color=colors, alpha=0.7)
+        plt.xlabel('Coefficient Value', fontsize=12)
 
-    plt.barh(range(len(indices)), weights[indices], color=colors, alpha=0.7)
     plt.yticks(range(len(indices)), [feature_names[i] for i in indices], fontsize=10)
-    plt.xlabel('Coefficient Value', fontsize=12)
     plt.ylabel('Feature', fontsize=12)
     plt.title(f'{framework} - Feature Importance (Top {top_n})', fontsize=14)
     plt.gca().invert_yaxis()    # Highest importance at top
@@ -134,6 +145,7 @@ def plot_feature_importance(weights, feature_names, framework, save_path=None, t
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
 
 # MULTI-CLASS & KNN VISUALIZATIONS (Added during KNN Prep)
 

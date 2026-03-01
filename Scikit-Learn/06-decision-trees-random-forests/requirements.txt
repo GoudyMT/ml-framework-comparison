@@ -1,0 +1,5 @@
+numpy==2.4.2
+scikit-learn==1.8.0
+matplotlib==3.10.8
+mlflow==3.10.0
+joblib==1.5.3

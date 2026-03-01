@@ -1,0 +1,19 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "RandomForest",
+  "training_time": 21.1941339969635,
+  "inference_time_per_sample_us": 3.3908849235191836,
+  "model_size_bytes": 12061273,
+  "peak_memory_mb": 62.16899013519287,
+  "accuracy": 0.8554260742898762,
+  "precision": 0.40464104423495284,
+  "recall": 0.6012931034482759,
+  "f1": 0.4837451235370612,
+  "auc": 0.7988417790933535,
+  "log_loss": 0.45977523065645526,
+  "brier_score": 0.14110992648002013,
+  "ece": 0.6164313915402528,
+  "dt_test_accuracy": 0.8448652585579024,
+  "dt_test_f1": 0.32665964172813483,
+  "n_estimators": 200
+}

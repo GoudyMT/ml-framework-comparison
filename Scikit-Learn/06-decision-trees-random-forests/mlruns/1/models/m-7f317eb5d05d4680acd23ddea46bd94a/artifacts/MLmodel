@@ -1,0 +1,29 @@
+artifact_path: file:///c:/Users/Max/Desktop/Coding/.Projects/2026/ml-framework-comparisons/Scikit-Learn/06-decision-trees-random-forests/mlruns/1/models/m-7f317eb5d05d4680acd23ddea46bd94a/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.2
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.10.0
+model_id: m-7f317eb5d05d4680acd23ddea46bd94a
+model_size_bytes: 12044000
+model_uuid: m-7f317eb5d05d4680acd23ddea46bd94a
+prompts: null
+run_id: 988d63efe1414229b0657686cdc986a4
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1, 19]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-03-01 23:10:57.359890'

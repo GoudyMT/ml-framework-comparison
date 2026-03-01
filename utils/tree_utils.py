@@ -1,9 +1,9 @@
 """
 Shared utilities for tree-based models (Decision tree, random forests),
 
-Framework-agnostic: operates on dict-based tree structures and nujmpy arrays.
+Framework-agnostic: operates on dict-based tree structures and numpy arrays.
 Used by No-framework, pytorch and tensorflow implementations.
-Sklearn has its own built-in feature_importances+ and predict, so these
+Sklearn has its own built-in feature_importances_ and predict, so these
 utilities serve the 3 from-scratch frameworks only.
 
 Functions:

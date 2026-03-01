@@ -597,3 +597,86 @@ def plot_calibration_comparison(y_true, probas_dict, n_bins=10, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# TREE-BASED MODEL VISUALIZATIONS (Added during DT/RF prep)
+
+def plot_tree_depth_analysis(depth_values, train_scores, test_scores, framework, save_path=None):
+    """
+    Plot train vs test accuracy across max_depth values.
+
+    Shows the overfitting point where train and test scores diverge.
+    Used for Decision Tree depth tuning — helps find optimal max_depth
+    that balances bias (underfitting) and variance (overfitting).
+
+    Args:
+        depth_values: List of max_depth values tested (can include None for full tree)
+        train_scores: List of training accuracies (or F1) for each depth
+        test_scores: List of test accuracies (or F1) for each depth
+        framework: Name for the title (e.g., 'Scikit-Learn', 'No-Framework')
+        save_path: Optional path to save the figure
+    """
+    # Convert None to string label for x-axis (None = no depth limit)
+    x_labels = [str(d) if d is not None else 'None' for d in depth_values]
+    x_positions = range(len(depth_values))
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_positions, train_scores, 'b-o', linewidth=2, markersize=8, label='Train')
+    plt.plot(x_positions, test_scores, 'r-o', linewidth=2, markersize=8, label='Test')
+
+    # Highlight best test score
+    best_idx = np.argmax(test_scores)
+    plt.axvline(x=best_idx, color='green', linestyle='--', alpha=0.5,
+                label=f'Best depth: {x_labels[best_idx]}')
+    plt.scatter([best_idx], [test_scores[best_idx]], color='green',
+                s=200, zorder=5, edgecolors='black', linewidths=2)
+
+    plt.xticks(x_positions, x_labels, fontsize=11)
+    plt.xlabel('max_depth', fontsize=12)
+    plt.ylabel('Accuracy', fontsize=12)
+    plt.title(f'{framework} - Decision Tree Depth Analysis', fontsize=14)
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_forest_convergence(n_estimators_values, train_scores, test_scores, framework,
+                            oob_scores=None, save_path=None):
+    """
+    Plot train/test accuracy vs number of trees in Random Forest.
+
+    Shows how ensemble performance improves with more trees and where
+    it plateaus. Optionally overlays OOB (out-of-bag) score to demonstrate
+    the "free" validation that bagging provides.
+
+    Args:
+        n_estimators_values: List of n_estimators values tested
+        train_scores: List of training accuracies for each n_estimators
+        test_scores: List of test accuracies for each n_estimators
+        framework: Name for the title
+        oob_scores: Optional list of OOB scores (only for sklearn/from-scratch)
+        save_path: Optional path to save the figure
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(n_estimators_values, train_scores, 'b-o', linewidth=2,
+             markersize=6, label='Train')
+    plt.plot(n_estimators_values, test_scores, 'r-o', linewidth=2,
+             markersize=6, label='Test')
+
+    if oob_scores is not None:
+        plt.plot(n_estimators_values, oob_scores, 'g--s', linewidth=2,
+                 markersize=6, label='OOB Score', alpha=0.8)
+
+    plt.xlabel('Number of Trees (n_estimators)', fontsize=12)
+    plt.ylabel('Accuracy', fontsize=12)
+    plt.title(f'{framework} - Random Forest Convergence', fontsize=14)
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

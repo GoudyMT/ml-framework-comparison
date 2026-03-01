@@ -200,6 +200,11 @@ def get_model_size(model, framework='numpy'):
                 attr = getattr(model, attr_name, None)
                 if isinstance(attr, np.ndarray):
                     total += attr.nbytes
+        # Fallback for models with complex learned structures (trees, forests)
+        # where parameters aren't stored as simple numpy arrays
+        if total == 0:
+            import pickle
+            total = len(pickle.dumps(model))
         return total
 
     elif framework == 'pytorch':

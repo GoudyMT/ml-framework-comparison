@@ -116,13 +116,62 @@ def add_result(model_name, result_dict):
     print(f"    Added '{framework}' to {path}")
     print(f"    Frameworks recorded: {len(results_list)}/4")
 
+def _format_value(key, val):
+    """
+    Format a metric value with appropriate units for readable display.
+
+    Handles unit conversion and labeling for known metric keys.
+    Unknown keys fall back to 4-decimal float or string representation.
+
+    Args:
+        key: Metric key name (e.g., 'training_time', 'model_size_bytes')
+        val: Raw metric value
+
+    Returns:
+        str: Human-readable formatted value with units
+    """
+    if val == 'N/A':
+        return 'N/A'
+
+    # Time metrics
+    if key == 'training_time':
+        if val >= 60:
+            return f"{val / 60:.1f} min"
+        return f"{val:.2f} s"
+
+    if key == 'inference_time_per_sample_us':
+        if val >= 1000:
+            return f"{val / 1000:.2f} ms"
+        return f"{val:.2f} µs"
+
+    # Size metrics
+    if key == 'model_size_bytes':
+        if val >= 1024 ** 3:
+            return f"{val / (1024 ** 3):.2f} GB"
+        if val >= 1024 ** 2:
+            return f"{val / (1024 ** 2):.2f} MB"
+        if val >= 1024:
+            return f"{val / 1024:.1f} KB"
+        return f"{val} B"
+
+    if key == 'peak_memory_mb':
+        if val >= 1024:
+            return f"{val / 1024:.2f} GB"
+        return f"{val:.2f} MB"
+
+    # Default formatting
+    if isinstance(val, float):
+        return f"{val:.4f}"
+    return str(val)
+
 def print_comparison(model_name):
     """
     Pretty-print cross-framework comparison table.
 
     Reads {PROJECT_ROOT}/data/results/{model_name}.json and formats
-    an aligned table. Auto-detects metrics from the stored results, 
+    an aligned table. Auto-detects metrics from the stored results,
     so it works for both supervised and unsupervised models.
+    Values are displayed with human-readable units (seconds, MB, µs).
 
     Args:
         model_name: Model identifier (e.g., 'kmeans', 'knn')
@@ -132,14 +181,14 @@ def print_comparison(model_name):
     if not path.exists():
         print(f"    No results found for '{model_name}'")
         return
-    
+
     with open(path, 'r') as f:
         results_list = json.load(f)
 
     if not results_list:
         print(f"    No entries in {path}")
         return
-    
+
     # Auto-detect all metric keys (exclude 'framework')
     all_keys = []
     for r in results_list:
@@ -153,9 +202,20 @@ def print_comparison(model_name):
     print(f"CROSS-FRAMEWORK COMPARISON: {model_name.upper()}")
     print(f"{'=' * 60}")
 
-    # Column widths: metric name + one column per framework
+    # Format all values first to determine column widths
+    formatted = {}
+    for key in all_keys:
+        formatted[key] = []
+        for r in results_list:
+            val = r.get(key, 'N/A')
+            formatted[key].append(_format_value(key, val))
+
+    # Column widths based on formatted values and framework names
     metric_width = max(len(k) for k in all_keys) + 2
-    fw_width = max(len(r['framework']) for r in results_list) + 2
+    fw_width = max(
+        max(len(r['framework']) for r in results_list),
+        max(len(v) for vals in formatted.values() for v in vals)
+    ) + 2
 
     # Header row
     header = f"{'Metric':<{metric_width}}"
@@ -167,12 +227,8 @@ def print_comparison(model_name):
     # Data rows
     for key in all_keys:
         row = f"{key:<{metric_width}}"
-        for r in results_list:
-            val = r.get(key, 'N/A')
-            if isinstance(val, float):
-                row += f"{val:>{fw_width}.4f}"
-            else:
-                row += f"{str(val):>{fw_width}}"
+        for val_str in formatted[key]:
+            row += f"{val_str:>{fw_width}}"
         print(row)
 
     print(f"\n    Frameworks: {len(results_list)}/4 recorded")

@@ -7,14 +7,17 @@ Designed to work with any model type (supervised or unsupervised)
 by auto-detecting whatever metrics are passed in.
 
 Usage:
-    from utils.results import save_results, add_result, print_comparison
+    from utils.results import save_results, add_result, print_comparison, build_results_dict
+
+    # Build results dict (replaces manual dict construction):
+    results = build_results_dict('Scikit-Learn', 'RandomForest', test_metrics, perf, inference_stats, model_size)
 
     # After evaluating a framework:
-    save_results(results_dict, save_dir='results')
-    add_result('kmeans', {'framework': 'Scikit-Learn', 'silhouette': 0.45, ...})
+    save_results(results, save_dir='results')
+    add_result('decision_tree', results)
 
     # After all frameworks are done:
-    print_comparison('kmeans')
+    print_comparison('decision_tree')
 """
 
 import json
@@ -24,6 +27,41 @@ from pathlib import Path
 # Resolve project root from this file's location (utils/ is one level down)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = PROJECT_ROOT / 'data' / 'results'
+
+def build_results_dict(framework, model_name, test_metrics, perf, inference_stats, model_size, **extra):
+    """
+    Build standardized results dict for cross-framework comparison.
+
+    Combines test metrics, performance stats, and inference benchmarks
+    into the format expected by save_results() and add_result().
+
+    Args:
+        framework: Framework name ('Scikit-Learn', 'PyTorch')
+        model_name: Model name ('RandomForest', 'MultinomialNB')
+        test_metrics: Dict from evaluate_classifier() (accuracy, f1, auc, etc.)
+        perf: Dict from track_performance() context manager (time, memory)
+        inference_stats: Dict from track_inference() (per_sample_us, samples_per_sec)
+        model_size: Int from get_model_size() (bytes)
+        **extra: Any additional model-specific fields (n_estimators=100)
+
+    Returns:
+        dict: Ready for save_results() and add_result()
+    """
+    results = {
+        'framework': framework,
+        'model': model_name,
+        'training_time': float(perf['time']),
+        'inference_time_per_sample_us': float(inference_stats['per_sample_us']),
+        'model_size_bytes': int(model_size),
+        'peak_memory_mb': float(perf['memory'])
+    }
+    # Add all classification/regression metrics (auto-cast to float)
+    for key, val in test_metrics.items():
+        results[key] = float(val)
+    # Add model-specific extras (n_estimators, oob_score, dt_baseline, etc.)
+    for key, val in extra.items():
+        results[key] = val
+    return results
 
 def save_results(results, save_dir='results'):
     """

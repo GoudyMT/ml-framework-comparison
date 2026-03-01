@@ -76,54 +76,64 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ├── data/       # .gitignore for entire folder (large files + processed data from data-preperation)
 │   ├── raw/
 │   │   ├── vehicles.csv
-│   │   └── creditcard.csv
+│   │   ├── creditcard.csv
+│   │   └── bank-additional-full.csv
 │   ├── processed/
 │   │   ├── linear_regression/
 │   │   ├── logistic_regression/
 │   │   ├── knn/
 │   │   ├── kmeans/
 │   │   ├── naive_bayes_gaussian/
-│   │   └── naive_bayes_text/
+│   │   ├── naive_bayes_text/
+│   │   └── decision_tree/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
-│       └── naive_bayes.json
+│       ├── naive_bayes.json
+│       └── decision_tree.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
 │   ├── preprocess_knn.py
 │   ├── preprocess_kmeans.py
-│   └── preprocess_naive_bayes.py
+│   ├── preprocess_naive_bayes.py
+│   ├── preprocess_decision_tree.py
+│   └── eda_decision_tree.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
 │   ├── metrics.py
 │   ├── performance.py
 │   ├── visualization.py
-│   └── results.py
+│   ├── results.py
+│   └── tree_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
 │   ├── 04-k-means/
-│   └── 05-naive-bayes/
+│   ├── 05-naive-bayes/
+│   └── 06-decision-trees-random-forests/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
 │   ├── 04-k-means/
-│   └── 05-naive-bayes/
+│   ├── 05-naive-bayes/
+│   └── 06-decision-trees-random-forests/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
 │   ├── 04-k-means/
-│   └── 05-naive-bayes/
+│   ├── 05-naive-bayes/
+│   └── 06-decision-trees-random-forests/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
     ├── 03-knn/
     ├── 04-k-means/
-    └── 05-naive-bayes/
+    ├── 05-naive-bayes/
+    └── 06-decision-trees-random-forests/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -139,6 +149,9 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `tree_utils.py` | `compute_feature_importance`, `flatten_tree`, `predict_batch` | Decision Trees | Shared DT/RF operations — Gini importance, flat array conversion, batch prediction |
+| `results.py` | `build_results_dict`, `_format_value` | Decision Trees | Standardized results construction + human-readable unit formatting (seconds, MB, µs) |
+| `visualization.py` | `plot_tree_depth_analysis`, `plot_forest_convergence` | Decision Trees | DT overfitting analysis (train vs test across max_depth) + RF convergence (accuracy vs n_estimators) |
 | `metrics.py` | `log_loss`, `brier_score`, `expected_calibration_error` | Naive Bayes | Probabilistic evaluation (calibration quality) |
 | `metrics.py` | `evaluate_classifier`, `print_metrics` | Naive Bayes | Streamlined evaluation helpers — auto-detect binary/multiclass, formatted tables |
 | `performance.py` | `track_inference`, `get_model_size` | Naive Bayes | Inference speed (per-sample μs, throughput) and model size tracking |
@@ -185,6 +198,9 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
+- 2026-03-01 | Decision Trees & RF / Preprocessing | Bank Marketing UCI: 41,188 samples, 19 features. OrdinalEncoder, `duration` dropped (leakage). | [data-preperation/](data-preperation/)
+- 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. Added `tree_utils.py`, `build_results_dict`, depth/convergence plots. | [utils/](utils/)
 - **2026-02-28 | Naive Bayes Summary: *All 4 frameworks achieve identical metrics | accuracy 66.83%, macro F1 63.94%***
 - 2026-02-28 | Naive Bayes / TensorFlow | CPU tensor ops (TF 2.20.0, no Windows GPU). 0.10s training, 7.62 μs/sample. | [TensorFlow/05-naive-bayes](TensorFlow/05-naive-bayes/)
 - 2026-02-27 | Naive Bayes / PyTorch | GPU-accelerated NB on RTX 4090. Fastest: 0.028s training, 3.5 μs/sample inference. | [PyTorch/05-naive-bayes](PyTorch/05-naive-bayes/)
@@ -224,6 +240,14 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Decision Trees / Random Forests (In Progress — 1/4 frameworks)
+
+- **First ensemble method** — single DT memorizes training data (depth 43, 6,211 leaves, 99.4% train accuracy), RF of 100 bagged trees fixes overfitting through variance reduction without manual pruning
+- **Bank Marketing dataset**: 41,188 samples, 19 features (10 categorical, 9 numeric), 88.7/11.3 class imbalance. `duration` dropped for data leakage
+- **F1 > accuracy for imbalanced data**: 85.5% accuracy sounds good but tuned RF recall of 60.1% means 40% of subscribers still missed. GridSearchCV with F1 scoring produces better-balanced models
+- **Economic indicators dominate**: euribor3m, nr.employed, emp.var.rate consistently top features across both DT and RF — client demographics matter less than macroeconomic conditions
+- **First deployment integration**: MLflow experiment tracking + model export (joblib) for FastAPI serving — establishes pattern for all future models
 
 ### Naive Bayes (Completed)
 
@@ -285,8 +309,8 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
-- Complete Decision Trees/Random Forest across all 4 frameworks (Next focus - planning stage currently)
-- Add deployment examples (Flask/Streamlit wrappers)
+- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — Scikit-Learn done, 1/4)
+- Add deployment pipeline: MLflow experiment tracking + FastAPI serving + Docker (In progress — first model integrated)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
 

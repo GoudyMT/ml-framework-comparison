@@ -38,7 +38,7 @@ def compute_feature_importance(tree_dict, n_features):
 
     def _recurse(node):
         # Leaf node — no split, no importance contribution
-        if 'value' in node:
+        if 'feature' not in node:
             return
 
         # Split node — compute weighted impurity decrease
@@ -106,7 +106,7 @@ def flatten_tree(tree_dict):
     bfs_queue = deque([tree_dict])
     while bfs_queue:
         node = bfs_queue.popleft()
-        if 'value' not in node:  # Split node has children
+        if 'feature' in node:  # Split node has children
             for child in [node['left'], node['right']]:
                 node_id_map[id(child)] = next_id
                 next_id += 1
@@ -115,7 +115,7 @@ def flatten_tree(tree_dict):
 
     # Second pass: build flat arrays using assigned IDs
     for node in all_nodes:
-        if 'value' in node:
+        if 'feature' not in node:
             # Leaf node
             feature_indices.append(-1)
             thresholds.append(0.0)

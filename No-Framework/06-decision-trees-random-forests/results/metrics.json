@@ -1,0 +1,19 @@
+{
+  "framework": "No-Framework",
+  "model": "RandomForest",
+  "training_time": 1751.9949836730957,
+  "inference_time_per_sample_us": 169.46180302668043,
+  "model_size_bytes": 57910512,
+  "peak_memory_mb": 251.61663055419922,
+  "accuracy": 0.8896576839038601,
+  "precision": 0.5154975530179445,
+  "recall": 0.34051724137931033,
+  "f1": 0.41012329656067487,
+  "auc": 0.7800822709797632,
+  "log_loss": 0.3155649016265618,
+  "brier_score": 0.08928374089697903,
+  "ece": 0.7184576996984297,
+  "dt_test_accuracy": 0.8414663753338189,
+  "dt_test_f1": 0.31407563025210083,
+  "n_estimators": 100
+}

@@ -198,6 +198,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. Pure Python 83x slower than Cython. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Preprocessing | Bank Marketing UCI: 41,188 samples, 19 features. OrdinalEncoder, `duration` dropped (leakage). | [data-preperation/](data-preperation/)
 - 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. Added `tree_utils.py`, `build_results_dict`, depth/convergence plots. | [utils/](utils/)
@@ -241,12 +242,15 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Decision Trees / Random Forests (In Progress — 1/4 frameworks)
+### Decision Trees / Random Forests (In Progress — 2/4 frameworks)
 
 - **First ensemble method** — single DT memorizes training data (depth 43, 6,211 leaves, 99.4% train accuracy), RF of 100 bagged trees fixes overfitting through variance reduction without manual pruning
 - **Bank Marketing dataset**: 41,188 samples, 19 features (10 categorical, 9 numeric), 88.7/11.3 class imbalance. `duration` dropped for data leakage
 - **F1 > accuracy for imbalanced data**: 85.5% accuracy sounds good but tuned RF recall of 60.1% means 40% of subscribers still missed. GridSearchCV with F1 scoring produces better-balanced models
 - **Economic indicators dominate**: euribor3m, nr.employed, emp.var.rate consistently top features across both DT and RF — client demographics matter less than macroeconomic conditions
+- **Pure Python is 83x slower than Cython**: 100-tree RF takes 29 min from scratch vs sklearn's 21s. The sorted-scan split search is the bottleneck — each node sorts feature values and evaluates all thresholds in pure Python loops
+- **Gini and Entropy are interchangeable**: 99.5% prediction agreement, same root split, same feature rankings. Theoretical differences negligible in practice
+- **OOB matches test accuracy within 0.5%**: manual OOB computation confirms 1-1/e theory (36.8 avg OOB trees/sample) — free validation without holdout sets
 - **First deployment integration**: MLflow experiment tracking + model export (joblib) for FastAPI serving — establishes pattern for all future models
 
 ### Naive Bayes (Completed)
@@ -309,7 +313,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
-- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — Scikit-Learn done, 1/4)
+- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — 2/4)
 - Add deployment pipeline: MLflow experiment tracking + FastAPI serving + Docker (In progress — first model integrated)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

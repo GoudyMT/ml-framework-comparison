@@ -198,7 +198,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. Pure Python 83x slower than Cython. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
+- 2026-03-04 | Decision Trees & RF / PyTorch | GPU-accelerated DT+RF via hybrid CPU/GPU approach. 16% faster training than No-Framework. | [PyTorch/06-decision-trees-random-forests](PyTorch/06-decision-trees-random-forests/)
+- 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Preprocessing | Bank Marketing UCI: 41,188 samples, 19 features. OrdinalEncoder, `duration` dropped (leakage). | [data-preperation/](data-preperation/)
 - 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. Added `tree_utils.py`, `build_results_dict`, depth/convergence plots. | [utils/](utils/)
@@ -242,7 +243,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Decision Trees / Random Forests (In Progress — 2/4 frameworks)
+### Decision Trees / Random Forests (In Progress — 3/4 frameworks)
 
 - **First ensemble method** — single DT memorizes training data (depth 43, 6,211 leaves, 99.4% train accuracy), RF of 100 bagged trees fixes overfitting through variance reduction without manual pruning
 - **Bank Marketing dataset**: 41,188 samples, 19 features (10 categorical, 9 numeric), 88.7/11.3 class imbalance. `duration` dropped for data leakage
@@ -252,6 +253,9 @@ model_size = get_model_size(model, framework='sklearn')
 - **Gini and Entropy are interchangeable**: 99.5% prediction agreement, same root split, same feature rankings. Theoretical differences negligible in practice
 - **OOB matches test accuracy within 0.5%**: manual OOB computation confirms 1-1/e theory (36.8 avg OOB trees/sample) — free validation without holdout sets
 - **First deployment integration**: MLflow experiment tracking + model export (joblib) for FastAPI serving — establishes pattern for all future models
+- **GPU acceleration has a natural boundary for trees**: PyTorch's hybrid CPU/GPU approach (recursive dicts on CPU, `torch.sort` + `torch.cumsum` split search on GPU) yields 16% training speedup over pure Python — modest because GPU kernel launch overhead partially offsets parallelism at 32K samples
+- **Inference overhead from architecture mismatch**: PyTorch inference (279.79 us/sample) is slower than No-Framework (169.46 us/sample) because flattening 100 tree dicts to GPU tensors per call adds conversion overhead that outweighs GPU prediction speed
+- **Model size halves with torch tensors**: 29.47 MB (PyTorch) vs 55.23 MB (No-Framework) for identical tree structures — fewer intermediate Python objects when heavy computation happens in-place on GPU
 
 ### Naive Bayes (Completed)
 
@@ -313,7 +317,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
-- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — 2/4)
+- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — 3/4)
 - Add deployment pipeline: MLflow experiment tracking + FastAPI serving + Docker (In progress — first model integrated)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

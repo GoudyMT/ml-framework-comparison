@@ -1,0 +1,19 @@
+{
+  "framework": "PyTorch",
+  "model": "RandomForest",
+  "training_time": 1473.029202222824,
+  "inference_time_per_sample_us": 279.7919114672017,
+  "model_size_bytes": 30906529,
+  "peak_memory_mb": 225.14982986450195,
+  "accuracy": 0.8906287933964554,
+  "precision": 0.5215311004784688,
+  "recall": 0.35237068965517243,
+  "f1": 0.42057877813504824,
+  "auc": 0.7807185775272418,
+  "log_loss": 0.3166426570890356,
+  "brier_score": 0.08982880992928548,
+  "ece": 0.7171243890237249,
+  "n_estimators": 100,
+  "dt_test_accuracy": 0.8434085943190095,
+  "dt_test_f1": 0.32105263157894737
+}

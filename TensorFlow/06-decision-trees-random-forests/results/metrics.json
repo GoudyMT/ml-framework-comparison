@@ -1,0 +1,19 @@
+{
+  "framework": "TensorFlow",
+  "model": "RandomForest",
+  "training_time": 11950.41528224945,
+  "inference_time_per_sample_us": 725.1442299907355,
+  "model_size_bytes": 30930460,
+  "peak_memory_mb": 215.58166885375977,
+  "accuracy": 0.8907501820830298,
+  "precision": 0.5225806451612903,
+  "recall": 0.34913793103448276,
+  "f1": 0.4186046511627907,
+  "auc": 0.7813559159630171,
+  "log_loss": 0.317075700379904,
+  "brier_score": 0.08995019656969518,
+  "ece": 0.7168981242842626,
+  "n_estimators": 100,
+  "dt_test_accuracy": 0.8435299830055839,
+  "dt_test_f1": 0.3226484498160799
+}

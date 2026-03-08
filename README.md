@@ -39,6 +39,7 @@ This project is my hands-on portfolio to deepen understanding of machine learnin
 - [How to Run / Setup](#how-to-run--setup)
 - [Overall Learnings & Conclusions](#overall-learnings--conclusions)
 - [Future Plans](#future-plans)
+- [Deployment Roadmap](#deployment-roadmap)
 - [License](#license)
 
 ## Models Covered
@@ -198,6 +199,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-03-07 | Decision Trees & RF Summary: *All 4 frameworks achieve ~89% accuracy | euribor3m, age, campaign top features across all***
+- 2026-03-07 | Decision Trees & RF / TensorFlow | CPU tensor ops DT+RF. NumPy 1.06x faster than TF for split search (showcase). Slowest framework (199 min) | [TensorFlow/06-decision-trees-random-forests](TensorFlow/06-decision-trees-random-forests/)
 - 2026-03-04 | Decision Trees & RF / PyTorch | GPU-accelerated DT+RF via hybrid CPU/GPU approach. 16% faster training than No-Framework. | [PyTorch/06-decision-trees-random-forests](PyTorch/06-decision-trees-random-forests/)
 - 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
@@ -243,7 +246,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Decision Trees / Random Forests (In Progress — 3/4 frameworks)
+### Decision Trees / Random Forests (Completed)
 
 - **First ensemble method** — single DT memorizes training data (depth 43, 6,211 leaves, 99.4% train accuracy), RF of 100 bagged trees fixes overfitting through variance reduction without manual pruning
 - **Bank Marketing dataset**: 41,188 samples, 19 features (10 categorical, 9 numeric), 88.7/11.3 class imbalance. `duration` dropped for data leakage
@@ -256,6 +259,9 @@ model_size = get_model_size(model, framework='sklearn')
 - **GPU acceleration has a natural boundary for trees**: PyTorch's hybrid CPU/GPU approach (recursive dicts on CPU, `torch.sort` + `torch.cumsum` split search on GPU) yields 16% training speedup over pure Python — modest because GPU kernel launch overhead partially offsets parallelism at 32K samples
 - **Inference overhead from architecture mismatch**: PyTorch inference (279.79 us/sample) is slower than No-Framework (169.46 us/sample) because flattening 100 tree dicts to GPU tensors per call adds conversion overhead that outweighs GPU prediction speed
 - **Model size halves with torch tensors**: 29.47 MB (PyTorch) vs 55.23 MB (No-Framework) for identical tree structures — fewer intermediate Python objects when heavy computation happens in-place on GPU
+- **TF eager dispatch kills CPU tree performance**: 199 min training (6.8x slower than No-Framework) for the same algorithm — every tensor op crosses the Python→C++ bridge, and tree recursion triggers millions of these crossings
+- **Vectorization doesn't guarantee CPU speedup**: TF's `tf.cumsum` evaluates all 32,949 thresholds simultaneously, yet NumPy's sequential for-loop with O(1) incremental updates is 1.06x faster — memory allocation overhead for intermediate tensors outweighs computation savings
+- **Model size is structure-driven, not framework-driven**: TF (29.50 MB) and PyTorch (29.47 MB) are nearly identical because both store the same Python dict trees — the 47% reduction vs No-Framework comes from tree structure differences, not tensor representation
 
 ### Naive Bayes (Completed)
 
@@ -317,10 +323,35 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete KNN across all 4 frameworks~~
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
-- Complete Decision Trees/Random Forest across all 4 frameworks (In progress — 3/4)
-- Add deployment pipeline: MLflow experiment tracking + FastAPI serving + Docker (In progress — first model integrated)
+- ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
+- Complete Support Vector Machine across all 4 frameworks (Planning Phase)
+- Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
+
+## Deployment Roadmap
+
+**Strategy**: For each model type, the best-performing framework is prepped for deployment during the model comparison phase. Full deployment executes after all models are complete.
+
+### Models Staged for Deployment
+
+| Model | Framework | Status | Why This Framework |
+|-------|-----------|--------|-------------------|
+| Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
+| SVM | TBD | — | Pending cross-framework comparison |
+| PCA | TBD | — | Pending |
+| DNN | TBD | — | Pending |
+| CNN | TBD | — | Pending |
+| RNN/LSTM | TBD | — | Pending |
+
+### Deployment Stack (executes after all models complete)
+
+1. **Model Serving**: FastAPI endpoints per model with request/response validation
+2. **Containerization**: Docker + Docker Compose for reproducible environments
+3. **Experiment Tracking**: MLflow for all deployed models (metrics, artifacts, model registry)
+4. **CI/CD**: Automated testing + deployment pipeline
+5. **Monitoring**: Logging, health checks, prediction drift detection
+6. **Documentation**: OpenAPI/Swagger auto-generated API docs
 
 ## License
 

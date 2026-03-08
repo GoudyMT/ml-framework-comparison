@@ -9,3 +9,4 @@ from .visualization import *
 from .data_loader import *
 from .results import *
 from .tree_utils import *
+from .svm_utils import *

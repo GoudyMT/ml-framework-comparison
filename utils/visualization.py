@@ -625,7 +625,7 @@ def plot_tree_depth_analysis(depth_values, train_scores, test_scores, framework,
 
     # Highlight best test score
     best_idx = np.argmax(test_scores)
-    plt.axvline(x=best_idx, color='green', linestyle='--', alpha=0.5,
+    plt.axvline(x=best_idx, color='green', linestyle='--', alpha=0.5, # type: ignore
                 label=f'Best depth: {x_labels[best_idx]}')
     plt.scatter([best_idx], [test_scores[best_idx]], color='green',
                 s=200, zorder=5, edgecolors='black', linewidths=2)
@@ -673,6 +673,120 @@ def plot_forest_convergence(n_estimators_values, train_scores, test_scores, fram
     plt.xlabel('Number of Trees (n_estimators)', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
     plt.title(f'{framework} - Random Forest Convergence', fontsize=14)
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # SUPPORT VECTOR MACHINES MODEL VISUALIZATIONS (Added during SVM prep)
+
+def plot_kernel_comparison(kernel_results, framework, save_path=None):
+    """
+    Plot a 3-panel comparison of SVM kernels side by side.
+
+    Shows how different kernel functions (linear, RBF, polynomial) perform
+    on the same dataset. Three panels compare: classification metrics
+    (accuracy, F1, AUC), training time, and support vector count.
+    This is the SVM showcase visualization used by all 4 frameworks.
+
+    Args:
+        kernel_results: Dict of {kernel_name: {accuracy, f1, auc,
+            training_time, n_support_vectors}}. Example:
+            {'Linear': {'accuracy': 0.85, 'f1': 0.82, 'auc': 0.90,
+                        'training_time': 1.2, 'n_support_vectors': 500},
+             'RBF': {...}, 'Polynomial': {...}}
+        framework: Name for the title (e.g., 'Scikit-Learn')
+        save_path: Optional path to save the figure
+    """
+    kernels = list(kernel_results.keys())
+    n_kernels = len(kernels)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    # Panel 1: Classification Metrics (grouped bars)
+    metrics = ['accuracy', 'f1', 'auc']
+    metric_labels = ['Accuracy', 'F1 Score', 'AUC']
+    x = np.arange(len(metrics))
+    width = 0.8 / n_kernels
+    colors = ['#2196F3', '#FF9800', '#4CAF50', '#E91E63']
+
+    for i, kernel in enumerate(kernels):
+        values = [kernel_results[kernel][m] for m in metrics]
+        offset = (i - (n_kernels - 1) / 2) * width
+        bars = axes[0].bar(x + offset, values, width, label=kernel,
+                          color=colors[i % len(colors)], alpha=0.85)
+        # Value labels on each bar
+        for bar, val in zip(bars, values):
+            axes[0].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+                        f'{val:.3f}', ha='center', va='bottom', fontsize=9)
+
+    axes[0].set_xticks(x)
+    axes[0].set_xticklabels(metric_labels, fontsize=11)
+    axes[0].set_ylabel('Score', fontsize=12)
+    axes[0].set_title('Classification Metrics', fontsize=13)
+    axes[0].legend(fontsize=10)
+    axes[0].set_ylim(0, 1.1)
+    axes[0].grid(True, alpha=0.3, axis='y')
+
+    # Panel 2: Training Time
+    times = [kernel_results[k]['training_time'] for k in kernels]
+    bars = axes[1].bar(kernels, times, color=colors[:n_kernels], alpha=0.85)
+    for bar, val in zip(bars, times):
+        axes[1].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(times) * 0.02,
+                    f'{val:.2f}s', ha='center', va='bottom', fontsize=10)
+    axes[1].set_ylabel('Time (seconds)', fontsize=12)
+    axes[1].set_title('Training Time', fontsize=13)
+    axes[1].grid(True, alpha=0.3, axis='y')
+
+    # Panel 3: Support Vector Count
+    sv_counts = [kernel_results[k]['n_support_vectors'] for k in kernels]
+    bars = axes[2].bar(kernels, sv_counts, color=colors[:n_kernels], alpha=0.85)
+    for bar, val in zip(bars, sv_counts):
+        axes[2].text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(sv_counts) * 0.02,
+                    f'{val:,}', ha='center', va='bottom', fontsize=10)
+    axes[2].set_ylabel('Count', fontsize=12)
+    axes[2].set_title('Support Vectors', fontsize=13)
+    axes[2].grid(True, alpha=0.3, axis='y')
+
+    fig.suptitle(f'{framework} - SVM Kernel Comparison', fontsize=15, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_svm_convergence(objective_values, framework, save_path=None):
+    """
+    Plot dual objective value over training iterations for SVM.
+
+    Shows convergence of the projected gradient ascent optimizer
+    on the SVM dual problem. A rising, plateauing curve indicates
+    the optimizer found the maximum of the dual objective (= optimal
+    separating hyperplane). Used by PyTorch and TensorFlow implementations
+    which solve the dual via gradient-based optimization.
+
+    Args:
+        objective_values: List or array of dual objective values per iteration
+        framework: Name for the title (e.g., 'PyTorch')
+        save_path: Optional path to save the figure
+    """
+    plt.figure(figsize=(10, 6))
+    iterations = range(1, len(objective_values) + 1)
+    plt.plot(iterations, objective_values, 'b-', linewidth=2, alpha=0.8)
+
+    # Mark final value
+    final_val = objective_values[-1]
+    plt.axhline(y=final_val, color='red', linestyle='--', alpha=0.5,
+                label=f'Final: {final_val:.4f}')
+    plt.scatter([len(objective_values)], [final_val], color='red',
+                s=100, zorder=5, edgecolors='black', linewidths=1.5)
+
+    plt.xlabel('Iteration', fontsize=12)
+    plt.ylabel('Dual Objective Value', fontsize=12)
+    plt.title(f'{framework} - SVM Dual Objective Convergence', fontsize=14)
     plt.legend(fontsize=11)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()

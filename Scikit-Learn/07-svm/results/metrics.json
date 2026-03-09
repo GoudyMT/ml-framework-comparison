@@ -1,0 +1,20 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "SVM",
+  "training_time": 20.316994667053223,
+  "inference_time_per_sample_us": 36.63463924885861,
+  "model_size_bytes": 535979,
+  "peak_memory_mb": 1.2961006164550781,
+  "accuracy": 0.86061888389315,
+  "precision": 0.8854870775347913,
+  "recall": 0.9030819140308192,
+  "f1": 0.8941979522184301,
+  "auc": 0.9163872776220477,
+  "log_loss": 0.34859390068489055,
+  "brier_score": 0.09980638435885948,
+  "ece": 0.22372551921708903,
+  "kernel": "poly",
+  "C": 10.0,
+  "degree": 3,
+  "n_support_vectors": 5343
+}

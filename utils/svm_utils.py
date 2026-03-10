@@ -96,13 +96,14 @@ def platt_calibrate(decision_values, y_true, max_iter=200, lr=0.01):
 
         # Gradients of negative log-likelihood
         # NLL = -sum(t * log(p) + (1-t) * log(1-p))
-        # dNLL/dA = sum((p - t) * f)
-        # dNLL/dB = sum(p - t)
+        # For Platt sigmoid 1/(1+exp(+s)), dσ/ds = -σ(1-σ) (opposite sign
+        # vs standard logistic 1/(1+exp(-s))). This flips the gradient:
+        # dNLL/dA = -sum((p - t) * f),  dNLL/dB = -sum(p - t)
         diff = p - t
-        grad_A = np.dot(diff, decision_values)
-        grad_B = np.sum(diff)
+        grad_A = -np.dot(diff, decision_values)
+        grad_B = -np.sum(diff)
 
-        # Update
+        # Gradient descent: move in negative gradient direction
         A -= lr * grad_A / len(y_true)
         B -= lr * grad_B / len(y_true)
 

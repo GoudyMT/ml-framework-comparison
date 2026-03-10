@@ -1,0 +1,20 @@
+{
+  "framework": "No-Framework",
+  "model": "SVM",
+  "training_time": 160.60091853141785,
+  "inference_time_per_sample_us": 153.57061465220275,
+  "model_size_bytes": 1096904,
+  "peak_memory_mb": 1319.2832746505737,
+  "accuracy": 0.8614123247818037,
+  "precision": 0.8556776556776556,
+  "recall": 0.9472830494728305,
+  "f1": 0.899153194765204,
+  "auc": 0.9104855695250078,
+  "log_loss": 0.5070845697294015,
+  "brier_score": 0.1619204329793887,
+  "ece": 0.27355743173373825,
+  "kernel": "poly",
+  "C": 10.0,
+  "degree": 3,
+  "n_support_vectors": 11426
+}

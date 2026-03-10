@@ -150,6 +150,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `svm_utils.py` | `to_svm_labels`, `to_std_labels`, `platt_calibrate`, `platt_predict_proba` | SVM | Label conversion {0,1}↔{-1,+1} + Platt probability calibration for from-scratch SVMs |
+| `visualization.py` | `plot_kernel_comparison`, `plot_svm_convergence` | SVM | Kernel comparison showcase (3-panel grouped bars) + dual objective convergence |
 | `tree_utils.py` | `compute_feature_importance`, `flatten_tree`, `predict_batch` | Decision Trees | Shared DT/RF operations — Gini importance, flat array conversion, batch prediction |
 | `results.py` | `build_results_dict`, `_format_value` | Decision Trees | Standardized results construction + human-readable unit formatting (seconds, MB, µs) |
 | `visualization.py` | `plot_tree_depth_analysis`, `plot_forest_convergence` | Decision Trees | DT overfitting analysis (train vs test across max_depth) + RF convergence (accuracy vs n_estimators) |
@@ -199,13 +201,15 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-09 | SVM / Scikit-Learn | Poly kernel SVC (C=10, F1 0.89, AUC 0.92). Kernel comparison showcase + MLflow + model export. | [Scikit-Learn/07-svm](Scikit-Learn/07-svm/)
+- 2026-03-09 | SVM / EDA + Preprocessing + Utilities | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-07 | Decision Trees & RF Summary: *All 4 frameworks achieve ~89% accuracy | euribor3m, age, campaign top features across all***
 - 2026-03-07 | Decision Trees & RF / TensorFlow | CPU tensor ops DT+RF. NumPy 1.06x faster than TF for split search (showcase). Slowest framework (199 min) | [TensorFlow/06-decision-trees-random-forests](TensorFlow/06-decision-trees-random-forests/)
 - 2026-03-04 | Decision Trees & RF / PyTorch | GPU-accelerated DT+RF via hybrid CPU/GPU approach. 16% faster training than No-Framework. | [PyTorch/06-decision-trees-random-forests](PyTorch/06-decision-trees-random-forests/)
 - 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
 - 2026-03-01 | Decision Trees & RF / Preprocessing | Bank Marketing UCI: 41,188 samples, 19 features. OrdinalEncoder, `duration` dropped (leakage). | [data-preperation/](data-preperation/)
-- 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. Added `tree_utils.py`, `build_results_dict`, depth/convergence plots. | [utils/](utils/)
+- 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-02-28 | Naive Bayes Summary: *All 4 frameworks achieve identical metrics | accuracy 66.83%, macro F1 63.94%***
 - 2026-02-28 | Naive Bayes / TensorFlow | CPU tensor ops (TF 2.20.0, no Windows GPU). 0.10s training, 7.62 μs/sample. | [TensorFlow/05-naive-bayes](TensorFlow/05-naive-bayes/)
 - 2026-02-27 | Naive Bayes / PyTorch | GPU-accelerated NB on RTX 4090. Fastest: 0.028s training, 3.5 μs/sample inference. | [PyTorch/05-naive-bayes](PyTorch/05-naive-bayes/)
@@ -324,7 +328,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
-- Complete Support Vector Machine across all 4 frameworks (Planning Phase)
+- Complete Support Vector Machine across all 4 frameworks (In Progress — 1/4)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

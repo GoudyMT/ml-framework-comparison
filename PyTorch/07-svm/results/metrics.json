@@ -1,0 +1,20 @@
+{
+  "framework": "PyTorch",
+  "model": "SVM",
+  "training_time": 8.845861434936523,
+  "inference_time_per_sample_us": 0.5933612800933347,
+  "model_size_bytes": 548456,
+  "peak_memory_mb": 0.10265541076660156,
+  "accuracy": 0.8611478444855858,
+  "precision": 0.8553643354082754,
+  "recall": 0.9472830494728305,
+  "f1": 0.8989801808735809,
+  "auc": 0.9104812522550026,
+  "log_loss": 0.5070895583997451,
+  "brier_score": 0.16192255952463866,
+  "ece": 0.2732417446363748,
+  "kernel": "poly",
+  "C": 10.0,
+  "degree": 3,
+  "n_support_vectors": 11426
+}

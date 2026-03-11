@@ -86,11 +86,13 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── kmeans/
 │   │   ├── naive_bayes_gaussian/
 │   │   ├── naive_bayes_text/
-│   │   └── decision_tree/
+│   │   ├── decision_tree/
+│   │   └── svm/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
-│       └── decision_tree.json
+│       ├── decision_tree.json
+│       └── svm.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -98,7 +100,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_kmeans.py
 │   ├── preprocess_naive_bayes.py
 │   ├── preprocess_decision_tree.py
-│   └── eda_decision_tree.ipynb
+│   ├── preprocess_svm.py
+│   ├── eda_decision_tree.ipynb
+│   └── eda_svm.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -106,21 +110,24 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── performance.py
 │   ├── visualization.py
 │   ├── results.py
-│   └── tree_utils.py
+│   ├── tree_utils.py
+│   └── svm_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
-│   └── 06-decision-trees-random-forests/
+│   ├── 06-decision-trees-random-forests/
+│   └── 07-svm/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
-│   └── 06-decision-trees-random-forests/
+│   ├── 06-decision-trees-random-forests/
+│   └── 07-svm/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -201,6 +208,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-10 | SVM / No-Framework | Poly kernel SVM via dual gradient descent (C=10, F1 0.90, AUC 0.91). From-scratch projected gradient ascent. | [No-Framework/07-svm](No-Framework/07-svm/)
 - 2026-03-09 | SVM / Scikit-Learn | Poly kernel SVC (C=10, F1 0.89, AUC 0.92). Kernel comparison showcase + MLflow + model export. | [Scikit-Learn/07-svm](Scikit-Learn/07-svm/)
 - 2026-03-09 | SVM / EDA + Preprocessing + Utilities | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-07 | Decision Trees & RF Summary: *All 4 frameworks achieve ~89% accuracy | euribor3m, age, campaign top features across all***
@@ -328,7 +336,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
-- Complete Support Vector Machine across all 4 frameworks (In Progress — 1/4)
+- Complete Support Vector Machine across all 4 frameworks (In Progress — 2/4)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

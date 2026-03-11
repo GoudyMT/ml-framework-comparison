@@ -134,7 +134,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 03-knn/
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
-│   └── 06-decision-trees-random-forests/
+│   ├── 06-decision-trees-random-forests/
+│   └── 07-svm/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -208,6 +209,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-10 | SVM / PyTorch | GPU-accelerated dual gradient descent (9.03s training, 17.7x faster than NF). 0.59 µs/sample inference. | [PyTorch/07-svm](PyTorch/07-svm/)
 - 2026-03-10 | SVM / No-Framework | Poly kernel SVM via dual gradient descent (C=10, F1 0.90, AUC 0.91). From-scratch projected gradient ascent. | [No-Framework/07-svm](No-Framework/07-svm/)
 - 2026-03-09 | SVM / Scikit-Learn | Poly kernel SVC (C=10, F1 0.89, AUC 0.92). Kernel comparison showcase + MLflow + model export. | [Scikit-Learn/07-svm](Scikit-Learn/07-svm/)
 - 2026-03-09 | SVM / EDA + Preprocessing + Utilities | [data-preperation/](data-preperation/) and [utils/](utils/)
@@ -336,7 +338,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
-- Complete Support Vector Machine across all 4 frameworks (In Progress — 2/4)
+- Complete Support Vector Machine across all 4 frameworks (In Progress — 3/4)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

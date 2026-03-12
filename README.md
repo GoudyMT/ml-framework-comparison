@@ -142,7 +142,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 03-knn/
     ├── 04-k-means/
     ├── 05-naive-bayes/
-    └── 06-decision-trees-random-forests/
+    ├── 06-decision-trees-random-forests/
+    └── 07-svm/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -209,6 +210,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-03-11 | SVM Summary: *All 4 frameworks achieve ~86% accuracy | PyTorch GPU fastest (9.03s), TF eager CPU 1.9x faster than raw NumPy***
+- 2026-03-11 | SVM / TensorFlow | CPU tensor-based dual gradient descent (85.77s training, 1.9x faster than NF). 15.55 µs/sample inference. | [TensorFlow/07-svm](TensorFlow/07-svm/)
 - 2026-03-10 | SVM / PyTorch | GPU-accelerated dual gradient descent (9.03s training, 17.7x faster than NF). 0.59 µs/sample inference. | [PyTorch/07-svm](PyTorch/07-svm/)
 - 2026-03-10 | SVM / No-Framework | Poly kernel SVM via dual gradient descent (C=10, F1 0.90, AUC 0.91). From-scratch projected gradient ascent. | [No-Framework/07-svm](No-Framework/07-svm/)
 - 2026-03-09 | SVM / Scikit-Learn | Poly kernel SVC (C=10, F1 0.89, AUC 0.92). Kernel comparison showcase + MLflow + model export. | [Scikit-Learn/07-svm](Scikit-Learn/07-svm/)
@@ -259,6 +262,18 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Support Vector Machines (Completed)
+
+- **All from-scratch frameworks match** — accuracy 0.8611, F1 0.8990, AUC 0.9105 (NF, PyTorch, TensorFlow). Scikit-Learn slightly different (0.8606 acc, 0.8942 F1, 0.9164 AUC) due to optimized SMO vs our dual gradient descent
+- **MAGIC Gamma Telescope dataset**: 18,905 samples, 10 continuous features, binary classification (gamma vs hadron). StandardScaler critical for kernel distances
+- **Polynomial kernel wins over RBF for this dataset**: SK tuning selected poly (degree=3, C=10). RBF slightly better in from-scratch implementations (87.0% vs 86.1%) but poly was locked in from SK tuning for fair comparison
+- **Dual gradient descent works at 15K scale**: Projected gradient ascent with adaptive LR via quadratic line search converges to obj=231.83 consistently across NF, PyTorch, and TF — algorithm is implementation-agnostic
+- **GPU acceleration dominates SVM**: PyTorch GPU (9.03s) is 17.7x faster than NF (160s) and 9.7x faster than TF CPU (85.77s). The O(n^2) kernel matrix-vector product each iteration is embarrassingly parallel
+- **TF eager CPU beats raw NumPy**: 85.77s vs 160s (1.9x faster) for the same algorithm — TF's C++ matmul kernels are more optimized than NumPy's BLAS bindings
+- **Inference speed hierarchy**: PyTorch GPU (0.59 us) >> TF CPU (15.55 us) >> SK (36.63 us) >> NF (153.57 us). GPU prediction with batched matmul is 260x faster than NumPy loops
+- **Platt calibration is framework-agnostic**: Shared `svm_utils.py` handles {0,1}↔{-1,+1} label conversion and sigmoid probability calibration across all from-scratch frameworks. Sign convention fix (negative gradient) was the key insight
+- **75.5% support vectors indicates incomplete convergence**: 11,426 SVs (0 at bound) vs SK's 5,343 (35.3%) — dual gradient descent hasn't fully converged at 3000 iterations, but accuracy matches. Educational implementation, not production optimization
 
 ### Decision Trees / Random Forests (Completed)
 
@@ -338,7 +353,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete K-Means across all 4 frameworks~~
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
-- Complete Support Vector Machine across all 4 frameworks (In Progress — 3/4)
+- ~~Complete Support Vector Machine across all 4 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -352,7 +367,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Model | Framework | Status | Why This Framework |
 |-------|-----------|--------|-------------------|
 | Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
-| SVM | TBD | — | Pending cross-framework comparison |
+| SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
 | PCA | TBD | — | Pending |
 | DNN | TBD | — | Pending |
 | CNN | TBD | — | Pending |

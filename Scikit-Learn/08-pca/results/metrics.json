@@ -1,0 +1,12 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "PCA",
+  "training_time": 0.19381213188171387,
+  "inference_time_per_sample_us": 0.5172565999946528,
+  "model_size_bytes": 475336,
+  "peak_memory_mb": 11.736289024353027,
+  "explained_variance_ratio": 0.9084722995758057,
+  "reconstruction_mse": 0.09505532681941986,
+  "n_components": 150,
+  "downstream_knn_accuracy": 0.8599
+}

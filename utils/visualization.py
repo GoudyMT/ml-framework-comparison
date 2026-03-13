@@ -794,3 +794,191 @@ def plot_svm_convergence(objective_values, framework, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+    
+# PCA VISUALIZATIONS (Added during PCA prep)
+
+def plot_scree(explained_var_ratio, framework, save_path=None):
+    """
+    Dual-panel scree plot: individual + cumulative explained variance.
+
+    Left panel shows per-component variance (eigenvalue decay).
+    Right panel shows cumulative variance with 90%/95% threshold lines
+    and markers for how many components reach each threshold.
+
+    Args:
+        explained_var_ratio: Array of explained variance ratios per component.
+        framework: Name for the title (e.g., 'Scikit-Learn').
+        save_path: Optional path to save the figure.
+    """
+    cumulative = np.cumsum(explained_var_ratio)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Left: individual explained variance (scree)
+    n_show = min(100, len(explained_var_ratio))
+    axes[0].plot(range(1, n_show + 1), explained_var_ratio[:n_show],
+                 'b-', linewidth=1.5)
+    axes[0].set_xlabel('Component', fontsize=12)
+    axes[0].set_ylabel('Explained Variance Ratio', fontsize=12)
+    axes[0].set_title(f'{framework} — Scree Plot', fontsize=13)
+    axes[0].grid(True, alpha=0.3)
+
+    # Right: cumulative explained variance
+    n_show_cum = min(200, len(cumulative))
+    axes[1].plot(range(1, n_show_cum + 1), cumulative[:n_show_cum],
+                 'r-', linewidth=2)
+
+    # Threshold lines at 90% and 95%
+    for thresh, color, style in [(0.90, 'gray', '--'), (0.95, 'black', '--')]:
+        axes[1].axhline(thresh, color=color, linestyle=style, alpha=0.7,
+                        label=f'{thresh:.0%} variance')
+        n_comp = np.searchsorted(cumulative, thresh) + 1
+        axes[1].axvline(n_comp, color=color, linestyle=':', alpha=0.5)
+        axes[1].annotate(f'n={n_comp}', xy=(n_comp, thresh),
+                         xytext=(n_comp + 5, thresh - 0.05),
+                         fontsize=10, color=color)
+
+    axes[1].set_xlabel('Number of Components', fontsize=12)
+    axes[1].set_ylabel('Cumulative Explained Variance', fontsize=12)
+    axes[1].set_title(f'{framework} — Cumulative Variance', fontsize=13)
+    axes[1].legend(fontsize=10)
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_reconstruction_grid(originals, reconstructions_dict, image_shape=(28, 28),
+                              n_samples=5, save_path=None):
+    """
+    Grid comparing original images to PCA reconstructions at different component counts.
+
+    First row shows original images. Subsequent rows show reconstructions
+    at each component count, with MSE displayed below each image.
+    Visually demonstrates the quality vs compression tradeoff.
+
+    Args:
+        originals: Array of original images, shape (n_samples, n_features).
+            Should be in SCALED space (same as PCA input).
+        reconstructions_dict: OrderedDict or dict of {n_components: reconstructed_array}.
+            Each array shape (n_samples, n_features). Same scale as originals.
+        image_shape: Tuple (height, width) for reshaping flattened vectors.
+        n_samples: Number of sample images to show (columns).
+        save_path: Optional path to save the figure.
+    """
+    n_rows = 1 + len(reconstructions_dict)
+    fig, axes = plt.subplots(n_rows, n_samples, figsize=(n_samples * 2.5, n_rows * 2.5))
+
+    if n_samples == 1:
+        axes = axes.reshape(-1, 1)
+
+    # Row 0: originals
+    for j in range(n_samples):
+        axes[0, j].imshow(originals[j].reshape(image_shape), cmap='gray')
+        axes[0, j].axis('off')
+        if j == 0:
+            axes[0, j].set_ylabel('Original', fontsize=11, rotation=0,
+                                   labelpad=60, va='center')
+
+    # Remaining rows: reconstructions at each component count
+    for i, (n_comp, recon) in enumerate(reconstructions_dict.items(), start=1):
+        for j in range(n_samples):
+            img = recon[j].reshape(image_shape)
+            mse = np.mean((originals[j] - recon[j]) ** 2)
+            axes[i, j].imshow(img, cmap='gray')
+            axes[i, j].axis('off')
+            axes[i, j].set_title(f'MSE={mse:.2f}', fontsize=8)
+            if j == 0:
+                axes[i, j].set_ylabel(f'n={n_comp}', fontsize=11, rotation=0,
+                                       labelpad=60, va='center')
+
+    fig.suptitle('PCA Reconstruction Quality', fontsize=14, y=1.02)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_pca_components(components, image_shape=(28, 28), n_components=10,
+                         framework='', save_path=None):
+    """
+    Visualize top principal components as images.
+
+    Each component is a direction in pixel space — reshaping to the
+    original image dimensions reveals what spatial patterns each
+    component captures (edges, textures, shapes).
+
+    Args:
+        components: Array of shape (n_total_components, n_features).
+            Rows are principal component vectors.
+        image_shape: Tuple (height, width) for reshaping.
+        n_components: Number of top components to display.
+        framework: Name for the title.
+        save_path: Optional path to save the figure.
+    """
+    n_show = min(n_components, len(components))
+    n_cols = 5
+    n_rows = int(np.ceil(n_show / n_cols))
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 2.5, n_rows * 2.5))
+    axes = np.atleast_2d(axes)
+
+    for i in range(n_rows * n_cols):
+        row, col = divmod(i, n_cols)
+        if i < n_show:
+            img = components[i].reshape(image_shape)
+            axes[row, col].imshow(img, cmap='RdBu_r')
+            axes[row, col].set_title(f'PC {i + 1}', fontsize=10)
+        axes[row, col].axis('off')
+
+    fig.suptitle(f'{framework} — Top {n_show} Principal Components', fontsize=14)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_component_accuracy(n_components_list, accuracies, framework, save_path=None):
+    """
+    Downstream classifier accuracy vs number of PCA components.
+
+    Shows the extrinsic evaluation of PCA — how well a simple classifier
+    performs on PCA-reduced data at different compression levels.
+    Helps identify the sweet spot between dimensionality reduction
+    and classification performance.
+
+    Args:
+        n_components_list: List of component counts tested.
+        accuracies: List of classifier accuracies at each component count.
+        framework: Name for the title.
+        save_path: Optional path to save the figure.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(n_components_list, accuracies, 'b-o', linewidth=2, markersize=8)
+
+    # Highlight best accuracy
+    best_idx = np.argmax(accuracies)
+    best_n = n_components_list[best_idx]
+    best_acc = accuracies[best_idx]
+    plt.scatter([best_n], [best_acc], color='red', s=200, zorder=5,
+                edgecolors='black', linewidths=2,
+                label=f'Best: n={best_n} ({best_acc:.4f})')
+
+    # Add value labels
+    for n, acc in zip(n_components_list, accuracies):
+        plt.annotate(f'{acc:.3f}', (n, acc), textcoords='offset points',
+                     xytext=(0, 12), ha='center', fontsize=9)
+
+    plt.xlabel('Number of PCA Components', fontsize=12)
+    plt.ylabel('Classifier Accuracy', fontsize=12)
+    plt.title(f'{framework} — Accuracy vs PCA Components', fontsize=14)
+    plt.legend(fontsize=11)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

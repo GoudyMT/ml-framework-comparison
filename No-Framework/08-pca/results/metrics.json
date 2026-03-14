@@ -1,0 +1,12 @@
+{
+  "framework": "No-Framework",
+  "model": "PCA",
+  "training_time": 0.23143506050109863,
+  "inference_time_per_sample_us": 0.8908742000021447,
+  "model_size_bytes": 474736,
+  "peak_memory_mb": 191.17827320098877,
+  "explained_variance_ratio": 0.9084724187850952,
+  "reconstruction_mse": 0.09505533427000046,
+  "n_components": 150,
+  "downstream_knn_accuracy": 0.8599
+}

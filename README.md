@@ -87,12 +87,14 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── naive_bayes_gaussian/
 │   │   ├── naive_bayes_text/
 │   │   ├── decision_tree/
-│   │   └── svm/
+│   │   ├── svm/
+│   │   └── pca/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
 │       ├── decision_tree.json
-│       └── svm.json
+│       ├── svm.json
+│       └── pca.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -101,8 +103,10 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_naive_bayes.py
 │   ├── preprocess_decision_tree.py
 │   ├── preprocess_svm.py
+│   ├── preprocess_pca.py
 │   ├── eda_decision_tree.ipynb
-│   └── eda_svm.ipynb
+│   ├── eda_svm.ipynb
+│   └── eda_pca.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -127,7 +131,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
 │   ├── 06-decision-trees-random-forests/
-│   └── 07-svm/
+│   ├── 07-svm/
+│   └── 08-pca/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -159,6 +164,7 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `visualization.py` | `plot_scree`, `plot_reconstruction_grid`, `plot_pca_components`, `plot_component_accuracy` | PCA | Scree/cumulative variance plots, reconstruction comparison grids, PC visualization, accuracy vs components |
 | `svm_utils.py` | `to_svm_labels`, `to_std_labels`, `platt_calibrate`, `platt_predict_proba` | SVM | Label conversion {0,1}↔{-1,+1} + Platt probability calibration for from-scratch SVMs |
 | `visualization.py` | `plot_kernel_comparison`, `plot_svm_convergence` | SVM | Kernel comparison showcase (3-panel grouped bars) + dual objective convergence |
 | `tree_utils.py` | `compute_feature_importance`, `flatten_tree`, `predict_batch` | Decision Trees | Shared DT/RF operations — Gini importance, flat array conversion, batch prediction |
@@ -210,6 +216,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. IncrementalPCA showcase (batch SVD). 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
+- 2026-03-13 | PCA / EDA + Preprocessing + Utilities | Fashion-MNIST (60K train, 784 features, 10 classes). 4 new viz functions in utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-11 | SVM Summary: *All 4 frameworks achieve ~86% accuracy | PyTorch GPU fastest (9.03s), TF eager CPU 1.9x faster than raw NumPy***
 - 2026-03-11 | SVM / TensorFlow | CPU tensor-based dual gradient descent (85.77s training, 1.9x faster than NF). 15.55 µs/sample inference. | [TensorFlow/07-svm](TensorFlow/07-svm/)
 - 2026-03-10 | SVM / PyTorch | GPU-accelerated dual gradient descent (9.03s training, 17.7x faster than NF). 0.59 µs/sample inference. | [PyTorch/07-svm](PyTorch/07-svm/)
@@ -354,6 +362,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
+- Complete Principal Component Analysis (1 of 4 Complete)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

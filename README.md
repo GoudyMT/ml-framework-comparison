@@ -141,7 +141,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
 │   ├── 06-decision-trees-random-forests/
-│   └── 07-svm/
+│   ├── 07-svm/
+│   └── 08-pca/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -217,6 +218,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-15 | PCA / PyTorch | GPU eigendecomposition fastest (0.11s fit, 0.39 µs/sample). 9.1x GPU vs CPU speedup showcase. 599 MB GPU memory. | [PyTorch/08-pca](PyTorch/08-pca/)
 - 2026-03-14 | PCA / No-Framework | From-scratch eigendecomposition matches SK exactly (0.9085 variance, 0.8599 KNN). 0.23s fit, 0.89 µs/sample. | [No-Framework/08-pca](No-Framework/08-pca/)
 - 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
 - 2026-03-13 | PCA / EDA + Preprocessing + Utilities | Fashion-MNIST (60K train, 784 features, 10 classes). 4 new viz functions in utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
@@ -364,7 +366,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
-- Complete Principal Component Analysis (1 of 4 Complete)
+- Complete Principal Component Analysis (3 of 4 Complete)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

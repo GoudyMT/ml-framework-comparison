@@ -123,7 +123,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 04-k-means/
 │   ├── 05-naive-bayes/
 │   ├── 06-decision-trees-random-forests/
-│   └── 07-svm/
+│   ├── 07-svm/
+│   └── 08-pca/
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -216,7 +217,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. IncrementalPCA showcase (batch SVD). 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
+- 2026-03-14 | PCA / No-Framework | From-scratch eigendecomposition matches SK exactly (0.9085 variance, 0.8599 KNN). 0.23s fit, 0.89 µs/sample. | [No-Framework/08-pca](No-Framework/08-pca/)
+- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
 - 2026-03-13 | PCA / EDA + Preprocessing + Utilities | Fashion-MNIST (60K train, 784 features, 10 classes). 4 new viz functions in utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-11 | SVM Summary: *All 4 frameworks achieve ~86% accuracy | PyTorch GPU fastest (9.03s), TF eager CPU 1.9x faster than raw NumPy***
 - 2026-03-11 | SVM / TensorFlow | CPU tensor-based dual gradient descent (85.77s training, 1.9x faster than NF). 15.55 µs/sample inference. | [TensorFlow/07-svm](TensorFlow/07-svm/)

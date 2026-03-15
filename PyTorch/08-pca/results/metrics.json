@@ -1,0 +1,12 @@
+{
+  "framework": "PyTorch",
+  "model": "PCA",
+  "training_time": 0.11059284210205078,
+  "inference_time_per_sample_us": 0.38749339999776566,
+  "model_size_bytes": 474736,
+  "peak_memory_mb": 0.0021448135375976562,
+  "explained_variance_ratio": 0.9084728956222534,
+  "reconstruction_mse": 0.09505521506071091,
+  "n_components": 150,
+  "downstream_knn_accuracy": 0.8599
+}

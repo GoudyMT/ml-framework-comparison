@@ -1,0 +1,12 @@
+{
+  "framework": "TensorFlow",
+  "model": "PCA",
+  "training_time": 0.17087960243225098,
+  "inference_time_per_sample_us": 0.9273968999696081,
+  "model_size_bytes": 474736,
+  "peak_memory_mb": 0.01652050018310547,
+  "explained_variance_ratio": 0.9084713459014893,
+  "reconstruction_mse": 0.09505531191825867,
+  "n_components": 150,
+  "downstream_knn_accuracy": 0.8599
+}

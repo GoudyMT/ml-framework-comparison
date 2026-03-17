@@ -396,7 +396,7 @@ model_size = get_model_size(model, framework='sklearn')
 |-------|-----------|--------|-------------------|
 | Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
 | SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
-| PCA | Scikit-Learn | Ready (preprocessing step) | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
+| PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
 | DNN | TBD | — | Pending |
 | CNN | TBD | — | Pending |
 | RNN/LSTM | TBD | — | Pending |

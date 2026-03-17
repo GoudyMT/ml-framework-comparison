@@ -150,7 +150,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 04-k-means/
     ├── 05-naive-bayes/
     ├── 06-decision-trees-random-forests/
-    └── 07-svm/
+    ├── 07-svm/
+    └── 08-pca/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -218,9 +219,11 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-03-16 | PCA Summary: *All 4 frameworks identical: 90.85% variance, 0.0951 MSE, 85.99% KNN accuracy | PyTorch GPU fastest (0.11s fit, 0.39 µs/sample)***
+- 2026-03-16 | PCA / TensorFlow | CPU eager-mode tensor ops (0.17s fit, 0.93 µs/sample). Eager vs tf.function showcase: 1.10x graph speedup. | [TensorFlow/08-pca](TensorFlow/08-pca/)
 - 2026-03-15 | PCA / PyTorch | GPU eigendecomposition fastest (0.11s fit, 0.39 µs/sample). 9.1x GPU vs CPU speedup showcase. 599 MB GPU memory. | [PyTorch/08-pca](PyTorch/08-pca/)
 - 2026-03-14 | PCA / No-Framework | From-scratch eigendecomposition matches SK exactly (0.9085 variance, 0.8599 KNN). 0.23s fit, 0.89 µs/sample. | [No-Framework/08-pca](No-Framework/08-pca/)
-- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
+- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. IncrementalPCA showcase. 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
 - 2026-03-13 | PCA / EDA + Preprocessing + Utilities | Fashion-MNIST (60K train, 784 features, 10 classes). 4 new viz functions in utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-11 | SVM Summary: *All 4 frameworks achieve ~86% accuracy | PyTorch GPU fastest (9.03s), TF eager CPU 1.9x faster than raw NumPy***
 - 2026-03-11 | SVM / TensorFlow | CPU tensor-based dual gradient descent (85.77s training, 1.9x faster than NF). 15.55 µs/sample inference. | [TensorFlow/07-svm](TensorFlow/07-svm/)
@@ -274,6 +277,18 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### PCA (Completed)
+
+- **All 4 frameworks produce identical results**: 0.9085 explained variance, 0.0951 reconstruction MSE, 0.8599 downstream KNN accuracy at 150 components. The eigendecomposition algorithm is truly implementation-agnostic
+- **First dimensionality reduction model**: Fashion-MNIST compressed from 784 → 150 features (5.2x compression) with only 1.3% accuracy loss (87.32% full → 85.99% reduced)
+- **Population vs sample covariance is a non-issue**: NF/PT/TF use 1/n, SK uses 1/(n-1) — shifts 90%/95% thresholds (137/256 vs SK's different values) but component ordering and downstream accuracy are identical
+- **PyTorch GPU fastest across the board**: 0.11s training (1.7x vs SK, 2.1x vs NF), 0.39 µs/sample inference. GPU matmul for covariance + CUDA LAPACK eigh pays off even at 784×784 scale
+- **9.1x GPU speedup on eigendecomposition**: `torch.linalg.eigh` on RTX 4090 vs CPU for 784×784 matrix (50-run benchmark). This is the floor — larger matrices show bigger wins
+- **tf.function provides modest 1.10x speedup**: PCA is dominated by a single LAPACK eigh call, so graph compilation has little to fuse. The real benefit is lower timing variance (3.31 ms vs 12.01 ms std)
+- **Memory tracking is misleading for PT/TF**: tracemalloc shows 0.00/0.02 MB because both frameworks manage memory outside Python's allocator. Actual GPU memory was 599 MB (PyTorch), and TF's CPU allocation is comparable to NF's 191 MB
+- **Eigendecomposition and SVD produce identical PCA**: Verified numerically in NF showcase — max eigenvalue diff 1.53e-05, max projection diff 2.43e-03 across 60K samples. Different LAPACK routines, same math
+- **Each framework showcased a unique strength**: SK (IncrementalPCA for out-of-core), NF (eigen vs SVD equivalence), PT (GPU vs CPU eigendecomposition), TF (eager vs tf.function graph mode)
 
 ### Support Vector Machines (Completed)
 
@@ -366,7 +381,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Naive Bayes across all 4 frameworks~~
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
-- Complete Principal Component Analysis (3 of 4 Complete)
+- ~~Complete Principal Component Analysis across all 4 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -381,7 +396,7 @@ model_size = get_model_size(model, framework='sklearn')
 |-------|-----------|--------|-------------------|
 | Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
 | SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
-| PCA | TBD | — | Pending |
+| PCA | Scikit-Learn | Ready (preprocessing step) | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
 | DNN | TBD | — | Pending |
 | CNN | TBD | — | Pending |
 | RNN/LSTM | TBD | — | Pending |

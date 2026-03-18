@@ -148,7 +148,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 05-naive-bayes/
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
-│   └── 08-pca/
+│   ├── 08-pca/
+│   └── 09-dnn/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -226,6 +227,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-18 | DNN / PyTorch | GPU-accelerated RegularizedDNN 256-128 architecture, 96.03% accuracy, 96.02% F1. BatchNorm + Dropout + LR scheduling showcase. 13.62s training, 0.74 µs/sample. | [PyTorch/09-dnn](PyTorch/09-dnn/)
 - 2026-03-17 | DNN / Scikit-Learn | MLPClassifier 128-64 architecture, 94.91% accuracy, 94.93% F1. Activation comparison showcase (ReLU vs Tanh vs Logistic). 2.25s training, 0.61 µs/sample. | [Scikit-Learn/09-dnn](Scikit-Learn/09-dnn/)
 - 2026-03-17 | DNN / EDA + Preprocessing + Utilities | UCI HAR (10,299 samples, 561 features, 6 activities). `plot_training_history` added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-16 | PCA Summary: *All 4 frameworks identical: 90.85% variance, 0.0951 MSE, 85.99% KNN accuracy | PyTorch GPU fastest (0.11s fit, 0.39 µs/sample)***
@@ -287,13 +289,16 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Deep Neural Networks (In Progress — 1/3 frameworks)
+### Deep Neural Networks (In Progress — 2/3 frameworks)
 
 - **UCI HAR dataset**: 10,299 samples, 561 pre-engineered sensor features, 6 activity classes. Subject-wise train/test split (21/9 subjects, no data leakage)
 - **Scikit-Learn MLPClassifier achieves 94.91% accuracy** with a compact 128-64 bottleneck architecture (80,582 parameters). Early stopping at 42 epochs, 2.25s training, 0.61 µs/sample inference
+- **PyTorch RegularizedDNN achieves 96.03% accuracy** — 1.12% improvement over SK. 256-128 architecture with BatchNorm + Dropout + ReduceLROnPlateau (178,310 parameters). 13.62s training, 0.74 µs/sample, 696.52 KB model
+- **Regularization is the differentiator**: Same 128-64 architecture jumps from 93.99% (simple) to 94.98% (regularized) in PyTorch. SK's MLPClassifier cannot express BatchNorm or per-layer Dropout, giving PT a structural advantage
 - **Activation function is nearly irrelevant on pre-engineered features**: ReLU (94.40%), Tanh (94.37%), Logistic (94.77%) all within 0.4% — the real difference is convergence speed (ReLU 30 epochs vs Logistic 73)
-- **Bottleneck architecture outperforms wider/deeper networks**: 128-64 (80K params) beats 256-128-64 (185K params) — the compression forces compact representations, acting as implicit regularization
-- **SITTING vs STANDING is the performance ceiling**: 49+23 misclassifications between these classes persist regardless of architecture. Sensor profiles are nearly identical when the phone is in a pocket
+- **Wider architectures benefit from regularization**: 256-128 (178K params) hits 96.03% because BatchNorm + Dropout prevent the extra capacity from memorizing training data. Without regularization, wider nets overfit on small datasets (7.3K train samples)
+- **SITTING vs STANDING is the performance ceiling**: Misclassifications between these classes persist regardless of framework or architecture. Sensor profiles are nearly identical when the phone is in a pocket
+- **GPU overhead visible at this scale**: PT training 13.62s vs SK's 2.25s — dataset is small enough that CUDA kernel launch overhead dominates. GPU DNN shines on larger datasets and deeper models
 - **No-Framework retired after PCA** — DNN onward uses only 3 frameworks (SK, PT, TF)
 
 ### PCA (Completed)

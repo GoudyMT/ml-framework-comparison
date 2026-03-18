@@ -1,15 +1,19 @@
 {
   "framework": "Scikit-Learn",
   "model": "DNN",
-  "training_time": 2.371659755706787,
-  "inference_time_per_sample_us": 0.6633016626846502,
+  "training_time": 2.42480206489563,
+  "inference_time_per_sample_us": 0.6472063115017308,
   "model_size_bytes": 322328,
-  "peak_memory_mb": 19.598804473876953,
+  "peak_memory_mb": 19.600523948669434,
   "accuracy": 0.9491007804546997,
   "macro_f1": 0.9492590890135452,
   "architecture": "561-128-64-6",
   "n_params": 80582,
   "epochs": 42,
+  "best_epoch": 27,
   "activation": "relu",
+  "dropout": null,
+  "batch_norm": false,
+  "lr_scheduler": null,
   "early_stopping": true
 }

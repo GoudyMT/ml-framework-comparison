@@ -982,3 +982,61 @@ def plot_component_accuracy(n_components_list, accuracies, framework, save_path=
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+    # DNN VISUALIZATIONS (Added during DNN prep)
+
+def plot_training_history(history, framework, save_path=None):
+    """
+    Plot training/validation loss and accuracy over epochs.
+    Dual-panel figure: loss on the left, accuracy on the right.
+
+    Designed for DNN training — works with any framework that provides
+    a history dict. Handles optional val_loss/val_acc gracefully.
+
+    Args:
+        history: Dict with keys from {'train_loss', 'val_loss',
+                 'train_acc', 'val_acc'}. Only 'train_loss' is required.
+        framework: Name for the title (e.g. "Scikit-Learn", "PyTorch")
+        save_path: Optional path to save the figure
+    """
+    has_val_loss = 'val_loss' in history and len(history['val_loss']) > 0
+    has_acc = 'train_acc' in history and len(history['train_acc']) > 0
+    has_val_acc = 'val_acc' in history and len(history['val_acc']) > 0
+
+    # Determine layout: 2 panels if accuracy exists, 1 if loss only
+    n_panels = 2 if has_acc else 1
+    fig, axes = plt.subplots(1, n_panels, figsize=(7 * n_panels, 5))
+    if n_panels == 1:
+        axes = [axes]
+
+    epochs = range(1, len(history['train_loss']) + 1)
+
+    # Left panel: Loss
+    ax = axes[0]
+    ax.plot(epochs, history['train_loss'], 'b-', linewidth=2, label='Train Loss')
+    if has_val_loss:
+        ax.plot(epochs, history['val_loss'], 'r-', linewidth=2, label='Val Loss')
+    ax.set_xlabel('Epoch', fontsize=12)
+    ax.set_ylabel('Loss', fontsize=12)
+    ax.set_title(f'{framework} — Training Loss', fontsize=13, fontweight='bold')
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
+
+    # Right panel: Accuracy (if available)
+    if has_acc:
+        ax = axes[1]
+        ax.plot(epochs, history['train_acc'], 'b-', linewidth=2, label='Train Acc')
+        if has_val_acc:
+            ax.plot(epochs, history['val_acc'], 'r-', linewidth=2, label='Val Acc')
+        ax.set_xlabel('Epoch', fontsize=12)
+        ax.set_ylabel('Accuracy', fontsize=12)
+        ax.set_title(f'{framework} — Training Accuracy', fontsize=13, fontweight='bold')
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3)
+
+    plt.suptitle(f'{framework} — DNN Training History', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

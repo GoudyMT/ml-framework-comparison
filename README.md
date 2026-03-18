@@ -88,13 +88,15 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── naive_bayes_text/
 │   │   ├── decision_tree/
 │   │   ├── svm/
-│   │   └── pca/
+│   │   ├── pca/
+│   │   └── dnn/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
 │       ├── decision_tree.json
 │       ├── svm.json
-│       └── pca.json
+│       ├── pca.json
+│       └── dnn.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -104,9 +106,11 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_decision_tree.py
 │   ├── preprocess_svm.py
 │   ├── preprocess_pca.py
+│   ├── preprocess_dnn.py
 │   ├── eda_decision_tree.ipynb
 │   ├── eda_svm.ipynb
-│   └── eda_pca.ipynb
+│   ├── eda_pca.ipynb
+│   └── eda_dnn.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -125,6 +129,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
 │   └── 08-pca/
+│   (No-Framework retired after PCA — see project roadmap)
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -133,7 +138,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 05-naive-bayes/
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
-│   └── 08-pca/
+│   ├── 08-pca/
+│   └── 09-dnn/
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -167,6 +173,7 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `visualization.py` | `plot_training_history` | DNN | Dual-panel training loss + accuracy curves (handles optional val_loss/val_acc) |
 | `visualization.py` | `plot_scree`, `plot_reconstruction_grid`, `plot_pca_components`, `plot_component_accuracy` | PCA | Scree/cumulative variance plots, reconstruction comparison grids, PC visualization, accuracy vs components |
 | `svm_utils.py` | `to_svm_labels`, `to_std_labels`, `platt_calibrate`, `platt_predict_proba` | SVM | Label conversion {0,1}↔{-1,+1} + Platt probability calibration for from-scratch SVMs |
 | `visualization.py` | `plot_kernel_comparison`, `plot_svm_convergence` | SVM | Kernel comparison showcase (3-panel grouped bars) + dual objective convergence |
@@ -219,6 +226,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-17 | DNN / Scikit-Learn | MLPClassifier 128-64 architecture, 94.91% accuracy, 94.93% F1. Activation comparison showcase (ReLU vs Tanh vs Logistic). 2.25s training, 0.61 µs/sample. | [Scikit-Learn/09-dnn](Scikit-Learn/09-dnn/)
+- 2026-03-17 | DNN / EDA + Preprocessing + Utilities | UCI HAR (10,299 samples, 561 features, 6 activities). `plot_training_history` added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-16 | PCA Summary: *All 4 frameworks identical: 90.85% variance, 0.0951 MSE, 85.99% KNN accuracy | PyTorch GPU fastest (0.11s fit, 0.39 µs/sample)***
 - 2026-03-16 | PCA / TensorFlow | CPU eager-mode tensor ops (0.17s fit, 0.93 µs/sample). Eager vs tf.function showcase: 1.10x graph speedup. | [TensorFlow/08-pca](TensorFlow/08-pca/)
 - 2026-03-15 | PCA / PyTorch | GPU eigendecomposition fastest (0.11s fit, 0.39 µs/sample). 9.1x GPU vs CPU speedup showcase. 599 MB GPU memory. | [PyTorch/08-pca](PyTorch/08-pca/)
@@ -277,6 +286,15 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Deep Neural Networks (In Progress — 1/3 frameworks)
+
+- **UCI HAR dataset**: 10,299 samples, 561 pre-engineered sensor features, 6 activity classes. Subject-wise train/test split (21/9 subjects, no data leakage)
+- **Scikit-Learn MLPClassifier achieves 94.91% accuracy** with a compact 128-64 bottleneck architecture (80,582 parameters). Early stopping at 42 epochs, 2.25s training, 0.61 µs/sample inference
+- **Activation function is nearly irrelevant on pre-engineered features**: ReLU (94.40%), Tanh (94.37%), Logistic (94.77%) all within 0.4% — the real difference is convergence speed (ReLU 30 epochs vs Logistic 73)
+- **Bottleneck architecture outperforms wider/deeper networks**: 128-64 (80K params) beats 256-128-64 (185K params) — the compression forces compact representations, acting as implicit regularization
+- **SITTING vs STANDING is the performance ceiling**: 49+23 misclassifications between these classes persist regardless of architecture. Sensor profiles are nearly identical when the phone is in a pocket
+- **No-Framework retired after PCA** — DNN onward uses only 3 frameworks (SK, PT, TF)
 
 ### PCA (Completed)
 
@@ -382,6 +400,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
+- Complete Deep Neural Networks across 3 frameworks (SK, PT, TF — No-Framework retired)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

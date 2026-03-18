@@ -1,0 +1,19 @@
+{
+  "framework": "PyTorch",
+  "model": "DNN",
+  "training_time": 14.654524087905884,
+  "inference_time_per_sample_us": 0.34814082117686196,
+  "model_size_bytes": 713240,
+  "peak_memory_mb": 0.33025360107421875,
+  "accuracy": 0.9602986087546658,
+  "macro_f1": 0.9601690901286349,
+  "architecture": "561-256(BN+DO)-128(BN+DO)-6",
+  "n_params": 178310,
+  "epochs": 56,
+  "best_epoch": 36,
+  "activation": "relu",
+  "dropout": 0.3,
+  "batch_norm": true,
+  "lr_scheduler": "ReduceLROnPlateau",
+  "early_stopping": true
+}

@@ -114,7 +114,7 @@ def add_result(model_name, result_dict):
         json.dump(results_list, f, indent=2)
 
     print(f"    Added '{framework}' to {path}")
-    print(f"    Frameworks recorded: {len(results_list)}/4")
+    print(f"    Frameworks: {len(results_list)} recorded")
 
 def _format_value(key, val):
     """
@@ -231,4 +231,4 @@ def print_comparison(model_name):
             row += f"{val_str:>{fw_width}}"
         print(row)
 
-    print(f"\n    Frameworks: {len(results_list)}/4 recorded")
+    print(f"\n    Frameworks: {len(results_list)} recorded")

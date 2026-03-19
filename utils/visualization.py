@@ -851,23 +851,27 @@ def plot_scree(explained_var_ratio, framework, save_path=None):
     plt.show()
 
 def plot_reconstruction_grid(originals, reconstructions_dict, image_shape=(28, 28),
-                              n_samples=5, save_path=None):
+                              n_samples=5, save_path=None, title=None,
+                              row_label_prefix='n', framework=None):
     """
-    Grid comparing original images to PCA reconstructions at different component counts.
+    Grid comparing original images to reconstructions at different compression levels.
 
     First row shows original images. Subsequent rows show reconstructions
-    at each component count, with MSE displayed below each image.
-    Visually demonstrates the quality vs compression tradeoff.
+    at each level, with MSE displayed below each image.
+    Supports both grayscale (H, W) and RGB (H, W, C) images.
 
     Args:
         originals: Array of original images, shape (n_samples, n_features).
-            Should be in SCALED space (same as PCA input).
-        reconstructions_dict: OrderedDict or dict of {n_components: reconstructed_array}.
-            Each array shape (n_samples, n_features). Same scale as originals.
-        image_shape: Tuple (height, width) for reshaping flattened vectors.
+        reconstructions_dict: Dict of {level: reconstructed_array}.
+            Each array shape (n_samples, n_features).
+        image_shape: Tuple for reshaping — (H, W) for grayscale or (H, W, C) for RGB.
         n_samples: Number of sample images to show (columns).
         save_path: Optional path to save the figure.
+        title: Custom title. Defaults to 'PCA Reconstruction Quality' (backward compatible).
+        row_label_prefix: Label prefix for rows. Defaults to 'n' (PCA). Use 'dim' for AE.
+        framework: Optional framework name prepended to title.
     """
+    is_rgb = len(image_shape) == 3
     n_rows = 1 + len(reconstructions_dict)
     fig, axes = plt.subplots(n_rows, n_samples, figsize=(n_samples * 2.5, n_rows * 2.5))
 
@@ -876,31 +880,42 @@ def plot_reconstruction_grid(originals, reconstructions_dict, image_shape=(28, 2
 
     # Row 0: originals
     for j in range(n_samples):
-        axes[0, j].imshow(originals[j].reshape(image_shape), cmap='gray')
+        img = originals[j].reshape(image_shape)
+        if is_rgb:
+            axes[0, j].imshow(np.clip(img, 0, 1))
+        else:
+            axes[0, j].imshow(img, cmap='gray')
         axes[0, j].axis('off')
         if j == 0:
             axes[0, j].set_ylabel('Original', fontsize=11, rotation=0,
                                    labelpad=60, va='center')
 
-    # Remaining rows: reconstructions at each component count
-    for i, (n_comp, recon) in enumerate(reconstructions_dict.items(), start=1):
+    # Remaining rows: reconstructions at each level
+    for i, (level, recon) in enumerate(reconstructions_dict.items(), start=1):
         for j in range(n_samples):
             img = recon[j].reshape(image_shape)
             mse = np.mean((originals[j] - recon[j]) ** 2)
-            axes[i, j].imshow(img, cmap='gray')
+            if is_rgb:
+                axes[i, j].imshow(np.clip(img, 0, 1))
+            else:
+                axes[i, j].imshow(img, cmap='gray')
             axes[i, j].axis('off')
-            axes[i, j].set_title(f'MSE={mse:.2f}', fontsize=8)
+            axes[i, j].set_title(f'MSE={mse:.4f}', fontsize=8)
             if j == 0:
-                axes[i, j].set_ylabel(f'n={n_comp}', fontsize=11, rotation=0,
-                                       labelpad=60, va='center')
+                axes[i, j].set_ylabel(f'{row_label_prefix}={level}', fontsize=11,
+                                       rotation=0, labelpad=60, va='center')
 
-    fig.suptitle('PCA Reconstruction Quality', fontsize=14, y=1.02)
+    # Title
+    if title is None:
+        title = 'PCA Reconstruction Quality'
+    if framework:
+        title = f'{framework} — {title}'
+    fig.suptitle(title, fontsize=14, y=1.02)
     plt.tight_layout()
 
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
-
 
 def plot_pca_components(components, image_shape=(28, 28), n_components=10,
                          framework='', save_path=None):
@@ -983,7 +998,7 @@ def plot_component_accuracy(n_components_list, accuracies, framework, save_path=
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
 
-    # DNN VISUALIZATIONS (Added during DNN prep)
+# DNN VISUALIZATIONS (Added during DNN prep)
 
 def plot_training_history(history, framework, save_path=None):
     """
@@ -1034,7 +1049,60 @@ def plot_training_history(history, framework, save_path=None):
         ax.legend(fontsize=10)
         ax.grid(True, alpha=0.3)
 
-    plt.suptitle(f'{framework} — DNN Training History', fontsize=14, fontweight='bold')
+    plt.suptitle(f'{framework} — Training History', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+# AUTOENCODER VISUALIZATIONS (Added during autoencoder prep)
+
+def plot_latent_space(latent_vectors, labels, class_names, framework,
+                       method='tsne', save_path=None):
+    """
+    2D projection of latent space colored by class label.
+
+    Reduces high-dimensional latent vectors to 2D using t-SNE or PCA,
+    then plots a scatter with points colored by true class. Reveals
+    whether the encoder learns class-separable representations.
+
+    Args:
+        latent_vectors: Array (n_samples, latent_dim).
+        labels: Array (n_samples,) of integer class labels.
+        class_names: List of class name strings.
+        framework: Name for the title (e.g. "PyTorch", "Scikit-Learn").
+        method: 'tsne' or 'pca' for dimensionality reduction.
+        save_path: Optional path to save the figure.
+    """
+    from sklearn.manifold import TSNE
+    from sklearn.decomposition import PCA
+
+    if method == 'tsne':
+        reducer = TSNE(n_components=2, random_state=113, perplexity=30, max_iter=1000)
+        coords = reducer.fit_transform(latent_vectors)
+        method_label = 't-SNE'
+    elif method == 'pca':
+        reducer = PCA(n_components=2, random_state=113)
+        coords = reducer.fit_transform(latent_vectors)
+        method_label = 'PCA'
+    else:
+        raise ValueError(f"method must be 'tsne' or 'pca', got '{method}'")
+
+    plt.figure(figsize=(10, 8))
+    n_classes = len(class_names)
+    cmap = plt.cm.get_cmap('tab10', n_classes)
+
+    for i, name in enumerate(class_names):
+        mask = labels == i
+        plt.scatter(coords[mask, 0], coords[mask, 1], c=[cmap(i)],
+                    label=name, s=5, alpha=0.5)
+
+    plt.xlabel(f'{method_label} 1', fontsize=12)
+    plt.ylabel(f'{method_label} 2', fontsize=12)
+    plt.title(f'{framework} — Latent Space ({method_label})', fontsize=14, fontweight='bold')
+    plt.legend(fontsize=8, markerscale=3, loc='best')
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
 
     if save_path:

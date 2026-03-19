@@ -409,7 +409,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
-- ~~Complete Deep Neural Networks across 3 frameworks (SK, PT, TF — No-Framework retired)~~
+- ~~Complete Deep Neural Networks across 3 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -425,7 +425,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
 | SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
 | PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
-| DNN | TBD | Pending deployment staging | PyTorch leads accuracy (96.03%), SK leads speed — decision after deployment sprint |
+| DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
 | CNN | TBD | — | Pending |
 | RNN/LSTM | TBD | — | Pending |
 

@@ -1,0 +1,19 @@
+{
+  "framework": "TensorFlow",
+  "model": "DNN",
+  "training_time": 9.139623880386353,
+  "inference_time_per_sample_us": 31.680658635901057,
+  "model_size_bytes": 323864,
+  "peak_memory_mb": 19.982894897460938,
+  "accuracy": 0.9423142178486597,
+  "macro_f1": 0.9427805931648644,
+  "architecture": "561-128(BN+DO)-64(BN+DO)-6",
+  "n_params": 81350,
+  "epochs": 29,
+  "best_epoch": 9,
+  "activation": "relu",
+  "dropout": 0.3,
+  "batch_norm": true,
+  "lr_scheduler": "ReduceLROnPlateau",
+  "early_stopping": true
+}

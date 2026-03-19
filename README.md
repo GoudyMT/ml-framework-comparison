@@ -158,7 +158,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 05-naive-bayes/
     ├── 06-decision-trees-random-forests/
     ├── 07-svm/
-    └── 08-pca/
+    ├── 08-pca/
+    └── 09-dnn/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -227,8 +228,10 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-18 | DNN / PyTorch | GPU-accelerated RegularizedDNN 256-128 architecture, 96.03% accuracy, 96.02% F1. BatchNorm + Dropout + LR scheduling showcase. 13.62s training, 0.74 µs/sample. | [PyTorch/09-dnn](PyTorch/09-dnn/)
-- 2026-03-17 | DNN / Scikit-Learn | MLPClassifier 128-64 architecture, 94.91% accuracy, 94.93% F1. Activation comparison showcase (ReLU vs Tanh vs Logistic). 2.25s training, 0.61 µs/sample. | [Scikit-Learn/09-dnn](Scikit-Learn/09-dnn/)
+- **2026-03-18 | DNN Summary: *PyTorch GPU leads (96.03%) > SK (94.91%) > TF CPU (94.23%) | SK fastest training (2.42s), PT fastest inference (0.35 µs)***
+- 2026-03-18 | DNN / TensorFlow | Keras Sequential + callbacks, 128-64 architecture, 94.23% accuracy. 9.14s training, 31.68 µs/sample. | [TensorFlow/09-dnn](TensorFlow/09-dnn/)
+- 2026-03-18 | DNN / PyTorch | GPU-accelerated RegularizedDNN 256-128 architecture, 96.03% accuracy, 96.02% F1. | [PyTorch/09-dnn](PyTorch/09-dnn/)
+- 2026-03-17 | DNN / Scikit-Learn | MLPClassifier 128-64 architecture, 94.91% accuracy, 94.93% F1. | [Scikit-Learn/09-dnn](Scikit-Learn/09-dnn/)
 - 2026-03-17 | DNN / EDA + Preprocessing + Utilities | UCI HAR (10,299 samples, 561 features, 6 activities). `plot_training_history` added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-16 | PCA Summary: *All 4 frameworks identical: 90.85% variance, 0.0951 MSE, 85.99% KNN accuracy | PyTorch GPU fastest (0.11s fit, 0.39 µs/sample)***
 - 2026-03-16 | PCA / TensorFlow | CPU eager-mode tensor ops (0.17s fit, 0.93 µs/sample). Eager vs tf.function showcase: 1.10x graph speedup. | [TensorFlow/08-pca](TensorFlow/08-pca/)
@@ -289,17 +292,18 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Deep Neural Networks (In Progress — 2/3 frameworks)
+### Deep Neural Networks (Completed)
 
 - **UCI HAR dataset**: 10,299 samples, 561 pre-engineered sensor features, 6 activity classes. Subject-wise train/test split (21/9 subjects, no data leakage)
-- **Scikit-Learn MLPClassifier achieves 94.91% accuracy** with a compact 128-64 bottleneck architecture (80,582 parameters). Early stopping at 42 epochs, 2.25s training, 0.61 µs/sample inference
-- **PyTorch RegularizedDNN achieves 96.03% accuracy** — 1.12% improvement over SK. 256-128 architecture with BatchNorm + Dropout + ReduceLROnPlateau (178,310 parameters). 13.62s training, 0.74 µs/sample, 696.52 KB model
-- **Regularization is the differentiator**: Same 128-64 architecture jumps from 93.99% (simple) to 94.98% (regularized) in PyTorch. SK's MLPClassifier cannot express BatchNorm or per-layer Dropout, giving PT a structural advantage
+- **PyTorch GPU leads accuracy (96.03%)** with 256-128 RegularizedDNN (BatchNorm + Dropout + ReduceLROnPlateau). SK second (94.91%, 128-64 MLPClassifier), TF CPU third (94.23%, 128-64 Keras Sequential)
+- **Regularization is the differentiator**: Same 128-64 architecture jumps +1.0% with BatchNorm + Dropout + LR scheduling in both PT and TF. SK's MLPClassifier cannot express BatchNorm or per-layer Dropout, giving DL frameworks a structural advantage
 - **Activation function is nearly irrelevant on pre-engineered features**: ReLU (94.40%), Tanh (94.37%), Logistic (94.77%) all within 0.4% — the real difference is convergence speed (ReLU 30 epochs vs Logistic 73)
-- **Wider architectures benefit from regularization**: 256-128 (178K params) hits 96.03% because BatchNorm + Dropout prevent the extra capacity from memorizing training data. Without regularization, wider nets overfit on small datasets (7.3K train samples)
-- **SITTING vs STANDING is the performance ceiling**: Misclassifications between these classes persist regardless of framework or architecture. Sensor profiles are nearly identical when the phone is in a pocket
-- **GPU overhead visible at this scale**: PT training 13.62s vs SK's 2.25s — dataset is small enough that CUDA kernel launch overhead dominates. GPU DNN shines on larger datasets and deeper models
+- **Wider architectures benefit from GPU + regularization**: PT's 256-128 (178K params) hits 96.03%, but the same architecture underperformed on TF CPU (92.70%). GPU training dynamics differ from CPU for BatchNorm + wider layers
+- **Keras callbacks are the code simplicity winner**: 5 lines of callback configuration replaces ~40 lines of PyTorch manual training loop for identical functionality (EarlyStopping + ReduceLROnPlateau + restore_best_weights)
+- **Inference speed hierarchy**: PT GPU (0.35 µs) >> SK (0.65 µs) >> TF CPU (31.68 µs). Keras `model.predict()` has per-call Python overhead; production would use TF Serving
+- **SITTING vs STANDING is the performance ceiling**: Misclassifications between these classes persist regardless of framework (SK: 72, PT: 75, TF: 117). Sensor profiles are nearly identical when the phone is in a pocket
 - **No-Framework retired after PCA** — DNN onward uses only 3 frameworks (SK, PT, TF)
+- **Each framework showcased a unique strength**: SK (activation function comparison), PT (BatchNorm + Dropout + LR scheduling), TF (Keras callbacks — minimal code for full training pipeline)
 
 ### PCA (Completed)
 
@@ -405,7 +409,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
 - ~~Complete Support Vector Machine across all 4 frameworks~~
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
-- Complete Deep Neural Networks across 3 frameworks (SK, PT, TF — No-Framework retired)
+- ~~Complete Deep Neural Networks across 3 frameworks (SK, PT, TF — No-Framework retired)~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -421,7 +425,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
 | SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
 | PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
-| DNN | TBD | — | Pending |
+| DNN | TBD | Pending deployment staging | PyTorch leads accuracy (96.03%), SK leads speed — decision after deployment sprint |
 | CNN | TBD | — | Pending |
 | RNN/LSTM | TBD | — | Pending |
 

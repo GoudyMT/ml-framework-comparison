@@ -1049,7 +1049,6 @@ def plot_training_history(history, framework, save_path=None):
         ax.legend(fontsize=10)
         ax.grid(True, alpha=0.3)
 
-    plt.suptitle(f'{framework} — Training History', fontsize=14, fontweight='bold')
     plt.tight_layout()
 
     if save_path:

@@ -89,14 +89,16 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── decision_tree/
 │   │   ├── svm/
 │   │   ├── pca/
-│   │   └── dnn/
+│   │   ├── dnn/
+│   │   └── autoencoder/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
 │       ├── decision_tree.json
 │       ├── svm.json
 │       ├── pca.json
-│       └── dnn.json
+│       ├── dnn.json
+│       └── autoencoder.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -107,10 +109,12 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_svm.py
 │   ├── preprocess_pca.py
 │   ├── preprocess_dnn.py
+│   ├── preprocess_autoencoder.py
 │   ├── eda_decision_tree.ipynb
 │   ├── eda_svm.ipynb
 │   ├── eda_pca.ipynb
-│   └── eda_dnn.ipynb
+│   ├── eda_dnn.ipynb
+│   └── eda_autoencoder.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -129,7 +133,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
 │   └── 08-pca/
-│   (No-Framework retired after PCA — see project roadmap)
+│   (No-Framework retired after PCA)
 ├── Scikit-Learn/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -139,7 +143,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
 │   ├── 08-pca/
-│   └── 09-dnn/
+│   ├── 09-dnn/
+│   └── 10-autoencoders/
+│   (Scikit-Learn retired after Autoencoders)
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -175,6 +181,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `visualization.py` | `plot_latent_space`, `plot_reconstruction_grid`, `plot_training_history` | Autoencoders | Latent space t-SNE/PCA projection, RGB reconstruction grids, model-agnostic training history title |
+| `results.py` | `add_result`, `print_comparison` (fixed) | Autoencoders | Removed hardcoded `/4` framework count — now dynamic for 3-framework and 2-framework models |
 | `visualization.py` | `plot_training_history` | DNN | Dual-panel training loss + accuracy curves (handles optional val_loss/val_acc) |
 | `visualization.py` | `plot_scree`, `plot_reconstruction_grid`, `plot_pca_components`, `plot_component_accuracy` | PCA | Scree/cumulative variance plots, reconstruction comparison grids, PC visualization, accuracy vs components |
 | `svm_utils.py` | `to_svm_labels`, `to_std_labels`, `platt_calibrate`, `platt_predict_proba` | SVM | Label conversion {0,1}↔{-1,+1} + Platt probability calibration for from-scratch SVMs |
@@ -228,6 +236,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-20 | Autoencoders / Scikit-Learn | Dense AE (MLPRegressor), 128-dim bottleneck, MSE 0.0133, 24x compression. | [Scikit-Learn/10-autoencoders](Scikit-Learn/10-autoencoders/)
+- 2026-03-20 | Autoencoders / EDA + Preprocessing + Utilities | CIFAR-10 (60K color images, 3,072 features, 10 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-18 | DNN Summary: *PyTorch GPU leads (96.03%) > SK (94.91%) > TF CPU (94.23%) | SK fastest training (2.42s), PT fastest inference (0.35 µs)***
 - 2026-03-18 | DNN / TensorFlow | Keras Sequential + callbacks, 128-64 architecture, 94.23% accuracy. 9.14s training, 31.68 µs/sample. | [TensorFlow/09-dnn](TensorFlow/09-dnn/)
 - 2026-03-18 | DNN / PyTorch | GPU-accelerated RegularizedDNN 256-128 architecture, 96.03% accuracy, 96.02% F1. | [PyTorch/09-dnn](PyTorch/09-dnn/)
@@ -410,6 +420,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Support Vector Machine across all 4 frameworks~~
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
 - ~~Complete Deep Neural Networks across 3 frameworks~~
+- Complete Autoencoders across 3 frameworks (1 of 3 complete)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

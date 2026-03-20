@@ -1,0 +1,19 @@
+{
+  "framework": "Scikit-Learn",
+  "model": "Autoencoder",
+  "training_time": 393.02012634277344,
+  "inference_time_per_sample_us": 44.17187700000795,
+  "model_size_bytes": 13124096,
+  "peak_memory_mb": 351.3825845718384,
+  "reconstruction_mse": 0.01329437829554081,
+  "reconstruction_mae": 0.08410923182964325,
+  "reconstruction_rmse": 0.11530125141143799,
+  "latent_dim": 128,
+  "architecture": "3072-512-128-512-3072",
+  "architecture_type": "dense",
+  "n_params": 3281024,
+  "epochs": 97,
+  "downstream_knn_accuracy": 0.3427,
+  "compression_ratio": 24.0,
+  "training_subset": 10000
+}

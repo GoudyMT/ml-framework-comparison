@@ -155,7 +155,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
 │   ├── 08-pca/
-│   └── 09-dnn/
+│   ├── 09-dnn/
+│   └── 10-autoencoders/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -236,7 +237,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-20 | Autoencoders / Scikit-Learn | Dense AE (MLPRegressor), 128-dim bottleneck, MSE 0.0133, 24x compression. | [Scikit-Learn/10-autoencoders](Scikit-Learn/10-autoencoders/)
+- 2026-03-20 | Autoencoders / PyTorch | GPU conv denoising AE (64-128-256, lat=256), MSE 0.0037 (3.6x better than SK). Architecture sweep + noise level sweep. 0.07 µs/sample. | [PyTorch/10-autoencoders](PyTorch/10-autoencoders/)
+- 2026-03-20 | Autoencoders / Scikit-Learn | Dense AE (MLPRegressor), 128-dim bottleneck, MSE 0.0133, 24x compression. SK's LAST model — retired. | [Scikit-Learn/10-autoencoders](Scikit-Learn/10-autoencoders/)
 - 2026-03-20 | Autoencoders / EDA + Preprocessing + Utilities | CIFAR-10 (60K color images, 3,072 features, 10 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-18 | DNN Summary: *PyTorch GPU leads (96.03%) > SK (94.91%) > TF CPU (94.23%) | SK fastest training (2.42s), PT fastest inference (0.35 µs)***
 - 2026-03-18 | DNN / TensorFlow | Keras Sequential + callbacks, 128-64 architecture, 94.23% accuracy. 9.14s training, 31.68 µs/sample. | [TensorFlow/09-dnn](TensorFlow/09-dnn/)

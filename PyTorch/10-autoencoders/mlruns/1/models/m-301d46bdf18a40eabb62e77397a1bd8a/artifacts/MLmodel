@@ -1,0 +1,31 @@
+artifact_path: file:///c:/Users/Max/Desktop/Coding/.Projects/2026/ml-framework-comparisons/PyTorch/10-autoencoders/mlruns/1/models/m-301d46bdf18a40eabb62e77397a1bd8a/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.12.2
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.5.1+cu121
+is_signature_from_type_hint: false
+mlflow_version: 3.10.0
+model_id: m-301d46bdf18a40eabb62e77397a1bd8a
+model_size_bytes: 11404317
+model_uuid: m-301d46bdf18a40eabb62e77397a1bd8a
+prompts: null
+run_id: 6c9c1c5d453d4bcf934f44d793b66745
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 3,
+    32, 32]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1,
+    3, 32, 32]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-03-22 03:02:35.876558'

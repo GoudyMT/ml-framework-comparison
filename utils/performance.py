@@ -213,7 +213,9 @@ def get_model_size(model, framework='numpy'):
                    for p in model.parameters())
 
     elif framework == 'tensorflow':
-        return sum(np.prod(v.shape) * v.dtype.size
+        # TF dtype can be a string ('float32') not numpy dtype object,
+        # so use np.dtype() to convert for .itemsize
+        return sum(np.prod(v.shape) * np.dtype(v.dtype.name).itemsize
                    for v in model.trainable_variables)
 
     return 0 

@@ -1,0 +1,19 @@
+{
+  "framework": "TensorFlow",
+  "model": "Autoencoder",
+  "training_time": 183.80403661727905,
+  "inference_time_per_sample_us": 120.7682229999864,
+  "model_size_bytes": 13124096,
+  "peak_memory_mb": 380.23256397247314,
+  "reconstruction_mse": 0.01064060628414154,
+  "reconstruction_mae": 0.075703464448452,
+  "reconstruction_rmse": 0.10315331446028063,
+  "latent_dim": 128,
+  "architecture": "3072-512-128-512-3072",
+  "architecture_type": "dense",
+  "n_params": 3281024,
+  "epochs": 95,
+  "downstream_knn_accuracy": 0.3535,
+  "training_subset": 15000,
+  "conv_ae_skipped": "TF CPU crashes on conv model training with color images"
+}

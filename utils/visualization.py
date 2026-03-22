@@ -1107,3 +1107,112 @@ def plot_latent_space(latent_vectors, labels, class_names, framework,
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# CNN VISUALIZATIONS (Added during cnn prep)
+
+def plot_superclass_confusion(y_true_fine, y_pred_fine, fine_names, coarse_names,
+                               fine_to_coarse, framework, save_path=None):
+    """
+    Plot confusion matrix aggregated at the superclass level.
+
+    Aggregates 100-class fine predictions into 20 superclass groups,
+    showing which superclasses the model confuses. Useful for hierarchical
+    evaluation of CIFAR-100 and similar datasets.
+
+    Args:
+        y_true_fine: Ground truth fine labels (0-99).
+        y_pred_fine: Predicted fine labels (0-99).
+        fine_names: List of 100 fine class names.
+        coarse_names: List of 20 superclass names.
+        fine_to_coarse: Array mapping fine label index to coarse label index.
+        framework: Framework name for title.
+        save_path: Optional path to save the figure.
+    """
+    # Map fine predictions to coarse
+    y_true_coarse = fine_to_coarse[y_true_fine]
+    y_pred_coarse = fine_to_coarse[y_pred_fine]
+
+    n_coarse = len(coarse_names)
+    cm = np.zeros((n_coarse, n_coarse), dtype=int)
+    for true, pred in zip(y_true_coarse, y_pred_coarse):
+        cm[true, pred] += 1
+
+    # Normalize by row (true class) to get percentages
+    cm_norm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
+
+    fig, ax = plt.subplots(figsize=(14, 12))
+    im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
+
+    ax.set_xticks(range(n_coarse))
+    ax.set_yticks(range(n_coarse))
+    short_names = [n.replace('_', '\n') for n in coarse_names]
+    ax.set_xticklabels(short_names, rotation=45, ha='right', fontsize=7)
+    ax.set_yticklabels(short_names, fontsize=7)
+    ax.set_xlabel('Predicted Superclass', fontsize=12)
+    ax.set_ylabel('True Superclass', fontsize=12)
+    ax.set_title(f'{framework} — Superclass Confusion Matrix', fontsize=14, fontweight='bold')
+
+    # Annotate cells with percentages
+    for i in range(n_coarse):
+        for j in range(n_coarse):
+            val = cm_norm[i, j]
+            if val > 0.01:
+                color = 'white' if val > 0.5 else 'black'
+                ax.text(j, i, f'{val:.0%}', ha='center', va='center',
+                        fontsize=6, color=color)
+
+    plt.colorbar(im, ax=ax, shrink=0.8, label='Proportion')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+    # Print per-superclass accuracy
+    sc_acc = np.diag(cm_norm)
+    sorted_idx = np.argsort(sc_acc)
+    print(f"\nPer-superclass accuracy:")
+    for idx in sorted_idx:
+        print(f"  {coarse_names[idx]:<40} {sc_acc[idx]:.1%}")
+
+def plot_augmentation_samples(images, aug_fn_dict, n_samples=4, save_path=None):
+    """
+    Plot original vs augmented images side-by-side.
+
+    Shows the effect of each augmentation on a set of sample images.
+    Reusable for any image model (CNN, ViT, GAN).
+
+    Args:
+        images: Array of sample images, shape (N, H, W, C), uint8 or float [0,1].
+        aug_fn_dict: Dict of {'aug_name': aug_function}. Each function takes
+            a single image array and returns the augmented image.
+        n_samples: Number of sample images to show.
+        save_path: Optional path to save the figure.
+    """
+    aug_names = ['Original'] + list(aug_fn_dict.keys())
+    n_cols = len(aug_names)
+
+    fig, axes = plt.subplots(n_samples, n_cols, figsize=(3 * n_cols, 3 * n_samples))
+
+    for row in range(n_samples):
+        img = images[row]
+        for col, name in enumerate(aug_names):
+            if name == 'Original':
+                display = img
+            else:
+                display = aug_fn_dict[name](img)
+
+            # Handle both uint8 and float [0,1]
+            if display.dtype == np.float32 or display.dtype == np.float64:
+                display = np.clip(display, 0, 1)
+            axes[row, col].imshow(display)
+            axes[row, col].axis('off')
+            if row == 0:
+                axes[row, col].set_title(name, fontsize=11, fontweight='bold')
+
+    plt.suptitle('Data Augmentation Samples', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

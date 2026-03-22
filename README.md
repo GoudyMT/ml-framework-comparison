@@ -166,7 +166,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 06-decision-trees-random-forests/
     ├── 07-svm/
     ├── 08-pca/
-    └── 09-dnn/
+    ├── 09-dnn/
+    └── 10-autoencoders/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -237,6 +238,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-03-21 | Autoencoders Summary: *PyTorch conv denoising AE leads (MSE 0.0037) > TF dense (0.0096) > SK dense (0.0133) | Conv AE skipped on TF (CPU OOM). SK retired.***
+- 2026-03-21 | Autoencoders / TensorFlow | Dense AE only (128-dim, MSE 0.0096, 15K subset). Conv AE skipped — TF CPU crashes on conv training with color images. | [TensorFlow/10-autoencoders](TensorFlow/10-autoencoders/)
 - 2026-03-20 | Autoencoders / PyTorch | GPU conv denoising AE (64-128-256, lat=256), MSE 0.0037 (3.6x better than SK). Architecture sweep + noise level sweep. 0.07 µs/sample. | [PyTorch/10-autoencoders](PyTorch/10-autoencoders/)
 - 2026-03-20 | Autoencoders / Scikit-Learn | Dense AE (MLPRegressor), 128-dim bottleneck, MSE 0.0133, 24x compression. SK's LAST model — retired. | [Scikit-Learn/10-autoencoders](Scikit-Learn/10-autoencoders/)
 - 2026-03-20 | Autoencoders / EDA + Preprocessing + Utilities | CIFAR-10 (60K color images, 3,072 features, 10 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
@@ -303,6 +306,18 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Autoencoders (Completed)
+
+- **CIFAR-10 dataset**: 60,000 color images (32x32x3 = 3,072 features), 10 classes. Self-supervised reconstruction task — labels used for evaluation only, never training
+- **PyTorch conv denoising AE dominates**: MSE 0.0037 with 64-128-256 filters + 256-dim latent (2.8M params). 3.6x better than SK's dense AE (0.0133) with fewer parameters (2.8M vs 3.3M). Conv layers exploit spatial locality that dense layers cannot
+- **Denoising is a powerful training strategy**: The conv AE trained on noisy inputs (σ=0.2) removes 86.9% of noise while maintaining clean reconstruction quality. Even at σ=0.5 (heavy noise), denoised output (0.0099) beats SK's clean dense reconstruction (0.0133)
+- **TF CPU cannot handle conv autoencoders on color images**: Repeated system crashes (exit code 0xC0000005) with 50K, 15K, and even subset training. TF's CPU memory allocator cannot manage conv layer activation maps + gradients on Windows. Dense AE worked fine — the issue is specific to convolutional architectures
+- **Dense AE results are consistent across frameworks**: SK (0.0133 on 10K), TF (0.0096 on 15K), PT (0.0091 on 50K). Differences explained by training data volume, not framework quality
+- **Reconstruction quality ≠ classification quality**: Dense AE (worse MSE) learns more class-separable latent features than conv AE (better MSE). KNN accuracy: PT dense 40.3% > PT conv 36.2% > TF 35.4% > SK 34.3%. Tighter bottlenecks force semantic compression
+- **Architecture sweep identifies optimal conv design**: Large (64-128-256, lat=256) beats Medium (32-64-128, lat=128) by 31%, Wide (64-128-256, lat=128) by 28%, and Small (32-64, lat=64) by 56%. Deeper encoder + larger latent dim is the winning combination
+- **Scikit-Learn retired after this model**: MLPRegressor as AE works but is fundamentally limited — full-batch only, no conv layers, no mini-batch training. Future models (CNN, RNN, etc.) continue with PyTorch and TensorFlow only
+- **Each framework showcased a unique strength**: SK (bottleneck dimension sweep), PT (conv denoising AE + architecture sweep + noise level sweep), TF (CPU limitation documentation — when GPU matters)
 
 ### Deep Neural Networks (Completed)
 
@@ -422,7 +437,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Support Vector Machine across all 4 frameworks~~
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
 - ~~Complete Deep Neural Networks across 3 frameworks~~
-- Complete Autoencoders across 3 frameworks (1 of 3 complete)
+- ~~Complete Autoencoders across 3 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -439,6 +454,7 @@ model_size = get_model_size(model, framework='sklearn')
 | SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
 | PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
 | DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
+| Autoencoders | PyTorch | Pending | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
 | CNN | TBD | — | Pending |
 | RNN/LSTM | TBD | — | Pending |
 

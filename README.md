@@ -90,7 +90,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── svm/
 │   │   ├── pca/
 │   │   ├── dnn/
-│   │   └── autoencoder/
+│   │   ├── autoencoder/
+│   │   └── cnn/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -98,7 +99,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── svm.json
 │       ├── pca.json
 │       ├── dnn.json
-│       └── autoencoder.json
+│       ├── autoencoder.json
+│       └── cnn.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -110,11 +112,13 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_pca.py
 │   ├── preprocess_dnn.py
 │   ├── preprocess_autoencoder.py
+│   ├── preprocess_cnn.py
 │   ├── eda_decision_tree.ipynb
 │   ├── eda_svm.ipynb
 │   ├── eda_pca.ipynb
 │   ├── eda_dnn.ipynb
-│   └── eda_autoencoder.ipynb
+│   ├── eda_autoencoder.ipynb
+│   └── eda_cnn.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -145,7 +149,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 08-pca/
 │   ├── 09-dnn/
 │   └── 10-autoencoders/
-│   (Scikit-Learn retired after Autoencoders)
+│   (Scikit-Learn retired after Autoencoders — only PT/TF continue)
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -156,7 +160,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 07-svm/
 │   ├── 08-pca/
 │   ├── 09-dnn/
-│   └── 10-autoencoders/
+│   ├── 10-autoencoders/
+│   └── 11-cnn/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -167,7 +172,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 07-svm/
     ├── 08-pca/
     ├── 09-dnn/
-    └── 10-autoencoders/
+    ├── 10-autoencoders/
+    └── 11-cnn/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -183,6 +189,9 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `visualization.py` | `plot_superclass_confusion`, `plot_augmentation_samples` | CNN | Superclass-level confusion matrix with hierarchical evaluation, generic augmentation sample grid |
+| `data_loader.py` | `load_processed_data` (updated) | CNN | Auto-detects hierarchical labels (fine/coarse) — backward compatible with all existing models |
+| `performance.py` | `get_model_size` (fixed) | CNN | Fixed TF dtype bug — `v.dtype.name` with `np.dtype().itemsize` handles both PT and TF |
 | `visualization.py` | `plot_latent_space`, `plot_reconstruction_grid`, `plot_training_history` | Autoencoders | Latent space t-SNE/PCA projection, RGB reconstruction grids, model-agnostic training history title |
 | `results.py` | `add_result`, `print_comparison` (fixed) | Autoencoders | Removed hardcoded `/4` framework count — now dynamic for 3-framework and 2-framework models |
 | `visualization.py` | `plot_training_history` | DNN | Dual-panel training loss + accuracy curves (handles optional val_loss/val_acc) |
@@ -238,6 +247,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-25 | CNN / PyTorch | ResNet-20 + CutMix + Label Smoothing + Nesterov SGD, **80.1% accuracy** on CIFAR-100 (100 classes). Progression: 56.9% -> 80.1%. Superclass accuracy 87.9%. | [PyTorch/11-cnn](PyTorch/11-cnn/)
+- 2026-03-22 | CNN / EDA + Preprocessing + Utilities | CIFAR-100 (60K color images, 100 fine classes, 20 superclasses). WSL2 + TF GPU setup. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-21 | Autoencoders Summary: *PyTorch conv denoising AE leads (MSE 0.0037) > TF dense (0.0096) > SK dense (0.0133) | Conv AE skipped on TF (CPU OOM). SK retired.***
 - 2026-03-21 | Autoencoders / TensorFlow | Dense AE only (128-dim, MSE 0.0096, 15K subset). Conv AE skipped — TF CPU crashes on conv training with color images. | [TensorFlow/10-autoencoders](TensorFlow/10-autoencoders/)
 - 2026-03-20 | Autoencoders / PyTorch | GPU conv denoising AE (64-128-256, lat=256), MSE 0.0037 (3.6x better than SK). Architecture sweep + noise level sweep. 0.07 µs/sample. | [PyTorch/10-autoencoders](PyTorch/10-autoencoders/)
@@ -438,6 +449,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
 - ~~Complete Deep Neural Networks across 3 frameworks~~
 - ~~Complete Autoencoders across 3 frameworks~~
+- Complete CNN across 2 frameworks (PyTorch done, TensorFlow in progress)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -455,7 +467,7 @@ model_size = get_model_size(model, framework='sklearn')
 | PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
 | DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
 | Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
-| CNN | TBD | — | Pending |
+| CNN | PyTorch | Pending (PT complete, TF pending) | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing, GPU-accelerated |
 | RNN/LSTM | TBD | — | Pending |
 
 ### Deployment Stack (executes after all models complete)

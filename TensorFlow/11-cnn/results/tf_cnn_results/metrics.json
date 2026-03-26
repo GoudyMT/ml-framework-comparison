@@ -1,0 +1,21 @@
+{
+  "framework": "TensorFlow",
+  "model": "CNN",
+  "training_time": 22367.892337322235,
+  "inference_time_per_sample_us": 229.53680607010028,
+  "model_size_bytes": 17403536,
+  "peak_memory_mb": 34.14677810668945,
+  "accuracy": 0.7947,
+  "macro_f1": 0.7941892355561925,
+  "architecture": "ResNet-20 (3 stages, 64-128-256)",
+  "n_params": 4357156,
+  "epochs": 200,
+  "best_epoch": 191,
+  "optimizer": "SGD Nesterov lr=0.05 wd=5e-4",
+  "augmentation": "CutMix + HFlip + RandomCrop",
+  "lr_schedule": "Cosine Annealing (full cycle, no early stop)",
+  "superclass_accuracy": 0.8755,
+  "fine_classes": 100,
+  "coarse_classes": 20,
+  "dataset": "CIFAR-100"
+}

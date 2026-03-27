@@ -1,0 +1,22 @@
+{
+  "framework": "PyTorch",
+  "model": "RNN",
+  "training_time": 4.026026725769043,
+  "inference_time_per_sample_us": 4.51493999993545,
+  "model_size_bytes": 600084,
+  "peak_memory_mb": 0.18721771240234375,
+  "accuracy": 0.918,
+  "macro_f1": 0.5479215966778928,
+  "rnn_type": "GRU",
+  "hidden_size": 128,
+  "num_layers": 2,
+  "n_params": 150021,
+  "epochs": 26,
+  "best_val_f1": 0.5356014329609334,
+  "gpu_memory_mb": 492.94970703125,
+  "class_imbalance_ratio": 121.6,
+  "vanishing_gradient_demo": true,
+  "architecture": "GRU(1, 128, 2 layers) -> FC(128, 5)",
+  "optimizer": "Adam",
+  "lr": 0.001
+}

@@ -149,7 +149,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 08-pca/
 │   ├── 09-dnn/
 │   └── 10-autoencoders/
-│   (Scikit-Learn retired after Autoencoders — only PT/TF continue)
+│   (Scikit-Learn retired after Autoencoders)
 ├── PyTorch/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -247,6 +247,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-03-26 | CNN Summary: *PyTorch leads (80.1%) > TensorFlow (79.5%) on CIFAR-100 | Same ResNet-20 + CutMix recipe, PT 11x faster training. First TF model on GPU via WSL2.***
+- 2026-03-26 | CNN / TensorFlow | ResNet-20 via Keras Functional API + CutMix + Nesterov SGD, **79.5% accuracy** on CIFAR-100. WSL2 GPU (RTX 4090). | [TensorFlow/11-cnn](TensorFlow/11-cnn/)
 - 2026-03-25 | CNN / PyTorch | ResNet-20 + CutMix + Label Smoothing + Nesterov SGD, **80.1% accuracy** on CIFAR-100 (100 classes). Progression: 56.9% -> 80.1%. Superclass accuracy 87.9%. | [PyTorch/11-cnn](PyTorch/11-cnn/)
 - 2026-03-22 | CNN / EDA + Preprocessing + Utilities | CIFAR-100 (60K color images, 100 fine classes, 20 superclasses). WSL2 + TF GPU setup. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-21 | Autoencoders Summary: *PyTorch conv denoising AE leads (MSE 0.0037) > TF dense (0.0096) > SK dense (0.0133) | Conv AE skipped on TF (CPU OOM). SK retired.***
@@ -317,6 +319,19 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### CNN (Completed)
+
+- **CIFAR-100 dataset**: 60,000 color images (32x32x3), 100 fine classes in 20 superclasses, perfectly balanced (500/class). First classification CNN — 10x harder than CIFAR-10
+- **Progressive improvement from 56.9% to 80.1%**: Systematic experimentation through 10 training cells — plain CNN baseline, architecture sweep (Wide wins), refinement (cosine LR), ResNet-20 introduction, optimizer discovery (SGD >> Adam), full cosine cycles, and modern regularization (CutMix + label smoothing)
+- **SGD with momentum is the single biggest gain (+12.8%)**: Adam's adaptive per-parameter learning rates interfere with ResNet's batch normalization dynamics. SGD lr=0.05 with weight decay 5e-4 trained the full 200-epoch cosine cycle while Adam early-stopped at epoch 37-51
+- **CutMix collapsed overfitting from 22% to 5% gap**: Replaced patches with real image content from other classes, forcing partial-feature learning. More effective than Cutout (which replaces with zeros) or label smoothing alone
+- **ResNet-20 is the sweet spot for CIFAR-100 at 32x32**: ResNet-32 (7.45M params) matched ResNet-20 (4.35M) at 77.4%. Longer training (300ep vs 200ep) compensates for less depth at equal accuracy with half the parameters
+- **Cosine annealing must complete its full cycle**: Early stopping with cosine LR is counterproductive — stops training while LR is still high (62.5% at epoch 69/300 vs 77.4% at epoch 276/300). Best results always in final 10-15% of training
+- **TF matches PT accuracy (79.5% vs 80.1%) but is 11x slower**: Manual GradientTape loop with per-batch augmentation has significant Python-level overhead. Not a fundamental TF limitation — `model.fit()` + `@tf.function` would be faster, but CutMix required manual loop
+- **First TF model on GPU via WSL2**: TF 2.11+ dropped native Windows GPU. WSL2 Ubuntu + CUDA libraries enables GPU access. One-time setup that benefits all 9 remaining models
+- **Superclass analysis validates EDA predictions**: People (girl/boy/man/woman) are the hardest fine classes (F1 ~0.54-0.63) — exactly as EDA average-image analysis predicted. Reptiles and aquatic mammals are the hardest superclasses. Trees and flowers are easiest across both frameworks
+- **Each framework showcased unique strengths**: PT (progressive architecture experimentation with 10 training steps, label smoothing support), TF (Keras Functional API for ResNet, WSL2 GPU setup, documented eager mode performance characteristics)
 
 ### Autoencoders (Completed)
 
@@ -449,7 +464,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Principal Component Analysis across all 4 frameworks~~
 - ~~Complete Deep Neural Networks across 3 frameworks~~
 - ~~Complete Autoencoders across 3 frameworks~~
-- Complete CNN across 2 frameworks (PyTorch done, TensorFlow in progress)
+- ~~Complete CNN across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -467,7 +482,7 @@ model_size = get_model_size(model, framework='sklearn')
 | PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
 | DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
 | Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
-| CNN | PyTorch | Pending (PT complete, TF pending) | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing, GPU-accelerated |
+| CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
 | RNN/LSTM | TBD | — | Pending |
 
 ### Deployment Stack (executes after all models complete)

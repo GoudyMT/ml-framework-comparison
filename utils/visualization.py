@@ -1216,3 +1216,159 @@ def plot_augmentation_samples(images, aug_fn_dict, n_samples=4, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# RNN VISUALIZATIONS (Added during rnn prep)
+
+def plot_gradient_flow(gradient_norms_dict, framework, save_path=None):
+    """Plot gradient norms across layers for one or more models.
+
+    Visualizes gradient magnitude per layer as a bar chart.
+    Pass multiple models to compare (e.g., vanilla RNN vs GRU).
+
+    Args:
+        gradient_norms_dict: Dict of {model_name: {layer_name: norm}}.
+            Example: {'Vanilla RNN': {...}, 'GRU': {...}}
+        framework: Framework name for title.
+        save_path: Optional path to save the figure.
+    """
+    n_models = len(gradient_norms_dict)
+    fig, axes = plt.subplots(1, n_models, figsize=(7 * n_models, 6))
+
+    if n_models == 1:
+        axes = [axes]
+
+    for ax, (model_name, norms) in zip(axes, gradient_norms_dict.items()):
+        # Filter to weight layers only (skip biases for cleaner chart)
+        weight_norms = {k: v for k, v in norms.items()
+                        if 'weight' in k.lower() or 'kernel' in k.lower()}
+        if not weight_norms:
+            weight_norms = norms
+
+        names = list(weight_norms.keys())
+        values = list(weight_norms.values())
+
+        # Shorten layer names for readability
+        short_names = [n.split('.')[-1] if '.' in n else n for n in names]
+
+        # Color by magnitude: red=vanishing, green=healthy, orange=borderline
+        colors = ['#d62728' if v < 1e-4 else '#2ca02c' if v > 1e-2 else '#ff7f0e'
+                  for v in values]
+
+        ax.barh(range(len(values)), values, color=colors)
+        ax.set_yticks(range(len(values)))
+        ax.set_yticklabels(short_names, fontsize=8)
+        ax.set_xlabel('Gradient L2 Norm')
+        ax.set_title(f'{model_name}', fontsize=12, fontweight='bold')
+        ax.set_xscale('log')
+        ax.axvline(x=1e-4, color='red', linestyle='--', alpha=0.5,
+                   label='Vanishing threshold')
+        ax.legend(fontsize=8)
+
+    plt.suptitle(f'{framework} — Gradient Flow Comparison',
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_ecg_predictions(X, y_true, y_pred, class_names, framework,
+                          n_samples=8, save_path=None):
+    """Plot ECG waveforms colored by prediction correctness.
+
+    Shows a grid of sample ECG signals with true and predicted labels.
+    Correct predictions in green, incorrect in red.
+
+    Args:
+        X: Input sequences, shape (N, seq_len) or (N, seq_len, 1).
+        y_true: True labels array.
+        y_pred: Predicted labels array.
+        class_names: List of class name strings.
+        framework: Framework name for title.
+        n_samples: Number of samples to display.
+        save_path: Optional path to save the figure.
+    """
+    if X.ndim == 3:
+        X = X.squeeze(-1)
+
+    correct_mask = y_true == y_pred
+    n_correct = min(n_samples // 2, correct_mask.sum())
+    n_incorrect = min(n_samples // 2, (~correct_mask).sum())
+
+    correct_idx = np.where(correct_mask)[0][:n_correct]
+    incorrect_idx = np.where(~correct_mask)[0][:n_incorrect]
+    show_idx = np.concatenate([correct_idx, incorrect_idx])
+
+    n_show = len(show_idx)
+    cols = min(4, n_show)
+    rows = (n_show + cols - 1) // cols
+
+    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 3 * rows),
+                              squeeze=False)
+
+    for i, idx in enumerate(show_idx):
+        r, c = divmod(i, cols)
+        is_correct = y_true[idx] == y_pred[idx]
+        color = '#2ca02c' if is_correct else '#d62728'
+        label = 'Correct' if is_correct else 'Wrong'
+
+        axes[r][c].plot(X[idx], color=color, linewidth=1)
+        axes[r][c].set_title(
+            f'True: {class_names[y_true[idx]]}\n'
+            f'Pred: {class_names[y_pred[idx]]} ({label})',
+            fontsize=9, color=color
+        )
+        axes[r][c].set_xlabel('Timestep')
+        axes[r][c].grid(True, alpha=0.3)
+
+    for i in range(n_show, rows * cols):
+        r, c = divmod(i, cols)
+        axes[r][c].axis('off')
+
+    plt.suptitle(f'{framework} — ECG Predictions',
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_hidden_state_evolution(hidden_states, timesteps, class_name, framework,
+                                 n_dims=8, save_path=None):
+    """Plot hidden state dimensions over the sequence length.
+
+    Shows how the RNN's internal representation evolves as it reads
+    each timestep. Useful for understanding temporal dynamics.
+
+    Args:
+        hidden_states: Array of shape (seq_len, hidden_dim) for one sample.
+        timesteps: Number of timesteps (x-axis length).
+        class_name: Name of the sample's class for the title.
+        framework: Framework name for title.
+        n_dims: Number of hidden dimensions to plot (top by variance).
+        save_path: Optional path to save the figure.
+    """
+    variances = np.var(hidden_states, axis=0)
+    top_dims = np.argsort(variances)[-n_dims:][::-1]
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    cmap = plt.colormaps['tab10']
+
+    for i, dim in enumerate(top_dims):
+        ax.plot(range(timesteps), hidden_states[:, dim],
+                color=cmap(i), linewidth=1.2, alpha=0.8,
+                label=f'Dim {dim}')
+
+    ax.set_xlabel('Timestep', fontsize=12)
+    ax.set_ylabel('Hidden State Value', fontsize=12)
+    ax.set_title(f'{framework} — Hidden State Evolution ({class_name})',
+                 fontsize=14, fontweight='bold')
+    ax.legend(fontsize=8, ncol=2, loc='upper right')
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

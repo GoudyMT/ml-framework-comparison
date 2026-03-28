@@ -91,7 +91,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── pca/
 │   │   ├── dnn/
 │   │   ├── autoencoder/
-│   │   └── cnn/
+│   │   ├── cnn/
+│   │   └── rnn/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -100,7 +101,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── pca.json
 │       ├── dnn.json
 │       ├── autoencoder.json
-│       └── cnn.json
+│       ├── cnn.json
+│       └── rnn.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -118,7 +120,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── eda_pca.ipynb
 │   ├── eda_dnn.ipynb
 │   ├── eda_autoencoder.ipynb
-│   └── eda_cnn.ipynb
+│   ├── eda_cnn.ipynb
+│   ├── preprocess_rnn.py
+│   └── eda_rnn.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -127,7 +131,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── visualization.py
 │   ├── results.py
 │   ├── tree_utils.py
-│   └── svm_utils.py
+│   ├── svm_utils.py
+│   └── rnn_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -161,7 +166,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 08-pca/
 │   ├── 09-dnn/
 │   ├── 10-autoencoders/
-│   └── 11-cnn/
+│   ├── 11-cnn/
+│   └── 12-rnn/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -189,6 +195,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `rnn_utils.py` | `compute_gradient_norms` | RNN | Per-layer gradient norms for vanishing gradient analysis (PyTorch + TensorFlow). Reusable for LSTM, Attention, Transformers |
+| `visualization.py` | `plot_gradient_flow`, `plot_ecg_predictions`, `plot_hidden_state_evolution` | RNN | Gradient norm bar charts (side-by-side models), ECG waveforms colored by prediction correctness, hidden state dimensions over timesteps |
 | `visualization.py` | `plot_superclass_confusion`, `plot_augmentation_samples` | CNN | Superclass-level confusion matrix with hierarchical evaluation, generic augmentation sample grid |
 | `data_loader.py` | `load_processed_data` (updated) | CNN | Auto-detects hierarchical labels (fine/coarse) — backward compatible with all existing models |
 | `performance.py` | `get_model_size` (fixed) | CNN | Fixed TF dtype bug — `v.dtype.name` with `np.dtype().itemsize` handles both PT and TF |
@@ -247,6 +255,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-27 | RNN / PyTorch | GRU-128 (2 layers), **91.8% accuracy, 0.55 macro F1** on ECG5000 (5-class heartbeat, 121.6x imbalance). Vanilla RNN vs GRU comparison. | [PyTorch/12-rnn](PyTorch/12-rnn/)
+- 2026-03-27 | RNN / EDA + Preprocessing + Utilities | ECG5000 (5,000 heartbeats, 140 timesteps, 5 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-26 | CNN Summary: *PyTorch leads (80.1%) > TensorFlow (79.5%) on CIFAR-100 | Same ResNet-20 + CutMix recipe, PT 11x faster training. First TF model on GPU via WSL2.***
 - 2026-03-26 | CNN / TensorFlow | ResNet-20 via Keras Functional API + CutMix + Nesterov SGD, **79.5% accuracy** on CIFAR-100. WSL2 GPU (RTX 4090). | [TensorFlow/11-cnn](TensorFlow/11-cnn/)
 - 2026-03-25 | CNN / PyTorch | ResNet-20 + CutMix + Label Smoothing + Nesterov SGD, **80.1% accuracy** on CIFAR-100 (100 classes). Progression: 56.9% -> 80.1%. Superclass accuracy 87.9%. | [PyTorch/11-cnn](PyTorch/11-cnn/)
@@ -465,6 +475,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Deep Neural Networks across 3 frameworks~~
 - ~~Complete Autoencoders across 3 frameworks~~
 - ~~Complete CNN across 2 frameworks~~
+- Complete RNN across 2 frameworks (PyTorch done, TensorFlow pending)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

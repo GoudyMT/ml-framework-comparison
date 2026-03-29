@@ -1,0 +1,23 @@
+{
+  "framework": "TensorFlow",
+  "model": "RNN",
+  "training_time": 218.2977955341339,
+  "inference_time_per_sample_us": 416.7801839999447,
+  "model_size_bytes": 403476,
+  "peak_memory_mb": 18.46830940246582,
+  "accuracy": 0.898,
+  "macro_f1": 0.5397047543517164,
+  "rnn_type": "Bidirectional GRU",
+  "hidden_size": 64,
+  "num_layers": 2,
+  "bidirectional": true,
+  "n_params": 100869,
+  "epochs": 45,
+  "best_val_f1": 0.5992328504828504,
+  "class_imbalance_ratio": 121.6,
+  "vanishing_gradient_demo": true,
+  "architecture": "Bidirectional(GRU(64)) x2 -> Dense(5)",
+  "optimizer": "Adam",
+  "lr": 0.001,
+  "device": "CPU"
+}

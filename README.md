@@ -179,7 +179,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 08-pca/
     ├── 09-dnn/
     ├── 10-autoencoders/
-    └── 11-cnn/
+    ├── 11-cnn/
+    └── 12-rnn/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -255,8 +256,10 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-27 | RNN / PyTorch | GRU-128 (2 layers), **91.8% accuracy, 0.55 macro F1** on ECG5000 (5-class heartbeat, 121.6x imbalance). Vanilla RNN vs GRU comparison. | [PyTorch/12-rnn](PyTorch/12-rnn/)
-- 2026-03-27 | RNN / EDA + Preprocessing + Utilities | ECG5000 (5,000 heartbeats, 140 timesteps, 5 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
+- **2026-03-28 | RNN Summary: *PyTorch GRU-128 (91.8%, F1 0.55) vs TensorFlow BiGRU-64 (89.8%, F1 0.54) | Different winners per framework, same macro F1 ceiling from 121.6x class imbalance***
+- 2026-03-28 | RNN / TensorFlow | BiGRU-64 (2 layers), **89.8% accuracy, 0.54 macro F1** on ECG5000. Keras Sequential + model.fit + custom MacroF1Callback. CPU training (218s). | [TensorFlow/12-rnn](TensorFlow/12-rnn/)
+- 2026-03-27 | RNN / PyTorch | GRU-128 (2 layers), **91.8% accuracy, 0.55 macro F1** on ECG5000 (5-class heartbeat, 121.6x imbalance). Vanilla RNN vs GRU comparison + gradient flow analysis. | [PyTorch/12-rnn](PyTorch/12-rnn/)
+- 2026-03-27 | RNN / EDA + Preprocessing + Utilities | ECG5000 (5,000 heartbeats, 140 timesteps, 5 classes). `rnn_utils.py` + 3 RNN viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-26 | CNN Summary: *PyTorch leads (80.1%) > TensorFlow (79.5%) on CIFAR-100 | Same ResNet-20 + CutMix recipe, PT 11x faster training. First TF model on GPU via WSL2.***
 - 2026-03-26 | CNN / TensorFlow | ResNet-20 via Keras Functional API + CutMix + Nesterov SGD, **79.5% accuracy** on CIFAR-100. WSL2 GPU (RTX 4090). | [TensorFlow/11-cnn](TensorFlow/11-cnn/)
 - 2026-03-25 | CNN / PyTorch | ResNet-20 + CutMix + Label Smoothing + Nesterov SGD, **80.1% accuracy** on CIFAR-100 (100 classes). Progression: 56.9% -> 80.1%. Superclass accuracy 87.9%. | [PyTorch/11-cnn](PyTorch/11-cnn/)
@@ -329,6 +332,17 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### RNN (Completed)
+
+- **ECG5000 dataset**: 5,000 heartbeat recordings, 140 timesteps, 5 classes (Normal, R-on-T PVC, PVC, SP, UB). Severe class imbalance (121.6x ratio). First sequence model — healthcare AI portfolio piece
+- **Macro F1 is the only honest metric**: 91.8% accuracy sounds great, but macro F1 of 0.55 reveals the model fails on 3/5 classes. Accuracy is misleading when 58% of data is one class. Always report class-weighted metrics for imbalanced data
+- **Vanishing gradients didn't vanish**: At 140 timesteps and 2 layers, both vanilla RNN and GRU show healthy gradients (ratio 1.2-4.2x). The theoretical vanishing gradient problem requires much longer sequences (hundreds/thousands of steps) to manifest dramatically
+- **GRU barely beats vanilla RNN on short sequences**: Macro F1 improvement of +0.002 (PT) and +0.002 (TF). Gating matters more for longer temporal dependencies than ECG's 140 timesteps
+- **Different frameworks pick different winners**: PT chose GRU-128 (unidirectional), TF chose BiGRU-64 (bidirectional). Both achieve similar macro F1 (~0.54-0.55). Framework implementation details (random init, training dynamics) influence architecture selection
+- **The performance ceiling is data, not architecture**: 19 PVC, 39 SP, 5 UB training samples. No RNN variant (vanilla, GRU, bidirectional, deeper) can fix this. Data augmentation is the next step (Model #13 LSTM)
+- **CPU is fine for small sequence datasets**: TF trained in 218s on CPU vs PT's 4s on GPU. WSL2 GPU setup friction isn't worth it when training takes minutes. Decision rule: check PT training time first
+- **Each framework showcased unique strengths**: PT (manual training loop with flexible early stopping, GPU acceleration), TF (Keras model.fit with class_weight dict, custom MacroF1Callback, Bidirectional layer wrapper)
 
 ### CNN (Completed)
 
@@ -475,7 +489,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Deep Neural Networks across 3 frameworks~~
 - ~~Complete Autoencoders across 3 frameworks~~
 - ~~Complete CNN across 2 frameworks~~
-- Complete RNN across 2 frameworks (PyTorch done, TensorFlow pending)
+- ~~Complete RNN across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -494,7 +508,8 @@ model_size = get_model_size(model, framework='sklearn')
 | DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
 | Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
 | CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
-| RNN/LSTM | TBD | — | Pending |
+| RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
+| LSTM | TBD | — | Pending |
 
 ### Deployment Stack (executes after all models complete)
 

@@ -1372,3 +1372,133 @@ def plot_hidden_state_evolution(hidden_states, timesteps, class_name, framework,
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# LSTM VISUALIZATIONS (Added during lstm prep)
+
+def plot_ecg_augmentation_samples(original, aug_dict, class_name,
+                                   save_path=None):
+    """
+    Plot original ECG waveform vs augmented versions.
+
+    Shows the effect of each augmentation type on a single ECG signal.
+    One subplot per augmentation, original overlaid in gray for comparison.
+
+    Args:
+        original: Original sequence, shape (seq_len,) or (seq_len, 1).
+        aug_dict: Dict of {'aug_name': augmented_signal}.
+            Example: {'Jitter': aug1, 'Scaling': aug2, 'Time Warp': aug3}
+        class_name: Class label for the title.
+        save_path: Optional path to save the figure.
+    """
+    if original.ndim == 2:
+        original = original.squeeze(-1)
+
+    n_augs = len(aug_dict)
+    fig, axes = plt.subplots(1, n_augs, figsize=(5 * n_augs, 4))
+    if n_augs == 1:
+        axes = [axes]
+
+    for ax, (name, aug_signal) in zip(axes, aug_dict.items()):
+        if aug_signal.ndim == 2:
+            aug_signal = aug_signal.squeeze(-1)
+        ax.plot(original, color='gray', alpha=0.5, linewidth=1, label='Original')
+        ax.plot(aug_signal, color='steelblue', linewidth=1.2, label=name)
+        ax.set_title(name, fontsize=12, fontweight='bold')
+        ax.set_xlabel('Timestep')
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+
+    plt.suptitle(f'ECG Augmentation — {class_name}',
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_class_distribution_comparison(before_counts, after_counts,
+                                        class_names, save_path=None):
+    """
+    Grouped bar chart showing class distribution before/after augmentation.
+
+    Side-by-side bars for each class, clearly showing the rebalancing effect.
+
+    Args:
+        before_counts: Array or list of per-class counts before augmentation.
+        after_counts: Array or list of per-class counts after augmentation.
+        class_names: List of class name strings.
+        save_path: Optional path to save the figure.
+    """
+    x = np.arange(len(class_names))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars1 = ax.bar(x - width / 2, before_counts, width, label='Before',
+                    color='lightcoral', alpha=0.8)
+    bars2 = ax.bar(x + width / 2, after_counts, width, label='After',
+                    color='steelblue', alpha=0.8)
+
+    ax.set_xlabel('Class')
+    ax.set_ylabel('Count')
+    ax.set_title('Class Distribution — Before vs After Augmentation',
+                 fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(class_names, rotation=15, ha='right')
+    ax.legend()
+
+    for bar in bars1:
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 10,
+                f'{int(bar.get_height())}', ha='center', fontsize=8)
+    for bar in bars2:
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 10,
+                f'{int(bar.get_height())}', ha='center', fontsize=8)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_sequence_length_distribution(lengths, save_path=None):
+    """
+    Histogram of sequence lengths with summary statistics.
+
+    Shows distribution with vertical lines at mean, median, P90, P95.
+    Used for IMDB EDA to justify max_length choice.
+
+    Args:
+        lengths: Array or list of sequence lengths.
+        save_path: Optional path to save the figure.
+    """
+    lengths = np.array(lengths)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.hist(lengths, bins=50, color='steelblue', alpha=0.7, edgecolor='black',
+            linewidth=0.5)
+
+    mean_len = np.mean(lengths)
+    median_len = np.median(lengths)
+    p90 = np.percentile(lengths, 90)
+    p95 = np.percentile(lengths, 95)
+
+    ax.axvline(mean_len, color='red', linestyle='--', linewidth=1.5,
+               label=f'Mean: {mean_len:.0f}')
+    ax.axvline(median_len, color='green', linestyle='--', linewidth=1.5,
+               label=f'Median: {median_len:.0f}')
+    ax.axvline(p90, color='orange', linestyle='--', linewidth=1.5,
+               label=f'P90: {p90:.0f}')
+    ax.axvline(p95, color='purple', linestyle='--', linewidth=1.5,
+               label=f'P95: {p95:.0f}')
+
+    ax.set_xlabel('Sequence Length')
+    ax.set_ylabel('Count')
+    ax.set_title('Sequence Length Distribution', fontsize=14, fontweight='bold')
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

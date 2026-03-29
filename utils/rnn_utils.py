@@ -1,13 +1,18 @@
 """
-RNN-specific computation util.
+RNN-specific computation utilities.
 Reusable for RNN (#12), LSTM (#13), Attention (#15), Transformers (#16).
 
 Functions:
     compute_gradient_norms — Per-layer gradient magnitudes (vanishing gradient demo)
+    jitter — Gaussian noise augmentation
+    scaling — Amplitude scaling augmentation
+    time_warp — Temporal warping via cubic spline
+    augment_minority_classes — Master augmentation pipeline
+    MacroF1Callback — Keras callback for early stopping on macro F1
+    extract_hidden_states — Extract h and c states from RNN/LSTM/GRU
 """
 
 import numpy as np
-
 
 def compute_gradient_norms(model, loss_fn, X_batch, y_batch, framework='pytorch'):
     """
@@ -116,6 +121,11 @@ def time_warp(x, sigma=0.2, n_knots=4):
     warped_positions = knot_positions * warp_magnitudes
     warped_positions = np.clip(warped_positions, 0, len(x) - 1)
     warped_positions = np.sort(warped_positions)
+
+    # Ensure strictly increasing (CubicSpline requirement)
+    for i in range(1, len(warped_positions)):
+        if warped_positions[i] <= warped_positions[i - 1]:
+            warped_positions[i] = warped_positions[i - 1] + 1e-6
 
     cs = CubicSpline(warped_positions, knot_positions)
     new_indices = cs(orig_steps)
@@ -278,9 +288,7 @@ def extract_hidden_states(model, X_sample, framework='pytorch'):
 
             cell_states = None
             if isinstance(rnn_layer, torch.nn.LSTM):
-                # For LSTM, need to run step-by-step to get cell states
-                # hidden is (h_n, c_n) but only for final timestep
-                # Re-run manually to capture per-timestep cell states
+                # For LSTM, run step-by-step to capture per-timestep cell states
                 h = torch.zeros(rnn_layer.num_layers, 1, rnn_layer.hidden_size,
                                 device=X_sample.device)
                 c = torch.zeros_like(h)
@@ -299,8 +307,7 @@ def extract_hidden_states(model, X_sample, framework='pytorch'):
         if X_sample.ndim == 2:
             X_sample = X_sample[np.newaxis, ...]
 
-        # Rebuild model with return_sequences=True on all layers
-        # to get per-timestep outputs
+        # Find RNN layers in model
         layers = model.layers
         rnn_layers = [l for l in layers
                       if isinstance(l, (keras.layers.SimpleRNN,
@@ -334,7 +341,7 @@ def extract_hidden_states(model, X_sample, framework='pytorch'):
             else:
                 extractor.add(layer)
 
-        # Copy weights
+        # Copy weights from trained layers
         for src, dst in zip(model.layers, extractor.layers):
             try:
                 dst.set_weights(src.get_weights())

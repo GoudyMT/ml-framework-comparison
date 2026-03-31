@@ -92,7 +92,10 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── dnn/
 │   │   ├── autoencoder/
 │   │   ├── cnn/
-│   │   └── rnn/
+│   │   ├── rnn/
+│   │   └── lstm/
+│   │       ├── ecg/       # Augmented ECG5000
+│   │       └── imdb/      # Padded IMDB sequences
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -102,7 +105,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── dnn.json
 │       ├── autoencoder.json
 │       ├── cnn.json
-│       └── rnn.json
+│       ├── rnn.json
+│       ├── lstm_ecg.json
+│       └── lstm_imdb.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -122,7 +127,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── eda_autoencoder.ipynb
 │   ├── eda_cnn.ipynb
 │   ├── preprocess_rnn.py
-│   └── eda_rnn.ipynb
+│   ├── eda_rnn.ipynb
+│   ├── preprocess_lstm.py
+│   └── eda_lstm.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -167,7 +174,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 09-dnn/
 │   ├── 10-autoencoders/
 │   ├── 11-cnn/
-│   └── 12-rnn/
+│   ├── 12-rnn/
+│   └── 13-lstm/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -196,6 +204,9 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `rnn_utils.py` | `jitter`, `scaling`, `time_warp`, `augment_minority_classes` | LSTM | Time-series augmentation for imbalanced datasets. Offline augmentation applied once during preprocessing. |
+| `rnn_utils.py` | `MacroF1Callback`, `extract_hidden_states` | LSTM | Keras early stopping on macro F1 (reusable for all TF sequence models). Hidden/cell state extraction for LSTM analysis (PT + TF). |
+| `visualization.py` | `plot_ecg_augmentation_samples`, `plot_class_distribution_comparison`, `plot_sequence_length_distribution` | LSTM | ECG augmentation viz, before/after class balance chart, variable-length sequence histogram |
 | `rnn_utils.py` | `compute_gradient_norms` | RNN | Per-layer gradient norms for vanishing gradient analysis (PyTorch + TensorFlow). Reusable for LSTM, Attention, Transformers |
 | `visualization.py` | `plot_gradient_flow`, `plot_ecg_predictions`, `plot_hidden_state_evolution` | RNN | Gradient norm bar charts (side-by-side models), ECG waveforms colored by prediction correctness, hidden state dimensions over timesteps |
 | `visualization.py` | `plot_superclass_confusion`, `plot_augmentation_samples` | CNN | Superclass-level confusion matrix with hierarchical evaluation, generic augmentation sample grid |
@@ -256,6 +267,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-03-29 | LSTM / PyTorch | Two datasets: ECG5000 augmented (LSTM-128, 92.4% acc, **0.60 macro F1** — broke 0.55 ceiling via augmentation) + IMDB sentiment (LSTM-128, **87.8% acc**, 0.94 AUC, 300-token sequences). | [PyTorch/13-lstm](PyTorch/13-lstm/)
+- 2026-03-29 | LSTM / EDA + Preprocessing + Utilities | IMDB EDA (50K reviews, binary). `preprocess_lstm.py` (ECG augmentation + IMDB padding). Augmentation utils + MacroF1Callback + 3 viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-28 | RNN Summary: *PyTorch GRU-128 (91.8%, F1 0.55) vs TensorFlow BiGRU-64 (89.8%, F1 0.54) | Different winners per framework, same macro F1 ceiling from 121.6x class imbalance***
 - 2026-03-28 | RNN / TensorFlow | BiGRU-64 (2 layers), **89.8% accuracy, 0.54 macro F1** on ECG5000. Keras Sequential + model.fit + custom MacroF1Callback. CPU training (218s). | [TensorFlow/12-rnn](TensorFlow/12-rnn/)
 - 2026-03-27 | RNN / PyTorch | GRU-128 (2 layers), **91.8% accuracy, 0.55 macro F1** on ECG5000 (5-class heartbeat, 121.6x imbalance). Vanilla RNN vs GRU comparison + gradient flow analysis. | [PyTorch/12-rnn](PyTorch/12-rnn/)
@@ -490,6 +503,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Autoencoders across 3 frameworks~~
 - ~~Complete CNN across 2 frameworks~~
 - ~~Complete RNN across 2 frameworks~~
+- Complete LSTM across 2 frameworks (PyTorch done, TensorFlow pending)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs

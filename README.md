@@ -349,6 +349,18 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
+### LSTM (Completed)
+
+- **Two datasets, two showcases**: ECG5000 (augmented, 5-class heartbeat) and IMDB Sentiment (25K reviews, binary). First model with multiple datasets per pipeline — demonstrates both time-series augmentation and NLP sequence classification
+- **Data augmentation is the #1 tool for imbalanced sequence data**: Time-series augmentation (jitter, scaling, time warp) broke the 0.55 macro F1 ceiling that no architecture change could breach in RNN #12. GRU on augmented data: 0.5950 F1 (+0.047 over original). LSTM added only +0.008 on top. Augmentation drove 85% of the total improvement
+- **LSTM adds minimal value over GRU for short sequences**: At 140 ECG timesteps, LSTM's macro F1 is only +0.008 over GRU (PT) and +0.020 (TF). The cell state pathway doesn't accumulate meaningfully different information at this sequence length. Cell state visualization confirms: smooth gradual accumulation vs hidden state's sharp gating, but both lead to the same classification
+- **Sequence length has diminishing returns for IMDB**: Accuracy jumps +3.2% from 100 to 200 tokens, but only +0.1% from 200 to 300 and +0.1% from 300 to 400. Practical implication: you can cut sequence length by 33% with <0.1% accuracy loss
+- **BiLSTM underperformed on both datasets**: Pre-padding means backward LSTM processes uninformative padding tokens first (IMDB), and ECG's peak divergence at sequence end makes the backward pass redundant. Unidirectional LSTM-128 consistently wins
+- **Embedding layers dominate NLP model size**: 10K vocab x 128 dims = 5.1 MB (87% of total 5.9 MB). Increasing LSTM hidden size has marginal impact on model size — the embedding is the bottleneck
+- **CPU is viable for TF baseline confirmation**: ECG trained in 8 min, IMDB in 24 min on CPU. But experimentation (architecture sweeps, ablations) requires GPU — TF CPU makes sweeps impractical (5+ hours for 8 models)
+- **PT and TF achieve comparable accuracy**: ECG: PT 0.603 vs TF 0.607 F1. IMDB: PT 87.8% vs TF 86.5% (fewer epochs on CPU). The accuracy gap is within noise for ECG and explained by training duration for IMDB
+- **Each framework showcased unique strengths**: PT (architecture sweep + sequence length ablation + cell state extraction via manual forward pass), TF (Keras model.fit with class_weight + mask_zero embedding + concise callback API)
+
 ### RNN (Completed)
 
 - **ECG5000 dataset**: 5,000 heartbeat recordings, 140 timesteps, 5 classes (Normal, R-on-T PVC, PVC, SP, UB). Severe class imbalance (121.6x ratio). First sequence model — healthcare AI portfolio piece
@@ -526,7 +538,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
 | CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
 | RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
-| LSTM | PyTorch | Pending MLflow + torch.save | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). GPU-accelerated. |
+| LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 
 ### Deployment Stack (executes after all models complete)
 

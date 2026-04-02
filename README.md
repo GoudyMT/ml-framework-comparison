@@ -188,7 +188,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 09-dnn/
     ├── 10-autoencoders/
     ├── 11-cnn/
-    └── 12-rnn/
+    ├── 12-rnn/
+    └── 13-lstm/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -267,7 +268,9 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-03-29 | LSTM / PyTorch | Two datasets: ECG5000 augmented (LSTM-128, 92.4% acc, **0.60 macro F1** — broke 0.55 ceiling via augmentation) + IMDB sentiment (LSTM-128, **87.8% acc**, 0.94 AUC, 300-token sequences). | [PyTorch/13-lstm](PyTorch/13-lstm/)
+- **2026-03-30 | LSTM Summary: *Two datasets — ECG5000 augmented (PT 0.60, TF 0.59 macro F1 — broke RNN's 0.55 ceiling via augmentation) + IMDB sentiment (PT 87.8%, TF 86.5% accuracy). Augmentation > architecture change.***
+- 2026-03-30 | LSTM / TensorFlow | ECG: LSTM-128 **0.607 macro F1** (augmented). IMDB: LSTM-128 **86.5% acc**. CPU training (8 min ECG, 24 min IMDB). Sweep/ablation skipped (PT covered). | [TensorFlow/13-lstm](TensorFlow/13-lstm/)
+- 2026-03-29 | LSTM / PyTorch | ECG: LSTM-128 **0.603 macro F1** (augmented, broke 0.55 ceiling). IMDB: LSTM-128 **87.8% acc**, 0.946 AUC. Sequence length ablation (300 optimal). | [PyTorch/13-lstm](PyTorch/13-lstm/)
 - 2026-03-29 | LSTM / EDA + Preprocessing + Utilities | IMDB EDA (50K reviews, binary). `preprocess_lstm.py` (ECG augmentation + IMDB padding). Augmentation utils + MacroF1Callback + 3 viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-28 | RNN Summary: *PyTorch GRU-128 (91.8%, F1 0.55) vs TensorFlow BiGRU-64 (89.8%, F1 0.54) | Different winners per framework, same macro F1 ceiling from 121.6x class imbalance***
 - 2026-03-28 | RNN / TensorFlow | BiGRU-64 (2 layers), **89.8% accuracy, 0.54 macro F1** on ECG5000. Keras Sequential + model.fit + custom MacroF1Callback. CPU training (218s). | [TensorFlow/12-rnn](TensorFlow/12-rnn/)
@@ -503,7 +506,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Autoencoders across 3 frameworks~~
 - ~~Complete CNN across 2 frameworks~~
 - ~~Complete RNN across 2 frameworks~~
-- Complete LSTM across 2 frameworks (PyTorch done, TensorFlow pending)
+- ~~Complete LSTM across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -523,7 +526,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
 | CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
 | RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
-| LSTM | TBD | — | Pending |
+| LSTM | PyTorch | Pending MLflow + torch.save | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). GPU-accelerated. |
 
 ### Deployment Stack (executes after all models complete)
 

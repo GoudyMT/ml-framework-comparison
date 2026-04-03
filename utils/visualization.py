@@ -1483,13 +1483,13 @@ def plot_sequence_length_distribution(lengths, save_path=None):
     p90 = np.percentile(lengths, 90)
     p95 = np.percentile(lengths, 95)
 
-    ax.axvline(mean_len, color='red', linestyle='--', linewidth=1.5,
+    ax.axvline(mean_len, color='red', linestyle='--', linewidth=1.5, # type: ignore
                label=f'Mean: {mean_len:.0f}')
-    ax.axvline(median_len, color='green', linestyle='--', linewidth=1.5,
+    ax.axvline(median_len, color='green', linestyle='--', linewidth=1.5, # type: ignore
                label=f'Median: {median_len:.0f}')
-    ax.axvline(p90, color='orange', linestyle='--', linewidth=1.5,
+    ax.axvline(p90, color='orange', linestyle='--', linewidth=1.5, # type: ignore
                label=f'P90: {p90:.0f}')
-    ax.axvline(p95, color='purple', linestyle='--', linewidth=1.5,
+    ax.axvline(p95, color='purple', linestyle='--', linewidth=1.5, # type: ignore
                label=f'P95: {p95:.0f}')
 
     ax.set_xlabel('Sequence Length')
@@ -1499,6 +1499,59 @@ def plot_sequence_length_distribution(lengths, save_path=None):
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
 
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+# GAN VISUALIZATIONS (Added during gan prep)
+
+def plot_generated_grid(images, nrow=8, title=None, save_path=None):
+    """
+    Display a grid of generated images.
+
+    Handles both [-1, 1] and [0, 1] ranges (auto-rescales to [0, 1]).
+    Handles both channel-first (N, 3, H, W) and channel-last (N, H, W, 3).
+
+    Args:
+        images: numpy array of images, shape (N, C, H, W) or (N, H, W, C).
+        nrow: Number of images per row in the grid.
+        title: Optional title for the figure.
+        save_path: Optional path to save the figure.
+    """
+    imgs = images.copy()
+
+    # Channel-first (N, 3, H, W) -> channel-last (N, H, W, 3) for matplotlib
+    if imgs.ndim == 4 and imgs.shape[1] == 3:
+        imgs = np.transpose(imgs, (0, 2, 3, 1))
+
+    # Rescale [-1, 1] -> [0, 1] if needed
+    if imgs.min() < 0:
+        imgs = (imgs + 1.0) / 2.0
+
+    # Clip to valid range
+    imgs = np.clip(imgs, 0.0, 1.0)
+
+    n = len(imgs)
+    ncol = nrow
+    nrow_grid = (n + ncol - 1) // ncol  # ceiling division
+
+    fig, axes = plt.subplots(nrow_grid, ncol, figsize=(ncol * 1.5, nrow_grid * 1.5))
+
+    if nrow_grid == 1:
+        axes = axes[np.newaxis, :]
+    if ncol == 1:
+        axes = axes[:, np.newaxis]
+
+    for idx in range(nrow_grid * ncol):
+        r, c = divmod(idx, ncol)
+        axes[r, c].axis('off')
+        if idx < n:
+            axes[r, c].imshow(imgs[idx])
+
+    if title:
+        fig.suptitle(title, fontsize=14, y=1.02)
+
+    plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()

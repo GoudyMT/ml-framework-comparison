@@ -1,0 +1,22 @@
+{
+  "framework": "PyTorch",
+  "model": "DCGAN",
+  "fid_score": 30.565135074858873,
+  "training_time": 319.18545961380005,
+  "per_epoch_time": 3.1918545961380005,
+  "inference_time_per_sample_us": 6.007620001764735,
+  "model_size_bytes": 4275712,
+  "peak_memory_mb": 344.63720703125,
+  "n_params_generator": 1068928,
+  "n_params_discriminator": 663296,
+  "epochs": 100,
+  "latent_dim": 100,
+  "batch_size": 128,
+  "learning_rate": 0.0002,
+  "all_fid_scores": {
+    "vanilla_gan": 261.4701832074693,
+    "dcgan": 30.565135074858873,
+    "wgan_gp": 55.34945790516013,
+    "conditional_gan": 147.89680137987838
+  }
+}

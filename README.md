@@ -93,9 +93,10 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── autoencoder/
 │   │   ├── cnn/
 │   │   ├── rnn/
-│   │   └── lstm/
-│   │       ├── ecg/       # Augmented ECG5000
-│   │       └── imdb/      # Padded IMDB sequences
+│   │   ├── lstm/
+│   │   │   ├── ecg/       # Augmented ECG5000
+│   │   │   └── imdb/      # Padded IMDB sequences
+│   │   └── gans/          # CIFAR-10 [-1,1] normalized for tanh output
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -107,7 +108,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── cnn.json
 │       ├── rnn.json
 │       ├── lstm_ecg.json
-│       └── lstm_imdb.json
+│       ├── lstm_imdb.json
+│       └── gans.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -129,7 +131,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_rnn.py
 │   ├── eda_rnn.ipynb
 │   ├── preprocess_lstm.py
-│   └── eda_lstm.ipynb
+│   ├── eda_lstm.ipynb
+│   ├── preprocess_gans.py
+│   └── eda_gans.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -139,7 +143,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── results.py
 │   ├── tree_utils.py
 │   ├── svm_utils.py
-│   └── rnn_utils.py
+│   ├── rnn_utils.py
+│   └── gan_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -175,7 +180,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 10-autoencoders/
 │   ├── 11-cnn/
 │   ├── 12-rnn/
-│   └── 13-lstm/
+│   ├── 13-lstm/
+│   └── 14-gans/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -205,6 +211,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `gan_utils.py` | `compute_fid` | GANs | Frechet Inception Distance via InceptionV3 pool3 features. Gold-standard generative model metric. Reusable for VAE. |
+| `visualization.py` | `plot_generated_grid` | GANs | Grid display of generated images with auto [-1,1]→[0,1] rescaling and channel format detection. Reusable for VAE. |
 | `rnn_utils.py` | `jitter`, `scaling`, `time_warp`, `augment_minority_classes` | LSTM | Time-series augmentation for imbalanced datasets. Offline augmentation applied once during preprocessing. |
 | `rnn_utils.py` | `MacroF1Callback`, `extract_hidden_states` | LSTM | Keras early stopping on macro F1 (reusable for all TF sequence models). Hidden/cell state extraction for LSTM analysis (PT + TF). |
 | `visualization.py` | `plot_ecg_augmentation_samples`, `plot_class_distribution_comparison`, `plot_sequence_length_distribution` | LSTM | ECG augmentation viz, before/after class balance chart, variable-length sequence histogram |
@@ -268,6 +276,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-04-02 | GANs / PyTorch | 4 variants: Vanilla (FID 261), **DCGAN (FID 30.57)**, WGAN-GP (FID 55), cGAN (FID 148). Progressive build | [PyTorch/14-gans](PyTorch/14-gans/)
+- 2026-04-02 | GANs / EDA + Preprocessing + Utilities | CIFAR-10 (50K images, [-1,1] normalization). added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-30 | LSTM Summary: *Two datasets — ECG5000 augmented (PT 0.60, TF 0.59 macro F1 — broke RNN's 0.55 ceiling via augmentation) + IMDB sentiment (PT 87.8%, TF 86.5% accuracy). Augmentation > architecture change.***
 - 2026-03-30 | LSTM / TensorFlow | ECG: LSTM-128 **0.607 macro F1** (augmented). IMDB: LSTM-128 **86.5% acc**. CPU training (8 min ECG, 24 min IMDB). Sweep/ablation skipped (PT covered). | [TensorFlow/13-lstm](TensorFlow/13-lstm/)
 - 2026-03-29 | LSTM / PyTorch | ECG: LSTM-128 **0.603 macro F1** (augmented, broke 0.55 ceiling). IMDB: LSTM-128 **87.8% acc**, 0.946 AUC. Sequence length ablation (300 optimal). | [PyTorch/13-lstm](PyTorch/13-lstm/)

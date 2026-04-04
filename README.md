@@ -195,7 +195,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 10-autoencoders/
     ├── 11-cnn/
     ├── 12-rnn/
-    └── 13-lstm/
+    ├── 13-lstm/
+    └── 14-gans/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -276,6 +277,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-04-03 | GANs Summary: *PyTorch DCGAN (FID 30.57) — best quality. TF DCGAN visually comparable but 15x slower (WSL2 /mnt/c/ bottleneck). Conv architecture >> loss function for image quality.***
+- 2026-04-03 | GANs / TensorFlow | DCGAN only (WSL2 GPU). 79 min training (15x slower — filesystem overhead). WGAN-GP skipped (6h+ estimate, worse FID in PT). | [TensorFlow/14-gans](TensorFlow/14-gans/)
 - 2026-04-02 | GANs / PyTorch | 4 variants: Vanilla (FID 261), **DCGAN (FID 30.57)**, WGAN-GP (FID 55), cGAN (FID 148). Progressive build | [PyTorch/14-gans](PyTorch/14-gans/)
 - 2026-04-02 | GANs / EDA + Preprocessing + Utilities | CIFAR-10 (50K images, [-1,1] normalization). added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-03-30 | LSTM Summary: *Two datasets — ECG5000 augmented (PT 0.60, TF 0.59 macro F1 — broke RNN's 0.55 ceiling via augmentation) + IMDB sentiment (PT 87.8%, TF 86.5% accuracy). Augmentation > architecture change.***
@@ -358,6 +361,17 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### GANs (Completed)
+
+- **CIFAR-10 dataset**: 50,000 color images (32x32x3), 10 classes, [-1,1] normalization for tanh generator output. First generative model — image synthesis, not classification
+- **Convolutional architecture is the dominant factor in GAN image quality**: DCGAN's FID (30.57) dwarfs Vanilla MLP (261.47) — an 8.5x improvement. Meanwhile, loss function choice (BCE vs Wasserstein: 31 vs 55 at 100 epochs) and conditional generation (31 → 148) both made quality worse. For deployment, simple DCGAN + BCE is the pragmatic choice
+- **WGAN-GP trades quality for stability at fixed training budgets**: Wasserstein distance smoothly decreasing (11.5 → 1.4) is the only meaningful GAN training metric — BCE losses oscillate meaninglessly. But n_critic=5 means 5x fewer generator updates, so DCGAN wins on quality at 100 epochs
+- **WSL2 filesystem is the TF bottleneck, not compute**: TF DCGAN took 79 min vs PT's 5.3 min (15x slower) on the same RTX 4090. The data lives on Windows `/mnt/c/` — every batch read goes through 9P protocol translation. Moving data to Linux filesystem would close much of this gap
+- **FID computation requires framework alignment**: `compute_fid` uses PyTorch InceptionV3, which runs CPU-only in the WSL2 TF venv. Cross-framework metric tools need careful environment planning
+- **Generator architectures are parameter-efficient**: DCGAN generator (1.07M params) produces recognizable 32x32 images — compare to CNN's ResNet-20 (4.35M params) for classification on the same resolution
+- **PT pipeline was exploration, TF was comparison**: PT trained 4 variants progressively (Vanilla → DCGAN → WGAN-GP → cGAN), each motivated by the previous one's limitations. TF reproduced the best variant (DCGAN) for framework comparison — honest and defensible
+- **Each framework showcased unique strengths**: PT (4-variant progressive build, GPU FID, all loss types), TF (Keras Sequential + tf.GradientTape custom loop, @tf.function graph compilation, WSL2 GPU)
 
 ### LSTM (Completed)
 
@@ -529,6 +543,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete CNN across 2 frameworks~~
 - ~~Complete RNN across 2 frameworks~~
 - ~~Complete LSTM across 2 frameworks~~
+- ~~Complete GANs across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -549,6 +564,7 @@ model_size = get_model_size(model, framework='sklearn')
 | CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
 | RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
+| GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
 
 ### Deployment Stack (executes after all models complete)
 

@@ -1,0 +1,23 @@
+{
+  "framework": "TensorFlow",
+  "model": "DCGAN",
+  "fid_score": "N/A (compute_fid uses PT InceptionV3 \u2014 CPU only in WSL2)",
+  "training_time": 4737.9482498168945,
+  "per_epoch_time": 47.37948249816895,
+  "inference_time_per_sample_us": 43.393298983573914,
+  "model_size_bytes": 4275712,
+  "peak_memory_mb": 1077.837890625,
+  "n_params_generator": 1069824,
+  "n_params_discriminator": 664129,
+  "epochs": 100,
+  "latent_dim": 100,
+  "batch_size": 128,
+  "learning_rate": 0.0002,
+  "variants_trained": [
+    "DCGAN"
+  ],
+  "variants_skipped": [
+    "WGAN-GP (PT showed worse FID, 6h+ estimated on TF WSL2)"
+  ],
+  "notes": "WSL2 GPU \u2014 15x slower than PT due to /mnt/c/ filesystem overhead"
+}

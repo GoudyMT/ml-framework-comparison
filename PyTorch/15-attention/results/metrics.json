@@ -1,0 +1,20 @@
+{
+  "framework": "PyTorch",
+  "model": "Attention (Seq2Seq)",
+  "test_bleu": 0.38030561762934684,
+  "training_time": 970.2830395698547,
+  "inference_time_per_sample_us": 21.58644632295063,
+  "model_size_bytes": 66753084,
+  "peak_memory_mb": 874.1142578125,
+  "n_params": 16686868,
+  "epochs": 13,
+  "best_val_bleu": 0.3836181144806191,
+  "best_variant": "Bahdanau",
+  "attention_type": "Bahdanau (Additive)",
+  "encoder": "Bidirectional GRU",
+  "embed_dim": 256,
+  "hidden_dim": 512,
+  "batch_size": 64,
+  "learning_rate": 0.001,
+  "teacher_forcing_ratio": 0.5
+}

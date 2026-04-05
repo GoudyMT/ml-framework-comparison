@@ -1555,3 +1555,134 @@ def plot_generated_grid(images, nrow=8, title=None, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# ATTENTION VISUALIZATIONS (Added during attention prep)
+
+def plot_attention_heatmap(attention_weights, src_tokens, tgt_tokens,
+                           title=None, save_path=None):
+    """
+    Plot attention weight matrix as a heatmap.
+
+    Visualizes which source words the decoder attended to when generating
+    each target word. Rows = target (output), columns = source (input).
+    Bright cells = high attention weight = strong alignment.
+
+    This is THE signature visualization for attention mechanisms —
+    it shows the model learned word alignment without explicit supervision.
+
+    Args:
+        attention_weights: 2D array (tgt_len, src_len) of attention scores.
+        src_tokens: List of source word strings (x-axis labels).
+        tgt_tokens: List of target word strings (y-axis labels).
+        title: Optional plot title.
+        save_path: Optional path to save the figure.
+    """
+    fig, ax = plt.subplots(figsize=(max(6, len(src_tokens) * 0.8),
+                                     max(4, len(tgt_tokens) * 0.6)))
+
+    weights = np.array(attention_weights)
+    # Trim to actual token lengths (remove padding)
+    weights = weights[:len(tgt_tokens), :len(src_tokens)]
+
+    im = ax.imshow(weights, cmap='YlOrRd', aspect='auto',
+                   vmin=0, vmax=weights.max())
+
+    ax.set_xticks(range(len(src_tokens)))
+    ax.set_xticklabels(src_tokens, rotation=45, ha='right', fontsize=10)
+    ax.set_yticks(range(len(tgt_tokens)))
+    ax.set_yticklabels(tgt_tokens, fontsize=10)
+
+    ax.set_xlabel('Source (English)')
+    ax.set_ylabel('Target (Spanish)')
+    if title:
+        ax.set_title(title, fontsize=13)
+
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_attention_comparison(weights_list, labels, src_tokens, tgt_tokens,
+                              save_path=None):
+    """
+    Plot multiple attention heatmaps side-by-side for comparison.
+
+    Shows how different attention mechanisms (Bahdanau, Luong, Multi-head)
+    attend to the same source sentence differently. Direct visual comparison
+    makes the differences between mechanisms immediately clear.
+
+    Args:
+        weights_list: List of 2D arrays (tgt_len, src_len), one per mechanism.
+        labels: List of str labels (e.g., ['Bahdanau', 'Luong', 'Multi-Head']).
+        src_tokens: List of source word strings (shared x-axis).
+        tgt_tokens: List of target word strings (shared y-axis).
+        save_path: Optional path to save the figure.
+    """
+    n = len(weights_list)
+    fig, axes = plt.subplots(1, n, figsize=(6 * n, max(4, len(tgt_tokens) * 0.6)))
+
+    if n == 1:
+        axes = [axes]
+
+    for i, (weights, label) in enumerate(zip(weights_list, labels)):
+        w = np.array(weights)[:len(tgt_tokens), :len(src_tokens)]
+        im = axes[i].imshow(w, cmap='YlOrRd', aspect='auto',
+                            vmin=0, vmax=w.max())
+        axes[i].set_xticks(range(len(src_tokens)))
+        axes[i].set_xticklabels(src_tokens, rotation=45, ha='right', fontsize=9)
+        axes[i].set_yticks(range(len(tgt_tokens)))
+        axes[i].set_yticklabels(tgt_tokens, fontsize=9)
+        axes[i].set_title(label, fontsize=12)
+        axes[i].set_xlabel('Source (English)')
+        if i == 0:
+            axes[i].set_ylabel('Target (Spanish)')
+        fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+
+def plot_bleu_by_length(results_dict, save_path=None):
+    """
+    Plot BLEU scores by source sentence length for multiple variants.
+
+    Shows how translation quality varies with input length across different
+    attention mechanisms. The key insight: no-attention degrades on longer
+    sentences while attention variants maintain quality.
+
+    Args:
+        results_dict: Dict mapping variant name → bleu_by_length() output.
+                      Each value has 'bucket_labels', 'bleu_scores', 'counts'.
+        save_path: Optional path to save the figure.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    labels = list(results_dict.keys())
+    first_key = labels[0]
+    bucket_labels = results_dict[first_key]['bucket_labels']
+    x = np.arange(len(bucket_labels))
+    width = 0.8 / len(labels)
+
+    colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52', '#8172B3']
+    for i, name in enumerate(labels):
+        scores = results_dict[name]['bleu_scores']
+        offset = (i - len(labels) / 2 + 0.5) * width
+        ax.bar(x + offset, scores, width, label=name,
+               color=colors[i % len(colors)], alpha=0.85)
+
+    ax.set_xlabel('Source Sentence Length (tokens)')
+    ax.set_ylabel('BLEU Score')
+    ax.set_title('Translation Quality by Sentence Length')
+    ax.set_xticks(x)
+    ax.set_xticklabels(bucket_labels)
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

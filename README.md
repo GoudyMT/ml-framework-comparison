@@ -96,7 +96,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── lstm/
 │   │   │   ├── ecg/       # Augmented ECG5000
 │   │   │   └── imdb/      # Padded IMDB sequences
-│   │   └── gans/          # CIFAR-10 [-1,1] normalized for tanh output
+│   │   ├── gans/          # CIFAR-10 [-1,1] normalized for tanh output
+│   │   └── attention/     # Tatoeba EN→ES vocab + train/val/test splits
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -109,7 +110,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── rnn.json
 │       ├── lstm_ecg.json
 │       ├── lstm_imdb.json
-│       └── gans.json
+│       ├── gans.json
+│       └── attention.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -133,7 +135,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_lstm.py
 │   ├── eda_lstm.ipynb
 │   ├── preprocess_gans.py
-│   └── eda_gans.ipynb
+│   ├── eda_gans.ipynb
+│   ├── preprocess_attention.py
+│   └── eda_attention.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -144,7 +148,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── tree_utils.py
 │   ├── svm_utils.py
 │   ├── rnn_utils.py
-│   └── gan_utils.py
+│   ├── gan_utils.py
+│   └── attention_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -181,7 +186,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 11-cnn/
 │   ├── 12-rnn/
 │   ├── 13-lstm/
-│   └── 14-gans/
+│   ├── 14-gans/
+│   └── 15-attention/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -212,6 +218,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `attention_utils.py` | `compute_bleu`, `bleu_by_length` | Attention | BLEU-4 corpus scoring with smoothing + per-length-bucket analysis. Reusable for Transformers. |
+| `visualization.py` | `plot_attention_heatmap`, `plot_attention_comparison`, `plot_bleu_by_length` | Attention | Attention weight heatmaps (single + side-by-side comparison), BLEU by sentence length bar charts |
 | `gan_utils.py` | `compute_fid` | GANs | Frechet Inception Distance via InceptionV3 pool3 features. Gold-standard generative model metric. Reusable for VAE. |
 | `visualization.py` | `plot_generated_grid` | GANs | Grid display of generated images with auto [-1,1]→[0,1] rescaling and channel format detection. Reusable for VAE. |
 | `rnn_utils.py` | `jitter`, `scaling`, `time_warp`, `augment_minority_classes` | LSTM | Time-series augmentation for imbalanced datasets. Offline augmentation applied once during preprocessing. |
@@ -277,6 +285,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-04-05 | Attention / PyTorch | 4 variants: **Bahdanau (BLEU 0.380)** Pre-GRU context injection >> post-GRU attention on short sentences | [PyTorch/15-attention](PyTorch/15-attention/)
+- 2026-04-05 | Attention / EDA + Preprocessing + Utilities | Tatoeba EN→ES (144K pairs, word-level). `attention_utils.py` + 3 attention viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-03 | GANs Summary: *PyTorch DCGAN (FID 30.57) — best quality. TF DCGAN visually comparable but 15x slower (WSL2 /mnt/c/ bottleneck). Conv architecture >> loss function for image quality.***
 - 2026-04-03 | GANs / TensorFlow | DCGAN only (WSL2 GPU). 79 min training (15x slower — filesystem overhead). WGAN-GP skipped (6h+ estimate, worse FID in PT). | [TensorFlow/14-gans](TensorFlow/14-gans/)
 - 2026-04-02 | GANs / PyTorch | 4 variants: Vanilla (FID 261), **DCGAN (FID 30.57)**, WGAN-GP (FID 55), cGAN (FID 148). Progressive build | [PyTorch/14-gans](PyTorch/14-gans/)
@@ -361,6 +371,17 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Attention Mechanisms (In Progress — PyTorch Complete, TensorFlow Pending)
+
+- **Tatoeba EN→ES dataset**: 143,098 sentence pairs (114K train / 14K val / 14K test), word-level tokenization, 10K vocab per language. First machine translation model — seq2seq encoder-decoder with attention
+- **Pre-GRU context injection is the dominant factor**: Bahdanau (BLEU 0.3803) feeds full 1024-dim encoder context INTO the GRU before the state update. Luong (0.2966) and Multi-Head (0.3682) compute attention AFTER the GRU, getting only compressed 512-dim context. On short sentences (avg 6 tokens), the GRU needs maximum context at every step
+- **Multi-Head attention nearly closes the gap**: 8 parallel heads with Q·K^T/√d_k scoring (0.3682) recover most of Bahdanau's advantage despite the post-GRU disadvantage. Each head specializes in different alignment patterns — this IS the Transformer mechanism wrapped in an RNN
+- **Attention eliminates the length penalty**: No-attention BLEU drops 27% on long sentences (0.340→0.248); Bahdanau drops only 8% (0.387→0.357). This is the core argument from Bahdanau et al. (2014) reproduced on our data
+- **Luong's input feeding doesn't help on short sequences**: Section 3.3 feeds h̃_{t-1} back into the GRU for attention memory. Paper reports +1.0-1.3 BLEU on WMT data, but on Tatoeba's 6-token average sentences there aren't enough decoding steps for the benefit to accumulate
+- **Correct paper implementation matters**: Luong without Eq. 5 had 25.1M params (fc_out doing both fusion AND projection). Adding tanh W_c dropped to 16.4M with cleaner architecture. Always read the full paper, not just the attention equation
+- **BLEU 0.38 is "gist quality"**: Understandable translations with visible errors. Production MT needs subword tokenization (BPE), deeper models, beam search, and 100x more training data
+- **Each framework will showcase unique strengths**: PT (progressive 4-variant exploration with paper-correct implementations), TF (pending — Keras seq2seq with teacher forcing)
 
 ### GANs (Completed)
 
@@ -544,6 +565,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete RNN across 2 frameworks~~
 - ~~Complete LSTM across 2 frameworks~~
 - ~~Complete GANs across 2 frameworks~~
+- Complete Attention Mechanisms across 2 frameworks (PyTorch done, TensorFlow pending)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -565,6 +587,7 @@ model_size = get_model_size(model, framework='sklearn')
 | RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
+| Attention | PyTorch | Weights saved, awaiting TF comparison | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF pipeline pending. |
 
 ### Deployment Stack (executes after all models complete)
 

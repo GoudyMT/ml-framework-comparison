@@ -202,7 +202,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 11-cnn/
     ├── 12-rnn/
     ├── 13-lstm/
-    └── 14-gans/
+    ├── 14-gans/
+    └── 15-attention/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -285,6 +286,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-04-06 | Attention Summary: *PyTorch Bahdanau (BLEU 0.380) > TensorFlow Bahdanau (0.337) | Same architecture, TF hampered by WSL2 cuDNN workaround. Pre-GRU context injection is the dominant quality factor.***
+- 2026-04-06 | Attention / TensorFlow | Bahdanau only (WSL2 GPU). **BLEU 0.3368**, 278 min training (17x slower — non-CuDNN GRU kernel + /mnt/c/ filesystem). | [TensorFlow/15-attention](TensorFlow/15-attention/)
 - 2026-04-05 | Attention / PyTorch | 4 variants: **Bahdanau (BLEU 0.380)** Pre-GRU context injection >> post-GRU attention on short sentences | [PyTorch/15-attention](PyTorch/15-attention/)
 - 2026-04-05 | Attention / EDA + Preprocessing + Utilities | Tatoeba EN→ES (144K pairs, word-level). `attention_utils.py` + 3 attention viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-03 | GANs Summary: *PyTorch DCGAN (FID 30.57) — best quality. TF DCGAN visually comparable but 15x slower (WSL2 /mnt/c/ bottleneck). Conv architecture >> loss function for image quality.***
@@ -372,7 +375,7 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Attention Mechanisms (In Progress — PyTorch Complete, TensorFlow Pending)
+### Attention Mechanisms (Completed)
 
 - **Tatoeba EN→ES dataset**: 143,098 sentence pairs (114K train / 14K val / 14K test), word-level tokenization, 10K vocab per language. First machine translation model — seq2seq encoder-decoder with attention
 - **Pre-GRU context injection is the dominant factor**: Bahdanau (BLEU 0.3803) feeds full 1024-dim encoder context INTO the GRU before the state update. Luong (0.2966) and Multi-Head (0.3682) compute attention AFTER the GRU, getting only compressed 512-dim context. On short sentences (avg 6 tokens), the GRU needs maximum context at every step
@@ -381,7 +384,8 @@ model_size = get_model_size(model, framework='sklearn')
 - **Luong's input feeding doesn't help on short sequences**: Section 3.3 feeds h̃_{t-1} back into the GRU for attention memory. Paper reports +1.0-1.3 BLEU on WMT data, but on Tatoeba's 6-token average sentences there aren't enough decoding steps for the benefit to accumulate
 - **Correct paper implementation matters**: Luong without Eq. 5 had 25.1M params (fc_out doing both fusion AND projection). Adding tanh W_c dropped to 16.4M with cleaner architecture. Always read the full paper, not just the attention equation
 - **BLEU 0.38 is "gist quality"**: Understandable translations with visible errors. Production MT needs subword tokenization (BPE), deeper models, beam search, and 100x more training data
-- **Each framework will showcase unique strengths**: PT (progressive 4-variant exploration with paper-correct implementations), TF (pending — Keras seq2seq with teacher forcing)
+- **TF confirms PT findings but with infrastructure penalty**: TF Bahdanau (BLEU 0.3368) uses identical architecture but `reset_after=False` forces a non-CuDNN GRU kernel on WSL2, changing gate computation order. Training 17x slower (278 min vs 16 min) due to non-CuDNN kernel + /mnt/c/ filesystem overhead
+- **Each framework showcased unique strengths**: PT (progressive 4-variant exploration with paper-correct implementations, per-length BLEU analysis), TF (Keras subclassed models + tf.GradientTape, tf.cond for graph-safe teacher forcing, @tf.function compilation)
 
 ### GANs (Completed)
 
@@ -565,7 +569,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete RNN across 2 frameworks~~
 - ~~Complete LSTM across 2 frameworks~~
 - ~~Complete GANs across 2 frameworks~~
-- Complete Attention Mechanisms across 2 frameworks (PyTorch done, TensorFlow pending)
+- ~~Complete Attention Mechanisms across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -587,7 +591,7 @@ model_size = get_model_size(model, framework='sklearn')
 | RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
-| Attention | PyTorch | Weights saved, awaiting TF comparison | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF pipeline pending. |
+| Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
 
 ### Deployment Stack (executes after all models complete)
 

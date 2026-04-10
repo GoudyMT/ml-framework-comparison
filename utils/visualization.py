@@ -1686,3 +1686,53 @@ def plot_bleu_by_length(results_dict, save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+# TRANSFORMER VISUALIZATIONS (Added during transformers)
+
+def plot_bleu_progression(model_names, bleu_scores, baseline_bleu=None,
+                          baseline_label=None, title='BLEU Progression',
+                          save_path=None):
+    """
+    Bar chart showing BLEU progression across model variants.
+
+    Optionally overlays a horizontal baseline line (e.g., #15 Bahdanau)
+    for direct comparison. Designed as the capstone portfolio visualization
+    for the Transformers model comparison.
+
+    Args:
+        model_names: List of variant names (x-axis labels).
+        bleu_scores: List of BLEU scores (same length as model_names).
+        baseline_bleu: Optional float for horizontal reference line.
+        baseline_label: Optional label for the baseline line.
+        title: Chart title.
+        save_path: Optional path to save PNG.
+    """
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Color gradient by score (higher = greener)
+    colors = plt.cm.viridis(np.linspace(0.3, 0.85, len(model_names))) # type: ignore
+    bars = ax.bar(model_names, bleu_scores, color=colors, edgecolor='black', linewidth=0.8)
+
+    # Annotate bars with exact values
+    for bar, score in zip(bars, bleu_scores):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, height + 0.003,
+                f'{score:.4f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+    # Optional baseline line
+    if baseline_bleu is not None:
+        ax.axhline(y=baseline_bleu, color='red', linestyle='--', linewidth=2,
+                   label=baseline_label or f'Baseline: {baseline_bleu:.4f}')
+        ax.legend(loc='lower right', fontsize=10)
+
+    ax.set_ylabel('Test BLEU', fontsize=12)
+    ax.set_title(title, fontsize=13, fontweight='bold')
+    ax.set_ylim(0, max(max(bleu_scores), baseline_bleu or 0) * 1.15)
+    ax.grid(axis='y', alpha=0.3)
+    plt.xticks(rotation=15, ha='right')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

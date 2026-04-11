@@ -1,0 +1,7 @@
+torch==2.5.1+cu121
+numpy==2.3.5
+matplotlib==3.10.8
+nltk==3.9.4
+sentencepiece==0.2.1
+transformers==5.5.3
+pandas==2.3.3

@@ -97,7 +97,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   │   ├── ecg/       # Augmented ECG5000
 │   │   │   └── imdb/      # Padded IMDB sequences
 │   │   ├── gans/          # CIFAR-10 [-1,1] normalized for tanh output
-│   │   └── attention/     # Tatoeba EN→ES vocab + train/val/test splits
+│   │   ├── attention/     # Tatoeba EN→ES vocab + train/val/test splits
+│   │   ├── transformers_translation/     # Tatoeba BPE 8K shared EN+ES
+│   │   └── transformers_classification/  # AG News BPE 16K English
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -111,7 +113,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── lstm_ecg.json
 │       ├── lstm_imdb.json
 │       ├── gans.json
-│       └── attention.json
+│       ├── attention.json
+│       ├── transformers_translation.json
+│       └── transformers_classification.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -137,7 +141,11 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_gans.py
 │   ├── eda_gans.ipynb
 │   ├── preprocess_attention.py
-│   └── eda_attention.ipynb
+│   ├── eda_attention.ipynb
+│   ├── preprocess_transformers_translation.py
+│   ├── preprocess_transformers_classification.py
+│   ├── eda_transformers_translation.ipynb
+│   └── eda_transformers_classification.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -149,7 +157,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── svm_utils.py
 │   ├── rnn_utils.py
 │   ├── gan_utils.py
-│   └── attention_utils.py
+│   ├── attention_utils.py
+│   └── transformer_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -187,7 +196,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 12-rnn/
 │   ├── 13-lstm/
 │   ├── 14-gans/
-│   └── 15-attention/
+│   ├── 15-attention/
+│   └── 16-transformers/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -219,6 +229,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `transformer_utils.py` | `create_pad_mask`, `create_causal_mask`, `greedy_decode`, `compute_bleu_greedy`, `beam_search_decode` | Transformers | Mask creation (padding + causal), autoregressive greedy decoding, BPE-aware BLEU computation, beam search with length normalization |
+| `visualization.py` | `plot_bleu_progression`, `plot_multihead_grid` | Transformers | BLEU comparison across variants with baseline line + multi-head attention grid showing head specialization |
 | `attention_utils.py` | `compute_bleu`, `bleu_by_length` | Attention | BLEU-4 corpus scoring with smoothing + per-length-bucket analysis. Reusable for Transformers. |
 | `visualization.py` | `plot_attention_heatmap`, `plot_attention_comparison`, `plot_bleu_by_length` | Attention | Attention weight heatmaps (single + side-by-side comparison), BLEU by sentence length bar charts |
 | `gan_utils.py` | `compute_fid` | GANs | Frechet Inception Distance via InceptionV3 pool3 features. Gold-standard generative model metric. Reusable for VAE. |
@@ -286,6 +298,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-04-11 | Transformers / PyTorch | 5 variants across 2 tasks. **Translation**: Beam Search (**0.3625**). **Classification (AG News)**: DistilBERT fine-tuned **94.45%**. Built from `nn.Linear` with no `nn.Transformer`. | [PyTorch/16-transformers](PyTorch/16-transformers/)
+- 2026-04-10 | Transformers / EDA + Preprocessing + Utilities | BPE tokenization via SentencePiece. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-06 | Attention Summary: *PyTorch Bahdanau (BLEU 0.380) > TensorFlow Bahdanau (0.337) | Same architecture, TF hampered by WSL2 cuDNN workaround. Pre-GRU context injection is the dominant quality factor.***
 - 2026-04-06 | Attention / TensorFlow | Bahdanau only (WSL2 GPU). **BLEU 0.3368**, 278 min training (17x slower — non-CuDNN GRU kernel + /mnt/c/ filesystem). | [TensorFlow/15-attention](TensorFlow/15-attention/)
 - 2026-04-05 | Attention / PyTorch | 4 variants: **Bahdanau (BLEU 0.380)** Pre-GRU context injection >> post-GRU attention on short sentences | [PyTorch/15-attention](PyTorch/15-attention/)
@@ -374,6 +388,20 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Transformers (In Progress — PyTorch Complete, TensorFlow Pending)
+
+- **Two tasks, two datasets**: Tatoeba EN->ES translation (same as Attention #15 for direct BLEU comparison) + AG News 4-class classification (new dirty dataset for encoder-only + fine-tuning showcase). First model in the project covering two task types
+- **BPE subword tokenization (0% UNK rate)**: SentencePiece shared 8K EN+ES vocab for translation, English-only 16K vocab for classification. Eliminates the 2.6%/7.3% UNK rates from #15's word-level tokenization. BPE expansion ratio ~1.37x vs word-level
+- **Built from `nn.Linear` from scratch**: `MultiHeadAttention`, `TransformerEncoderLayer`, `TransformerDecoderLayer` all defined with basic nn primitives — no `nn.Transformer` or `nn.MultiheadAttention`. Every tensor operation is visible, shape-annotated, and debuggable
+- **Architecture is NOT a silver bullet**: Vanilla 3-layer Transformer (11.68M params, 30 epochs) BLEU 0.3289 — worse than #15 Bahdanau's 0.3803. Training recipe + beam search closed the gap to 0.3625 but still -0.0178 below. Honest finding: under-trained Transformers lose to well-tuned RNN+attention
+- **The training recipe matters as much as the architecture**: Warmup scheduler (`d_model^-0.5 * min(step^-0.5, step * warmup^-1.5)`) + label smoothing 0.1 + dropout 0.15 = +0.0172 BLEU over vanilla. Warmup prevents Adam's unstable early updates from corrupting attention weights
+- **Beam search is the cheapest improvement**: k=5 with length_penalty=0.6 added +0.0164 BLEU with zero retraining. For short unambiguous sentences beam = greedy; for harder ones, beam explores paths greedy dismisses
+- **U-shaped per-length BLEU reveals capacity limits**: Middle-length sentences (6-9 tokens) hit 0.44 — BEATS #15 Bahdanau's overall 0.3803. But short (0.34) and long (0.27) sentences collapse. Under-training + capacity ceiling = symmetric failure modes
+- **Inference is 483x slower than #15 Bahdanau**: 22.6 ms/sentence (greedy) vs 46.8 us/sentence. Transformers recompute the full decoder stack at every generated token; RNNs reuse hidden state. Production uses KV-caching to mitigate — not implemented here
+- **DistilBERT fine-tuning quantifies pre-training advantage**: From-scratch encoder (7.26M params) 91.22% acc vs DistilBERT fine-tuned (67M params) 94.45% acc. +3.22% for 9.2x more parameters — measurable but not dramatic on AG News (easy benchmark). Gap widens on harder tasks
+- **Business class is hardest for both classification models**: From-scratch 87.6% F1, DistilBERT 91.2% F1. Business headlines overlap semantically with World (geopolitics affecting markets) and Sci/Tech (tech companies). Sports is trivially separable (>98% both models)
+- **PyTorch features**: Custom `LambdaLR` for warmup schedule, `torch.triu` for causal mask, `masked_fill(-inf)` for attention masking, `CrossEntropyLoss(label_smoothing=, ignore_index=)` for PAD-aware smoothed loss, `transformers.DistilBertForSequenceClassification` for fine-tuning
 
 ### Attention Mechanisms (Completed)
 
@@ -570,6 +598,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete LSTM across 2 frameworks~~
 - ~~Complete GANs across 2 frameworks~~
 - ~~Complete Attention Mechanisms across 2 frameworks~~
+- Complete Transformers across 2 frameworks (PyTorch complete; TensorFlow pending)
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -592,6 +621,8 @@ model_size = get_model_size(model, framework='sklearn')
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
 | Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
+| Transformers (Translation) | PyTorch (pending TF) | Trained + checkpoint saved (MLflow pending) | Recipe + Beam Search BLEU 0.3625 (still -0.018 vs #15). Full Transformer from scratch (11.7M params, BPE 8K shared vocab). TensorFlow pipeline next. |
+| Transformers (Classification) | PyTorch (pending TF) | Trained + checkpoint saved (MLflow pending) | Encoder-only from scratch 91.22% acc (7.3M params). DistilBERT fine-tuned 94.45% in local snapshot only. TensorFlow pipeline next. |
 
 ### Deployment Stack (executes after all models complete)
 

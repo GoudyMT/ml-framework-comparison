@@ -1736,3 +1736,66 @@ def plot_bleu_progression(model_names, bleu_scores, baseline_bleu=None,
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+def plot_multihead_grid(attention_weights, src_tokens, tgt_tokens,
+                        n_heads, layer_idx=0, title=None, save_path=None):
+    """
+    Grid of attention heatmaps showing all heads in one decoder layer.
+
+    Reveals head specialization — different heads learn different
+    alignment patterns (position, syntax, semantics). Classic
+    Transformer visualization from the original paper.
+
+    Args:
+        attention_weights: Tensor (n_heads, tgt_len, src_len) or
+                           (1, n_heads, tgt_len, src_len).
+        src_tokens: List of source token strings (x-axis labels).
+        tgt_tokens: List of target token strings (y-axis labels).
+        n_heads: Number of heads to display.
+        layer_idx: Layer index for title (informational).
+        title: Optional overall title.
+        save_path: Optional path to save PNG.
+    """
+
+    # Handle batch dimension if present
+    if attention_weights.ndim == 4:
+        attention_weights = attention_weights[0]  # (n_heads, tgt_len, src_len)
+
+    # Convert to numpy if tensor
+    if hasattr(attention_weights, 'cpu'):
+        attention_weights = attention_weights.cpu().numpy()
+
+    # 2x4 grid for 8 heads (adjust if different)
+    n_cols = 4
+    n_rows = (n_heads + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 3.5, n_rows * 3))
+    if n_rows == 1:
+        axes = axes.reshape(1, -1)
+
+    for head_idx in range(n_heads):
+        row = head_idx // n_cols
+        col = head_idx % n_cols
+        ax = axes[row, col]
+
+        weights = attention_weights[head_idx]  # (tgt_len, src_len)
+
+        im = ax.imshow(weights, cmap='YlOrRd', aspect='auto')
+        ax.set_xticks(range(len(src_tokens)))
+        ax.set_xticklabels(src_tokens, rotation=45, ha='right', fontsize=8)
+        ax.set_yticks(range(len(tgt_tokens)))
+        ax.set_yticklabels(tgt_tokens, fontsize=8)
+        ax.set_title(f'Head {head_idx + 1}', fontsize=10)
+
+    # Hide unused subplots
+    for head_idx in range(n_heads, n_rows * n_cols):
+        row = head_idx // n_cols
+        col = head_idx % n_cols
+        axes[row, col].axis('off')
+
+    if title:
+        fig.suptitle(title, fontsize=12, fontweight='bold', y=1.02)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

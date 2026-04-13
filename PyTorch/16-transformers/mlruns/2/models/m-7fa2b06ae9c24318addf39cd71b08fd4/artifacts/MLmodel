@@ -1,0 +1,30 @@
+artifact_path: file:///c:/Users/Max/Desktop/Coding/.Projects/2026/ml-framework-comparisons/PyTorch/16-transformers/mlruns/2/models/m-7fa2b06ae9c24318addf39cd71b08fd4/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.12.2
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.5.1+cu121
+is_signature_from_type_hint: false
+mlflow_version: 3.10.0
+model_id: m-7fa2b06ae9c24318addf39cd71b08fd4
+model_size_bytes: 31312632
+model_uuid: m-7fa2b06ae9c24318addf39cd71b08fd4
+prompts: null
+run_id: 3c39240fcef34d0b936ee89a557c50e3
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1, 128]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1,
+    4]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-04-13 05:40:32.572947'

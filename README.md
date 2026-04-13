@@ -213,7 +213,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 12-rnn/
     ├── 13-lstm/
     ├── 14-gans/
-    └── 15-attention/
+    ├── 15-attention/
+    └── 16-transformers/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -298,6 +299,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-04-12 | Transformers Summary: *TensorFlow Transformer (BLEU 0.4456) > PyTorch Transformer+Beam (0.3625). Classification: TF 92.20% vs PT 91.22%.***
+- 2026-04-12 | Transformers / TensorFlow | Recipe variant (WSL2 GPU). Translation **BLEU 0.4456**. Classification **92.20% acc**. 241 min translation training (8.5x WSL2 overhead). | [TensorFlow/16-transformers](TensorFlow/16-transformers/)
 - 2026-04-11 | Transformers / PyTorch | 5 variants across 2 tasks. **Translation**: Beam Search (**0.3625**). **Classification (AG News)**: DistilBERT fine-tuned **94.45%**. Built from `nn.Linear` with no `nn.Transformer`. | [PyTorch/16-transformers](PyTorch/16-transformers/)
 - 2026-04-10 | Transformers / EDA + Preprocessing + Utilities | BPE tokenization via SentencePiece. | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-06 | Attention Summary: *PyTorch Bahdanau (BLEU 0.380) > TensorFlow Bahdanau (0.337) | Same architecture, TF hampered by WSL2 cuDNN workaround. Pre-GRU context injection is the dominant quality factor.***
@@ -389,19 +392,19 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Updated over time)
 
-### Transformers (In Progress — PyTorch Complete, TensorFlow Pending)
+### Transformers (Completed)
 
 - **Two tasks, two datasets**: Tatoeba EN->ES translation (same as Attention #15 for direct BLEU comparison) + AG News 4-class classification (new dirty dataset for encoder-only + fine-tuning showcase). First model in the project covering two task types
 - **BPE subword tokenization (0% UNK rate)**: SentencePiece shared 8K EN+ES vocab for translation, English-only 16K vocab for classification. Eliminates the 2.6%/7.3% UNK rates from #15's word-level tokenization. BPE expansion ratio ~1.37x vs word-level
-- **Built from `nn.Linear` from scratch**: `MultiHeadAttention`, `TransformerEncoderLayer`, `TransformerDecoderLayer` all defined with basic nn primitives — no `nn.Transformer` or `nn.MultiheadAttention`. Every tensor operation is visible, shape-annotated, and debuggable
-- **Architecture is NOT a silver bullet**: Vanilla 3-layer Transformer (11.68M params, 30 epochs) BLEU 0.3289 — worse than #15 Bahdanau's 0.3803. Training recipe + beam search closed the gap to 0.3625 but still -0.0178 below. Honest finding: under-trained Transformers lose to well-tuned RNN+attention
-- **The training recipe matters as much as the architecture**: Warmup scheduler (`d_model^-0.5 * min(step^-0.5, step * warmup^-1.5)`) + label smoothing 0.1 + dropout 0.15 = +0.0172 BLEU over vanilla. Warmup prevents Adam's unstable early updates from corrupting attention weights
-- **Beam search is the cheapest improvement**: k=5 with length_penalty=0.6 added +0.0164 BLEU with zero retraining. For short unambiguous sentences beam = greedy; for harder ones, beam explores paths greedy dismisses
-- **U-shaped per-length BLEU reveals capacity limits**: Middle-length sentences (6-9 tokens) hit 0.44 — BEATS #15 Bahdanau's overall 0.3803. But short (0.34) and long (0.27) sentences collapse. Under-training + capacity ceiling = symmetric failure modes
-- **Inference is 483x slower than #15 Bahdanau**: 22.6 ms/sentence (greedy) vs 46.8 us/sentence. Transformers recompute the full decoder stack at every generated token; RNNs reuse hidden state. Production uses KV-caching to mitigate — not implemented here
-- **DistilBERT fine-tuning quantifies pre-training advantage**: From-scratch encoder (7.26M params) 91.22% acc vs DistilBERT fine-tuned (67M params) 94.45% acc. +3.22% for 9.2x more parameters — measurable but not dramatic on AG News (easy benchmark). Gap widens on harder tasks
-- **Business class is hardest for both classification models**: From-scratch 87.6% F1, DistilBERT 91.2% F1. Business headlines overlap semantically with World (geopolitics affecting markets) and Sci/Tech (tech companies). Sports is trivially separable (>98% both models)
-- **PyTorch features**: Custom `LambdaLR` for warmup schedule, `torch.triu` for causal mask, `masked_fill(-inf)` for attention masking, `CrossEntropyLoss(label_smoothing=, ignore_index=)` for PAD-aware smoothed loss, `transformers.DistilBertForSequenceClassification` for fine-tuning
+- **Built from scratch in both frameworks**: `MultiHeadAttention`, `TransformerEncoderLayer`, `TransformerDecoderLayer` all defined with basic primitives (`nn.Linear`/`tf.keras.layers.Dense`) -- no `nn.Transformer` or `tf.keras.layers.MultiHeadAttention`
+- **TF Translation BLEU (0.4456) dramatically exceeds PT (0.3625)**: Same architecture, same data, same hyperparameters. TF greedy decode alone beats PT beam search. Random initialization + optimizer implementation details produce meaningfully different training trajectories
+- **TF beats #15 Bahdanau by +17%**: BLEU 0.4456 vs 0.3803. The Transformer DOES surpass RNN+attention -- just not in PyTorch. Framework implementation details matter more than architecture when models haven't converged
+- **Training recipe matters as much as architecture**: PT Vanilla 0.3289 -> PT Recipe 0.3462 (+0.0172 BLEU) for zero architecture change. Warmup scheduler + label smoothing 0.1 + dropout 0.15
+- **Beam search is the cheapest improvement**: PT only: k=5 with length_penalty=0.6 added +0.0164 BLEU with zero retraining
+- **Classification close across frameworks**: TF 92.20% vs PT 91.22% (+0.98%). Both below DistilBERT fine-tuned 94.45% (PT only, same pre-trained weights across frameworks)
+- **DistilBERT quantifies pre-training advantage**: +3.22% accuracy for 9.2x more parameters on AG News. Measurable but not dramatic on this benchmark
+- **WSL2 adds 8.5-17x speed overhead**: Translation training 241 min (TF) vs 28 min (PT). Inference 377 ms vs 22.6 ms. /mnt/c/ filesystem + TF eager decode overhead
+- **Each framework showcased unique strengths**: PT (5-variant progressive exploration, beam search, DistilBERT fine-tuning, per-length BLEU), TF (tf.keras.Model subclassing, @tf.function graph compilation, tf.GradientTape, custom LearningRateSchedule)
 
 ### Attention Mechanisms (Completed)
 
@@ -598,7 +601,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete LSTM across 2 frameworks~~
 - ~~Complete GANs across 2 frameworks~~
 - ~~Complete Attention Mechanisms across 2 frameworks~~
-- Complete Transformers across 2 frameworks (PyTorch complete; TensorFlow pending)
+- ~~Complete Transformers across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -621,8 +624,8 @@ model_size = get_model_size(model, framework='sklearn')
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
 | Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
-| Transformers (Translation) | PyTorch (pending TF) | Trained + checkpoint saved (MLflow pending) | Recipe + Beam Search BLEU 0.3625 (still -0.018 vs #15). Full Transformer from scratch (11.7M params, BPE 8K shared vocab). TensorFlow pipeline next. |
-| Transformers (Classification) | PyTorch (pending TF) | Trained + checkpoint saved (MLflow pending) | Encoder-only from scratch 91.22% acc (7.3M params). DistilBERT fine-tuned 94.45% in local snapshot only. TensorFlow pipeline next. |
+| Transformers (Translation) | TensorFlow (PT model served) | MLflow tracked + torch.save exported | TF BLEU 0.4456 >> PT 0.3625. TF wins on quality (+17% over #15 Bahdanau). PT model logged for serving (portable .pt format). Same architecture, different framework = different training trajectory. |
+| Transformers (Classification) | TensorFlow (PT model served) | MLflow tracked + torch.save exported | TF 92.20% > PT 91.22% (+0.98%). PT model logged for serving. DistilBERT 94.45% documented in PT local metrics (same pre-trained weights across frameworks). |
 
 ### Deployment Stack (executes after all models complete)
 

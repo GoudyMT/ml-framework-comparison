@@ -1,0 +1,29 @@
+{
+  "framework": "TensorFlow",
+  "model": "Transformers",
+  "random_state": 113,
+  "translation": {
+    "dataset": "Tatoeba EN->ES (BPE, shared 8K vocab)",
+    "best_val_bleu": 0.4632,
+    "test_bleu": 0.44558277810695085,
+    "training_time": 14463.1,
+    "n_params": 11681600,
+    "model_size_mb": 44.835906982421875,
+    "inference_time_per_sample_us": 376791.26128999994,
+    "epochs": 30,
+    "warmup_steps": 4000,
+    "label_smoothing": 0.1,
+    "dropout": 0.15
+  },
+  "classification": {
+    "dataset": "AG News (4-class, BPE 16K vocab)",
+    "best_val_accuracy": 0.9294166666666667,
+    "test_accuracy": 0.9219736842105263,
+    "test_macro_f1": 0.9216665878065978,
+    "training_time": 604.5254805088043,
+    "n_params": 7256580,
+    "model_size_mb": 27.83306884765625,
+    "inference_time_per_sample_us": 32351.049107001018,
+    "n_layers": 4
+  }
+}

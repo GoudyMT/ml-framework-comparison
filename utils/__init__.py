@@ -14,3 +14,4 @@ from .rnn_utils import *
 from .gan_utils import *
 from .attention_utils import *
 from .transformer_utils import *
+from .vit_utils import *

@@ -1691,7 +1691,7 @@ def plot_bleu_by_length(results_dict, save_path=None):
 
 def plot_bleu_progression(model_names, bleu_scores, baseline_bleu=None,
                           baseline_label=None, title='BLEU Progression',
-                          save_path=None):
+                          save_path=None, ylabel='Test BLEU'):
     """
     Bar chart showing BLEU progression across model variants.
 
@@ -1726,7 +1726,7 @@ def plot_bleu_progression(model_names, bleu_scores, baseline_bleu=None,
                    label=baseline_label or f'Baseline: {baseline_bleu:.4f}')
         ax.legend(loc='lower right', fontsize=10)
 
-    ax.set_ylabel('Test BLEU', fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
     ax.set_title(title, fontsize=13, fontweight='bold')
     ax.set_ylim(0, max(max(bleu_scores), baseline_bleu or 0) * 1.15)
     ax.grid(axis='y', alpha=0.3)
@@ -1791,6 +1791,122 @@ def plot_multihead_grid(attention_weights, src_tokens, tgt_tokens,
         row = head_idx // n_cols
         col = head_idx % n_cols
         axes[row, col].axis('off')
+
+    if title:
+        fig.suptitle(title, fontsize=12, fontweight='bold', y=1.02)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+# ViT VISUALIZATIONS (Added during ViT prep)
+
+def plot_attention_overlay(image, attention_map, title=None, 
+                           alpha=0.5, save_path=None):
+    """
+    Overlay a ViT attention heatmap on a single image.
+
+    Two-panel layout: original image on the left, image + attention heatmap on
+    the right. Useful for interpretability -- which regions does ViT attend
+    to when making its classification decision?
+
+    Args:
+        image: (H, W, 3) or (3, H, W) RGB image in [0, 1]. Numpy or tensor.
+        attention_map: (H, W) attention values in [0, 1]. Typically a single
+                       sample from cls_attention_map() output (which is (B, H, W)).
+        title: Optional title for the figure.
+        alpha: Overlay transparency. 0.5 = balanced; lower = more image, higher = more heatmap.
+        save_path: Optional path to save PNG.
+    """
+    # Convert tensors to numpy
+    if hasattr(image, 'cpu'):
+        image = image.cpu().numpy()
+    if hasattr(attention_map, 'cpu'):
+        attention_map = attention_map.cpu().numpy()
+
+    # Handle channel-first input: (3, H, W) -> (H, W, 3)
+    if image.ndim == 3 and image.shape[0] == 3:
+        image = image.transpose(1, 2, 0)
+
+    # Clip to [0, 1] for safe matplotlib display (augmented images can overshoot slightly)
+    image = np.clip(image, 0.0, 1.0)
+
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4))
+
+    # Left: original image
+    axes[0].imshow(image)
+    axes[0].set_title('Original')
+    axes[0].axis('off')
+
+    # Right: image with CLS attention overlay (jet is ViT literature standard)
+    axes[1].imshow(image)
+    axes[1].imshow(attention_map, cmap='jet', alpha=alpha)
+    axes[1].set_title('CLS Attention Overlay')
+    axes[1].axis('off')
+
+    if title:
+        fig.suptitle(title, fontsize=12, fontweight='bold')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+
+def plot_attention_grid_samples(images, attention_maps, labels=None, class_names=None,
+                                n_samples=8, alpha=0.5, title=None, save_path=None):
+    """
+    Grid of attention overlays: originals on top row, attention overlays on
+    bottom row, for n_samples samples from a batch.
+
+    Useful for qualitative evaluation of ViT's attention across diverse classes.
+    Top row shows the raw image; bottom row shows the same image with the CLS
+    attention heatmap overlaid.
+
+    Args:
+        images: (B, H, W, 3) or (B, 3, H, W) batch of images in [0, 1].
+        attention_maps: (B, H, W) batch of attention heatmaps in [0, 1].
+        labels: Optional (B,) class indices. If provided, shown as top-row titles.
+        class_names: Optional list mapping class index -> name for label display.
+        n_samples: Number of samples to display from the batch.
+        alpha: Overlay transparency (same as plot_attention_overlay).
+        title: Optional overall title.
+        save_path: Optional path to save PNG.
+    """
+    # Convert tensors to numpy
+    if hasattr(images, 'cpu'):
+        images = images.cpu().numpy()
+    if hasattr(attention_maps, 'cpu'):
+        attention_maps = attention_maps.cpu().numpy()
+    if labels is not None and hasattr(labels, 'cpu'):
+        labels = labels.cpu().numpy()
+
+    # Handle channel-first input: (B, 3, H, W) -> (B, H, W, 3)
+    if images.ndim == 4 and images.shape[1] == 3:
+        images = images.transpose(0, 2, 3, 1)
+
+    # Clip to [0, 1] for safe display
+    images = np.clip(images, 0.0, 1.0)
+
+    n_samples = min(n_samples, images.shape[0])
+
+    fig, axes = plt.subplots(2, n_samples, figsize=(n_samples * 2, 4.5))
+    if n_samples == 1:
+        axes = axes.reshape(2, 1)
+
+    for i in range(n_samples):
+        # Top row: original image, optionally labeled by class
+        axes[0, i].imshow(images[i])
+        if labels is not None:
+            lbl = int(labels[i])
+            name = class_names[lbl] if class_names else str(lbl)
+            axes[0, i].set_title(name, fontsize=9)
+        axes[0, i].axis('off')
+
+        # Bottom row: same image with attention overlay
+        axes[1, i].imshow(images[i])
+        axes[1, i].imshow(attention_maps[i], cmap='jet', alpha=alpha)
+        axes[1, i].axis('off')
 
     if title:
         fig.suptitle(title, fontsize=12, fontweight='bold', y=1.02)

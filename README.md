@@ -115,7 +115,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── gans.json
 │       ├── attention.json
 │       ├── transformers_translation.json
-│       └── transformers_classification.json
+│       ├── transformers_classification.json
+│       └── vit.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -145,7 +146,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_transformers_translation.py
 │   ├── preprocess_transformers_classification.py
 │   ├── eda_transformers_translation.ipynb
-│   └── eda_transformers_classification.ipynb
+│   ├── eda_transformers_classification.ipynb
+│   └── eda_vit.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -158,7 +160,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── rnn_utils.py
 │   ├── gan_utils.py
 │   ├── attention_utils.py
-│   └── transformer_utils.py
+│   ├── transformer_utils.py
+│   └── vit_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -197,7 +200,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 13-lstm/
 │   ├── 14-gans/
 │   ├── 15-attention/
-│   └── 16-transformers/
+│   ├── 16-transformers/
+│   └── 17-vit/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -230,6 +234,8 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `vit_utils.py` | `apply_mixup_cutmix`, `distillation_loss`, `attention_rollout`, `cls_attention_map` | Vision Transformers | Batch-level MixUp/CutMix with soft labels, DeiT dual-head distillation loss (hard/soft modes), Abnar & Zuidema attention rollout, CLS-to-patches heatmap upsampling |
+| `visualization.py` | `plot_attention_overlay`, `plot_attention_grid_samples` | Vision Transformers | Single-image CLS attention overlay + 2xN grid of originals vs attention for portfolio viz. `plot_bleu_progression` extended with `ylabel` param to serve as generic variant progression chart |
 | `transformer_utils.py` | `create_pad_mask`, `create_causal_mask`, `greedy_decode`, `compute_bleu_greedy`, `beam_search_decode` | Transformers | Mask creation (padding + causal), autoregressive greedy decoding, BPE-aware BLEU computation, beam search with length normalization |
 | `visualization.py` | `plot_bleu_progression`, `plot_multihead_grid` | Transformers | BLEU comparison across variants with baseline line + multi-head attention grid showing head specialization |
 | `attention_utils.py` | `compute_bleu`, `bleu_by_length` | Attention | BLEU-4 corpus scoring with smoothing + per-length-bucket analysis. Reusable for Transformers. |
@@ -299,6 +305,8 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> V4 Fine-tune pre-trained ViT-B/16 **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
+- 2026-04-14 | Vision Transformers / EDA + Preprocessing + Utilities | CIFAR-100 patch decomposition EDA (32x32 -> 8x8 grid of 4x4 patches, 64 tokens + CLS). No new preprocessing (reused CNN #11). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-12 | Transformers Summary: *TensorFlow Transformer (BLEU 0.4456) > PyTorch Transformer+Beam (0.3625). Classification: TF 92.20% vs PT 91.22%.***
 - 2026-04-12 | Transformers / TensorFlow | Recipe variant (WSL2 GPU). Translation **BLEU 0.4456**. Classification **92.20% acc**. 241 min translation training (8.5x WSL2 overhead). | [TensorFlow/16-transformers](TensorFlow/16-transformers/)
 - 2026-04-11 | Transformers / PyTorch | 5 variants across 2 tasks. **Translation**: Beam Search (**0.3625**). **Classification (AG News)**: DistilBERT fine-tuned **94.45%**. Built from `nn.Linear` with no `nn.Transformer`. | [PyTorch/16-transformers](PyTorch/16-transformers/)

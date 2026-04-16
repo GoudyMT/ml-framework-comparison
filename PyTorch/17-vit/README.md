@@ -267,7 +267,8 @@ PyTorch/17-vit/
     |-- v1_vanilla_best.pth                  # V1 state_dict (40.9 MB)
     |-- v2_recipe_best.pth                   # V2 EMA state_dict (40.9 MB)
     |-- v3_distill_best.pth                  # V3 EMA state_dict w/ dual heads (41.1 MB)
-    |-- v4_finetune_best.pth                 # V4 HF state_dict (327.6 MB)
+    |-- [v4_finetune_best.pth not in repo]   # 327.6 MB exceeds GitHub 100 MB limit
+    |                                        # (re-run Cell 7a-b to regenerate if needed)
     |-- metrics.json                         # All 4 variants + CNN baseline + config
     |-- variant_progression.png              # Portfolio centerpiece chart
     |-- v1/v2/v3/v4_training_curves.png      # Per-variant curves
@@ -275,6 +276,8 @@ PyTorch/17-vit/
     |-- v3_multihead_attention.png           # Per-head CLS attention specialization
     `-- superclass_confusion_*.png           # V1 / V4 / CNN hierarchical errors
 ```
+
+**Note on V4 checkpoint**: `v4_finetune_best.pth` is a 327 MB HuggingFace state_dict that exceeds GitHub's 100 MB file-size limit. It is gitignored. To reproduce V4 for inference or deployment, re-run pipeline cells 7a through 7c (~1 hour training on RTX 4090 with deterministic seed). All V4 metrics are preserved in `metrics.json` and the cross-framework comparison.
 
 ## How to Run
 

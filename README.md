@@ -218,7 +218,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 13-lstm/
     ├── 14-gans/
     ├── 15-attention/
-    └── 16-transformers/
+    ├── 16-transformers/
+    └── 17-vit/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -305,7 +306,9 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> V4 Fine-tune pre-trained ViT-B/16 **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
+- **2026-04-17 | Vision Transformers Summary: *PT V4 Pre-trained (91.16%) beats CNN #11 by +10.93pp. From-scratch ViT underperforms CNN (-12.75pp). TF V2 confirms recipe cross-framework.***
+- 2026-04-17 | Vision Transformers / TensorFlow | V2 Recipe only (WSL2 GPU). **63.60% test**. V3 Distillation skipped | [TensorFlow/17-vit](TensorFlow/17-vit/)
+- 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
 - 2026-04-14 | Vision Transformers / EDA + Preprocessing + Utilities | CIFAR-100 patch decomposition EDA (32x32 -> 8x8 grid of 4x4 patches, 64 tokens + CLS). No new preprocessing (reused CNN #11). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-12 | Transformers Summary: *TensorFlow Transformer (BLEU 0.4456) > PyTorch Transformer+Beam (0.3625). Classification: TF 92.20% vs PT 91.22%.***
 - 2026-04-12 | Transformers / TensorFlow | Recipe variant (WSL2 GPU). Translation **BLEU 0.4456**. Classification **92.20% acc**. 241 min translation training (8.5x WSL2 overhead). | [TensorFlow/16-transformers](TensorFlow/16-transformers/)
@@ -399,6 +402,20 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Vision Transformers (Completed)
+
+- **Dataset reused from CNN #11**: CIFAR-100 (45K train / 5K val / 10K test, 32x32x3), enabling direct ViT vs ResNet-20 comparison on identical data. ViT-Small (6L, d=384, 6 heads, patch=4, 10.73M params) built from scratch with `nn.Linear`/`tf.keras.layers.Dense` — no `nn.TransformerEncoder` or `tf.keras.layers.MultiHeadAttention`
+- **4 variants isolate distinct levers in PyTorch**: V1 Vanilla (50.33%) → V2 DeiT Recipe (64.45%, +14.12pp) → V3 DeiT Distillation with CNN #11 teacher (67.48%, +3.03pp) → V4 Fine-tune pre-trained ViT-B/16 (91.16%, +23.68pp). Each lever's contribution quantified independently
+- **Pre-training dominates on small data**: V4's +23.68pp jump from V3 is larger than V1→V2→V3 combined (+17.15pp). ImageNet-21k features transfer cleanly to CIFAR-100 despite the 7x resolution upscale
+- **V4 beats CNN #11 baseline by +10.93pp**: Pre-trained ViT-B/16 (91.16%) surpasses the CNN #11 ResNet-20 reference (80.23%), but at 29x inference cost (1117 us vs 38.9 us per sample). CNN stays Pareto-optimal for low-latency deployment
+- **From-scratch ViT underperforms CNN on small data**: V3 Distillation (67.48%) still lands -12.75pp below CNN #11. ViT's lack of convolutional inductive bias is a real cost without pretraining. This is the CLEAN honest portfolio finding
+- **DeiT distillation with own CNN teacher is a rare portfolio loop**: CNN #11 (80.23%) supervises ViT student during training; student absorbs ~57% of teacher's advantage over vanilla. Hard distillation ([DIST] token + teacher argmax) per DeiT paper
+- **Attention visualization confirms learned spatial structure**: Per-head CLS attention maps show emergent specialization — some heads focus on object centers, others on edges/context. On baby samples, one head clearly learned "face features" (two bright spots where eyes are). Rollout across 6 layers (Abnar & Zuidema 2020) captures end-to-end dependency
+- **TF V2 confirms cross-framework recipe transfer (63.60% vs PT 64.45%, -0.85pp)**: DeiT recipe is robust to framework choice. TF trained ~30% faster due to simplified aug stack (no RandAugment / RandomErasing); TF inference ~2x slower due to framework overhead + Dense-based patch embed workaround
+- **TF V3 Distillation skipped due to cuDNN Conv2D env constraint**: TF 2.21 on WSL2 build fails on Conv2D ops (`No DNN in stream executor`). Forced CPU teacher fallback caused two system crashes even with core affinity capping. Documented as environment limitation; PT V3 findings preserved
+- **V4 pre-trained weights deleted during git cleanup**: The 327 MB HuggingFace state_dict exceeds GitHub's 100 MB file limit. `git filter-repo` stripped it from history; re-generating requires re-running Cell 7 (~1h training). V4 metrics fully documented in metrics.json; deployment falls back to V3 as the servable PT artifact
+- **Each framework showcased unique strengths**: PT (4-variant exploration, DeiT distillation with own teacher, HF ViT-B/16 fine-tune, attention rollout viz), TF (tf.keras.Model subclassing, @tf.function + tf.GradientTape custom loop, cross-framework recipe confirmation)
 
 ### Transformers (Completed)
 
@@ -610,6 +627,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete GANs across 2 frameworks~~
 - ~~Complete Attention Mechanisms across 2 frameworks~~
 - ~~Complete Transformers across 2 frameworks~~
+- ~~Complete Vision Transformers across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -632,8 +650,9 @@ model_size = get_model_size(model, framework='sklearn')
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
 | Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
-| Transformers (Translation) | TensorFlow (PT model served) | MLflow tracked + torch.save exported | TF BLEU 0.4456 >> PT 0.3625. TF wins on quality (+17% over #15 Bahdanau). PT model logged for serving (portable .pt format). Same architecture, different framework = different training trajectory. |
-| Transformers (Classification) | TensorFlow (PT model served) | MLflow tracked + torch.save exported | TF 92.20% > PT 91.22% (+0.98%). PT model logged for serving. DistilBERT 94.45% documented in PT local metrics (same pre-trained weights across frameworks). |
+| Transformers (Translation) | PyTorch | MLflow tracked + torch.save exported | TF BLEU 0.4456 >> PT 0.3625. TF wins on quality (+17% over #15 Bahdanau). PT model logged for serving (portable .pt format). Same architecture, different framework = different training trajectory. |
+| Transformers (Classification) |PyTorch | MLflow tracked + torch.save exported | TF 92.20% > PT 91.22% (+0.98%). PT model logged for serving. DistilBERT 94.45% documented in PT local metrics (same pre-trained weights across frameworks). |
+| Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48% test acc, CNN #11 ResNet-20 as teacher) is the servable artifact. V4 Pre-trained ViT-B/16 achieved highest accuracy (91.16%) but 327 MB weights exceeded GitHub 100 MB limit and were purged via `git filter-repo` during cleanup — best-deployable from-scratch variant deploys instead. TF V2 (63.60%) confirmed recipe cross-framework; TF V3 skipped per cuDNN Conv2D env constraint. MLflow experiment: `vit-cifar100`. |
 
 ### Deployment Stack (executes after all models complete)
 

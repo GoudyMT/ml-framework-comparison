@@ -38,3 +38,6 @@ Thumbs.db
 
 # Large models
 PyTorch/17-vit/results/v4_finetune_best.pth
+# MLflow SQLite backend auto-generated, not suitable for version control
+PyTorch/*/mlflow.db
+TensorFlow/*/mlflow.db

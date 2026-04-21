@@ -99,7 +99,10 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── gans/          # CIFAR-10 [-1,1] normalized for tanh output
 │   │   ├── attention/     # Tatoeba EN→ES vocab + train/val/test splits
 │   │   ├── transformers_translation/     # Tatoeba BPE 8K shared EN+ES
-│   │   └── transformers_classification/  # AG News BPE 16K English
+│   │   ├── transformers_classification/  # AG News BPE 16K English
+│   │   └── gnn/                          # Cora (row-norm BoW) + ogbn-arxiv (symmetrized)
+│   │       ├── Cora/                     # PyG Planetoid cache
+│   │       └── ogbn_arxiv/               # OGB cache + mapping/
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -116,7 +119,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── attention.json
 │       ├── transformers_translation.json
 │       ├── transformers_classification.json
-│       └── vit.json
+│       ├── vit.json
+│       ├── gnn_cora.json
+│       └── gnn_ogbn_arxiv.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -147,7 +152,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── preprocess_transformers_classification.py
 │   ├── eda_transformers_translation.ipynb
 │   ├── eda_transformers_classification.ipynb
-│   └── eda_vit.ipynb
+│   ├── eda_vit.ipynb
+│   ├── preprocess_gnn.py
+│   └── eda_gnn.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -161,7 +168,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── gan_utils.py
 │   ├── attention_utils.py
 │   ├── transformer_utils.py
-│   └── vit_utils.py
+│   ├── vit_utils.py
+│   └── gnn_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -201,7 +209,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 14-gans/
 │   ├── 15-attention/
 │   ├── 16-transformers/
-│   └── 17-vit/
+│   ├── 17-vit/
+│   └── 18-gnn/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -219,7 +228,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 14-gans/
     ├── 15-attention/
     ├── 16-transformers/
-    └── 17-vit/
+    ├── 17-vit/
+    └── 18-gnn/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -235,6 +245,7 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `gnn_utils.py` | `normalize_adj_symmetric`, `edge_softmax`, `evaluate_ogb` | GNN | Symmetric-normalized adjacency (`D^(-1/2)(A+I)D^(-1/2)` as sparse COO) for GCN, scatter-softmax wrapper for from-scratch GAT attention, OGB Evaluator shape-shim from logits/labels to leaderboard metric |
 | `vit_utils.py` | `apply_mixup_cutmix`, `distillation_loss`, `attention_rollout`, `cls_attention_map` | Vision Transformers | Batch-level MixUp/CutMix with soft labels, DeiT dual-head distillation loss (hard/soft modes), Abnar & Zuidema attention rollout, CLS-to-patches heatmap upsampling |
 | `visualization.py` | `plot_attention_overlay`, `plot_attention_grid_samples` | Vision Transformers | Single-image CLS attention overlay + 2xN grid of originals vs attention for portfolio viz. `plot_bleu_progression` extended with `ylabel` param to serve as generic variant progression chart |
 | `transformer_utils.py` | `create_pad_mask`, `create_causal_mask`, `greedy_decode`, `compute_bleu_greedy`, `beam_search_decode` | Transformers | Mask creation (padding + causal), autoregressive greedy decoding, BPE-aware BLEU computation, beam search with length normalization |
@@ -306,6 +317,10 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-04-19 | GNN Summary: *PT V3 GAT wins both datasets (Cora 0.8310, arxiv OGB 0.7028). V4a GIN Baseline underperforms V1 GCN (-2.7pp arxiv) — theoretical expressiveness does not auto-transfer.***
+- 2026-04-19 | GNN / TensorFlow | V1 GCN + V3 GAT from TF primitives. Spektral dropped. WSL2 GPU. V1 GCN: Cora **0.8090**, arxiv OGB **0.7045**. V3 GAT: Cora 0.8060, arxiv OGB 0.7004. | [TensorFlow/18-gnn](TensorFlow/18-gnn/)
+- 2026-04-19 | GNN / PyTorch | 4 variants on Cora + ogbn-arxiv: **V3 GAT** from scratch (Cora **0.8310** matches Velickovic / arxiv **0.7025**) | [PyTorch/18-gnn](PyTorch/18-gnn/)
+- 2026-04-19 | GNN / EDA + Preprocessing + Utilities | Cora (2,708 nodes, 7 classes, edge homophily 0.81) + ogbn-arxiv (169K nodes, 40 classes, temporal split, 942x class imbalance).  | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-17 | Vision Transformers Summary: *PT V4 Pre-trained (91.16%) beats CNN #11 by +10.93pp. From-scratch ViT underperforms CNN (-12.75pp). TF V2 confirms recipe cross-framework.***
 - 2026-04-17 | Vision Transformers / TensorFlow | V2 Recipe only (WSL2 GPU). **63.60% test**. V3 Distillation skipped | [TensorFlow/17-vit](TensorFlow/17-vit/)
 - 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
@@ -402,6 +417,19 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Graph Neural Networks (Completed)
+
+- **First non-Euclidean model in the portfolio**: every prior model assumed regular structure (grids, sequences, positional embeddings). GNNs handle arbitrary neighbor counts, no canonical ordering. Shifted the core primitive from dense matmul to `torch.sparse.mm` / `tf.sparse.sparse_dense_matmul` over message-passing operators
+- **Two datasets instead of one**: Cora (2,708 nodes, 7 classes, transductive Kipf benchmark — small-graph sanity) + ogbn-arxiv (169K nodes, 40 classes, temporal split — OGB leaderboard parity). Mirrors LSTM's dual-dataset pattern. Homophily gap quantified: Cora 0.81 vs random baseline 0.18; arxiv 0.65 vs 0.08
+- **4 variants on PyTorch, 2 on TensorFlow**: V1 GCN, V2 GraphSAGE, V3 GAT, V4 GIN (PT) vs V1 GCN + V3 GAT (TF). V2 and V4 are PT-only — their lever is library-dependent machinery (`NeighborLoader`, `GINConv`) with no mature TF equivalent after Spektral 1.3.1 broke on Keras 3 (list-of-Nones mask bug). Plan pivoted to from-scratch TF primitives
+- **PT V3 GAT wins both datasets on PyTorch**: Cora 0.8310 (matches Velickovic 2018 exactly), arxiv OGB 0.7025 (V1 GCN 0.6985, V2 SAGE 0.6948, V4a GIN 0.6714). Attention over edges provides +1.7pp on Cora; +0.4pp on arxiv — the smaller the graph, the bigger attention's contribution
+- **V4 GIN underperforms V1 GCN by 2.7pp on arxiv**: More theoretical expressiveness (WL-equivalent) does not auto-transfer to node classification with pre-trained word2vec features. Baseline's learned epsilons (+2.14, +2.50, +0.19) showed the model partially rejecting GIN's paradigm — upweighting each node's own features 3x over summed neighbors. GIN's native domain is graph-level classification (molecules, proteins); arxiv is the wrong task family
+- **Optuna 20-trial sweep surfaced `num_layers=2` (not paper's 3) as the #1 arxiv fix**: 400-epoch budget per trial with MedianPruner. Top-5 configs agree: 2 layers, hidden=256, train_eps=True, lr 5-10x lower than paper's 0.01. V4b tuned recovered +1.80pp val acc and +5.41pp macro F1 — but lost -1.01pp test accuracy to the **concept-drift tax** (val set is 2018, test is 2019-2020; configs optimized for 2018 distribution don't automatically track class-proportion shifts like cs.lg +14pp, cs.it -12pp)
+- **V3 GAT on arxiv costs 13.4 GB GPU** (from-scratch, materializes `(E+N, H, D)` attention intermediates per layer). PyG's `GATConv` with fused scatter kernels uses ~4 GB for the same accuracy. Portfolio honest cost: our from-scratch attention is 3x the memory of production-ready implementations, but we see the per-edge computation explicitly
+- **TF V1 GCN slightly beats TF V3 GAT on both datasets** (intra-framework reversal from PT). Framework matters more than architecture at this margin: Keras 3's AdamW-style decoupled weight decay + Glorot init combination doesn't favor attention as clearly as PT's L2 Adam + Kaiming init. TF V1 GCN at arxiv OGB 0.7045 even edges PT V3 GAT (0.7028) cross-framework. Attention's lift on these graphs is <1pp and framework-sensitive
+- **Per-class F1 tracks edge homophily almost monotonically**: On Cora, Neural_Networks (0.91 homophily) got F1 0.905; Case_Based (0.70) got 0.724. On arxiv, cs.cv/cs.it/cs.cl (high homophily, top 3 by count) reach F1 ~0.85; cs.gl (29 papers, 0.04 homophily) gets F1=0.00 across every variant. Message passing only works as well as the graph lets it
+- **Each framework showcased unique strengths**: PT (4-variant exploration, Optuna sweep, MLflow model registry, `torch_scatter.scatter_softmax` + `scatter_add`), TF (from-scratch with `tf.sparse` + `tf.math.unsorted_segment_*`, manual `tf.GradientTape` with masked transductive loss, OGB Evaluator for leaderboard parity)
 
 ### Vision Transformers (Completed)
 
@@ -628,6 +656,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Attention Mechanisms across 2 frameworks~~
 - ~~Complete Transformers across 2 frameworks~~
 - ~~Complete Vision Transformers across 2 frameworks~~
+- ~~Complete Graph Neural Networks across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -650,9 +679,10 @@ model_size = get_model_size(model, framework='sklearn')
 | LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
 | GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
 | Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
-| Transformers (Translation) | PyTorch | MLflow tracked + torch.save exported | TF BLEU 0.4456 >> PT 0.3625. TF wins on quality (+17% over #15 Bahdanau). PT model logged for serving (portable .pt format). Same architecture, different framework = different training trajectory. |
-| Transformers (Classification) |PyTorch | MLflow tracked + torch.save exported | TF 92.20% > PT 91.22% (+0.98%). PT model logged for serving. DistilBERT 94.45% documented in PT local metrics (same pre-trained weights across frameworks). |
-| Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48% test acc, CNN #11 ResNet-20 as teacher) is the servable artifact. V4 Pre-trained ViT-B/16 achieved highest accuracy (91.16%) but 327 MB weights exceeded GitHub 100 MB limit and were purged via `git filter-repo` during cleanup — best-deployable from-scratch variant deploys instead. TF V2 (63.60%) confirmed recipe cross-framework; TF V3 skipped per cuDNN Conv2D env constraint. MLflow experiment: `vit-cifar100`. |
+| Transformers (Translation) | PyTorch | MLflow tracked + torch.save exported | PT staged for portable `.pt` format; TF BLEU (0.4456) beats PT (0.3625) on quality. +17% over #15 Bahdanau. |
+| Transformers (Classification) | PyTorch | MLflow tracked + torch.save exported | PT staged for serving; TF 92.20% edges PT 91.22%. DistilBERT fine-tune (94.45%) documented in PT local metrics. |
+| Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48%, CNN #11 teacher) is the servable artifact. V4 Pre-trained (91.16%) purged — 327 MB exceeded GitHub 100 MB limit. TF V2 (63.60%) confirmed recipe cross-framework. |
+| Graph Neural Networks (GNN) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V3 GAT on Cora (0.8310, matches Velickovic 2018) + ogbn-arxiv (OGB 0.7025). From-scratch attention. TF V1 GCN within 0.6pp cross-framework. V4 GIN tuned via Optuna (20 trials). |
 
 ### Deployment Stack (executes after all models complete)
 

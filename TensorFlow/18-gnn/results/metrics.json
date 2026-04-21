@@ -1,0 +1,60 @@
+{
+  "framework": "TensorFlow",
+  "random_state": 113,
+  "datasets": {
+    "cora": {
+      "variants": [
+        {
+          "variant": "V1 GCN",
+          "test_acc": 0.809,
+          "test_macro_f1": 0.7985209438129649,
+          "best_val_acc": 0.7860000133514404,
+          "train_time_sec": 9.917732000350952,
+          "peak_gpu_memory_mb": 231.286376953125,
+          "inference_total_ms": 2.2749656600080925,
+          "n_params": 23063,
+          "model_size_bytes": 92252
+        },
+        {
+          "variant": "V3 GAT",
+          "test_acc": 0.799,
+          "test_macro_f1": 0.7957005771738216,
+          "best_val_acc": 0.8040000200271606,
+          "train_time_sec": 21.96976613998413,
+          "peak_gpu_memory_mb": 369.75732421875,
+          "inference_total_ms": 5.040461979970132,
+          "n_params": 92373,
+          "model_size_bytes": 369492
+        }
+      ],
+      "winner": "V1 GCN"
+    },
+    "ogbn_arxiv": {
+      "variants": [
+        {
+          "variant": "V1 GCN",
+          "ogb_test_acc": 0.7045038372116947,
+          "test_macro_f1": 0.4764694779468709,
+          "best_val_acc": 0.7129769455350851,
+          "train_time_sec": 49.25889492034912,
+          "peak_gpu_memory_mb": 6723.403564453125,
+          "inference_total_ms": 20.298599249963445,
+          "n_params": 109096,
+          "model_size_bytes": 436384
+        },
+        {
+          "variant": "V3 GAT",
+          "ogb_test_acc": 0.7024257761866551,
+          "test_macro_f1": 0.4708699832337235,
+          "best_val_acc": 0.7095540118795933,
+          "train_time_sec": 123.31817293167114,
+          "peak_gpu_memory_mb": 15967.703369140625,
+          "inference_total_ms": 61.070383099922765,
+          "n_params": 110200,
+          "model_size_bytes": 440800
+        }
+      ],
+      "winner": "V1 GCN"
+    }
+  }
+}

@@ -15,6 +15,7 @@ from .gan_utils import *
 from .attention_utils import *
 from .transformer_utils import *
 from .vit_utils import *
+from .vae_utils import *
 
 # gnn_utils requires torch_scatter (a PyTorch CUDA extension). Environments
 # without it (TensorFlow WSL2 venv that only needs data loaders)

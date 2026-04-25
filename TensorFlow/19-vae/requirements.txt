@@ -1,0 +1,10 @@
+# TF V1 Vanilla VAE (MNIST) only on this side -- V2 Conv VAE dropped due to
+# WSL2 TF 2.21 + cuDNN 9.1.0 / compiled-9.3.0 mismatch.
+
+# scikit-learn is used internally by utils.visualization.plot_latent_space
+# (TSNE for the 20-dim -> 2D MNIST latent projection).
+
+tensorflow==2.21.0
+numpy==2.4.3
+matplotlib==3.10.8
+scikit-learn==1.8.0

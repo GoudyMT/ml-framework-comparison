@@ -100,9 +100,12 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── attention/     # Tatoeba EN→ES vocab + train/val/test splits
 │   │   ├── transformers_translation/     # Tatoeba BPE 8K shared EN+ES
 │   │   ├── transformers_classification/  # AG News BPE 16K English
-│   │   └── gnn/                          # Cora (row-norm BoW) + ogbn-arxiv (symmetrized)
-│   │       ├── Cora/                     # PyG Planetoid cache
-│   │       └── ogbn_arxiv/               # OGB cache + mapping/
+│   │   ├── gnn/                          # Cora (row-norm BoW) + ogbn-arxiv (symmetrized)
+│   │   │   ├── Cora/                     # PyG Planetoid cache
+│   │   │   └── ogbn_arxiv/               # OGB cache + mapping/
+│   │   └── vae/                          # MNIST + CIFAR-10 [0,1] normalized
+│   │       ├── mnist/                    # (60K/10K, 28x28 grayscale) + .json info
+│   │       └── cifar10/                  # (50K/10K, 32x32 RGB) + .json info
 │   └── results/            # Cross-framework comparison JSONs (one per model)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
@@ -121,7 +124,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── transformers_classification.json
 │       ├── vit.json
 │       ├── gnn_cora.json
-│       └── gnn_ogbn_arxiv.json
+│       ├── gnn_ogbn_arxiv.json
+│       ├── vae_mnist.json
+│       └── vae_cifar10.json
 ├── data-preperation/
 │   ├── clean_vehicles.py
 │   ├── preprocess_logistic.py
@@ -154,7 +159,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── eda_transformers_classification.ipynb
 │   ├── eda_vit.ipynb
 │   ├── preprocess_gnn.py
-│   └── eda_gnn.ipynb
+│   ├── eda_gnn.ipynb
+│   ├── preprocess_vae.py
+│   └── eda_vae.ipynb
 ├── utils/
 │   ├── __init__.py
 │   ├── data_loader.py
@@ -169,7 +176,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── attention_utils.py
 │   ├── transformer_utils.py
 │   ├── vit_utils.py
-│   └── gnn_utils.py
+│   ├── gnn_utils.py
+│   └── vae_utils.py
 ├── No-Framework/
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
@@ -210,7 +218,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 15-attention/
 │   ├── 16-transformers/
 │   ├── 17-vit/
-│   └── 18-gnn/
+│   ├── 18-gnn/
+│   └── 19-vae/
 └── TensorFlow/
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
@@ -229,7 +238,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 15-attention/
     ├── 16-transformers/
     ├── 17-vit/
-    └── 18-gnn/
+    ├── 18-gnn/
+    └── 19-vae/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -245,6 +255,7 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `vae_utils.py` | `reparameterize`, `kl_divergence_gaussian`, `vq_straight_through`, `vq_commit_loss`, `latent_traversal`, `interpolate_latent` | VAE | Six probabilistic-latent primitives: reparameterization trick (z = mu + exp(0.5*logvar)*eps), analytical KL divergence between N(mu, sigma^2) and N(0, I), VQ-VAE straight-through estimator + commitment loss, β-VAE single-dim latent traversals, latent-space interpolation. Note: V4 + V5 inline VQ math; the util's `vq_straight_through` has a known gradient-flow bug deferred to future cleanup |
 | `gnn_utils.py` | `normalize_adj_symmetric`, `edge_softmax`, `evaluate_ogb` | GNN | Symmetric-normalized adjacency (`D^(-1/2)(A+I)D^(-1/2)` as sparse COO) for GCN, scatter-softmax wrapper for from-scratch GAT attention, OGB Evaluator shape-shim from logits/labels to leaderboard metric |
 | `vit_utils.py` | `apply_mixup_cutmix`, `distillation_loss`, `attention_rollout`, `cls_attention_map` | Vision Transformers | Batch-level MixUp/CutMix with soft labels, DeiT dual-head distillation loss (hard/soft modes), Abnar & Zuidema attention rollout, CLS-to-patches heatmap upsampling |
 | `visualization.py` | `plot_attention_overlay`, `plot_attention_grid_samples` | Vision Transformers | Single-image CLS attention overlay + 2xN grid of originals vs attention for portfolio viz. `plot_bleu_progression` extended with `ylabel` param to serve as generic variant progression chart |
@@ -317,10 +328,14 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
-- **2026-04-19 | GNN Summary: *PT V3 GAT wins both datasets (Cora 0.8310, arxiv OGB 0.7028). V4a GIN Baseline underperforms V1 GCN (-2.7pp arxiv) — theoretical expressiveness does not auto-transfer.***
-- 2026-04-19 | GNN / TensorFlow | V1 GCN + V3 GAT from TF primitives. Spektral dropped. WSL2 GPU. V1 GCN: Cora **0.8090**, arxiv OGB **0.7045**. V3 GAT: Cora 0.8060, arxiv OGB 0.7004. | [TensorFlow/18-gnn](TensorFlow/18-gnn/)
+- **2026-04-24 | VAE Summary: *PT 5 variants on MNIST + CIFAR-10. Cross-framework parity 0.11 nats (TF V1 102.09 vs PT 101.98). DALL-E 1 recipe at portfolio scale.***
+- 2026-04-24 | VAE / TensorFlow | V1 Vanilla VAE only (V2 cuDNN-blocked: 9.1.0 runtime vs 9.3.0 compiled). MNIST test NLL **102.09** nats, parity delta **+0.11** vs PT. WSL2 GPU eager mode 14x slower (1048s vs 73s). | [TensorFlow/19-vae](TensorFlow/19-vae/)
+- 2026-04-23 | VAE / PyTorch | 5 variants on MNIST + CIFAR-10. V1 Vanilla NLL **101.98**, **V5 VQ-VAE + PixelCNN prior FID 117.27** (DALL-E 1 two-stage recipe). Built from `nn.Linear`/`nn.Conv2d`/`nn.Embedding` + masked-conv causality. | [PyTorch/19-vae](PyTorch/19-vae/)
+- 2026-04-22 | VAE / EDA + Preprocessing + Utilities | MNIST (60K/10K, 28x28 grayscale, bimodal pixels -> Bernoulli decoder) + CIFAR-10 (50K/10K, 32x32 RGB, [0,1] norm -> Gaussian decoder). | [data-preperation/](data-preperation/) and [utils/](utils/)
+- **2026-04-20 | GNN Summary: *PT V3 GAT wins both datasets (Cora 0.8310, arxiv OGB 0.7028). V4a GIN Baseline underperforms V1 GCN (-2.7pp arxiv) — theoretical expressiveness does not auto-transfer.***
+- 2026-04-20 | GNN / TensorFlow | V1 GCN + V3 GAT from TF primitives. Spektral dropped. WSL2 GPU. V1 GCN: Cora **0.8090**, arxiv OGB **0.7045**. V3 GAT: Cora 0.8060, arxiv OGB 0.7004. | [TensorFlow/18-gnn](TensorFlow/18-gnn/)
 - 2026-04-19 | GNN / PyTorch | 4 variants on Cora + ogbn-arxiv: **V3 GAT** from scratch (Cora **0.8310** matches Velickovic / arxiv **0.7025**) | [PyTorch/18-gnn](PyTorch/18-gnn/)
-- 2026-04-19 | GNN / EDA + Preprocessing + Utilities | Cora (2,708 nodes, 7 classes, edge homophily 0.81) + ogbn-arxiv (169K nodes, 40 classes, temporal split, 942x class imbalance).  | [data-preperation/](data-preperation/) and [utils/](utils/)
+- 2026-04-18 | GNN / EDA + Preprocessing + Utilities | Cora (2,708 nodes, 7 classes, edge homophily 0.81) + ogbn-arxiv (169K nodes, 40 classes, temporal split, 942x class imbalance).  | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-17 | Vision Transformers Summary: *PT V4 Pre-trained (91.16%) beats CNN #11 by +10.93pp. From-scratch ViT underperforms CNN (-12.75pp). TF V2 confirms recipe cross-framework.***
 - 2026-04-17 | Vision Transformers / TensorFlow | V2 Recipe only (WSL2 GPU). **63.60% test**. V3 Distillation skipped | [TensorFlow/17-vit](TensorFlow/17-vit/)
 - 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
@@ -417,6 +432,20 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Variational Autoencoders (Completed)
+
+- **First likelihood-based deep generative model in the portfolio**: AE #10 (deterministic encoding, no generation) and GANs #14 (implicit likelihood, adversarial) are the prior generative entries. VAE #19 fills the third philosophical slot — explicit probabilistic latent, ELBO-trained, samplable. Five variants spanning the full discrete-latent lineage that powers Stable Diffusion, DALL-E 1, EnCodec
+- **5 variants on PyTorch, 1 on TensorFlow**: V1 Vanilla, V2 Conv, V3 β-VAE sweep, V4 VQ-VAE, V5 VQ-VAE+PixelCNN prior (PT) vs V1 only (TF). V2 dropped on TF due to WSL2 `Conv2D` cuDNN constraint (loaded 9.1.0, TF 2.21 compiled against 9.3.0) — same blocker that surfaced on ViT #17. V3-V5 are PT-only by plan: single-coefficient β change (V3) doesn't exercise new TF primitives; STE codebook (V4) and masked-conv autoregressive sampling (V5) are substantial scope for marginal cross-framework value
+- **Cross-framework parity 0.11 nats** (TF V1 102.09 vs PT V1 101.98) — the tightest reproducibility result in the portfolio. Same architecture, same hyperparameters, same dataset; reparameterization trick + analytical KL implement identically. TF eager-mode is 14x slower in wall-clock but converges to the same ELBO. **The math is the math; the framework is just plumbing**
+- **The FID ladder is the portfolio's headline result**: GAN #14 30.57 < V4 reconstruction 97.81 < **V5 prior-sampled 117.27** < V2 prior 165 < V4 random-codes 202. Each gap isolates a lever. V5 - V4 random = -85 FID is **the learned-prior contribution** (PixelCNN doing its job). V4 recon - V5 = -19 is the prior's information loss vs the encoder's ceiling. GAN - V4 recon = -67 is the **honest VAE-vs-adversarial gap** that explains why modern generation moved to GAN, then diffusion
+- **The prior does the generation, not the decoder**: V4 and V5 share the exact same decoder. V4 from uniform-random codes = FID 202 (noise). V5 from PixelCNN-sampled codes = FID 117 (coherent skies, animals, horizons). The decoder is identical; only the distribution of codes fed in changed. This is the whole thesis of the two-stage recipe (DALL-E 1, Stable Diffusion, Muse, EnCodec)
+- **Discrete latents reconstruct better than continuous VAEs at similar scale**: V4 (138K params, MSE 0.0071) beats V2 (582K params, MSE 0.0166) by 2.3x with 4.2x fewer parameters. The codebook acts as a learned 512-point quantization grid that prevents latent drift into under-trained regions. Quantization is a feature, not a bug — same insight that made VQ-VAE the foundation of DALL-E 1 in 2021 and Stable Diffusion's encoder/decoder stage in 2022
+- **β-VAE's disentanglement is a Pareto trade-off, not a free lunch**: V3 β=4 cleanly separates digit identity (dim 3) from style (other dims) but pays 44 nats in NLL vs V1. β=10 collapses most dims to zero activation. The "sweet spot" is task-dependent — there is no universal β
+- **V4 VQ-VAE failed three times before working**: gradient-killing detach in `vq_straight_through` util (fix: inline VQ math returning two separate tensors with separate gradient paths), winner-take-all codebook collapse with random init (fix: data-dependent codebook init from one batch of encoder outputs), 6-orders-of-magnitude scale mismatch between sum-reduced reconstruction and mean-reduced VQ losses (fix: mean-reduce all three loss terms). Each diagnosis required tracing the actual forward/backward pass, not pattern-matching the docstring
+- **Information gain (uniform_baseline_CE - test_CE) is a cleaner prior-quality metric than FID**: V5 captured 2.893 of 6.238 nats/position possible = 46% of maximum. Reports prior tightness independent of decoder image-quality ceiling. FID conflates prior + decoder; CE isolates the prior
+- **Two-stage cost accounting matters for deployment honesty**: V5 is "1.4M params" in isolation, but its inference pipeline requires V4's 138K params + codebook → 1.52M total. Same for train time: V5 70.5s + V4 156.6s = 227s end-to-end. A reader looking at V5's row alone would underestimate the deployment footprint by 10%
+- **`utils.vae_utils.vq_straight_through` has a known gradient-flow bug** (detach kills the codebook gradient). Bypassed by V4/V5 inline math; util fix deferred. Lesson re-learned: smoke tests that check shape don't catch gradient-flow bugs — also need a small numerical-gradient sanity test
 
 ### Graph Neural Networks (Completed)
 
@@ -657,6 +686,7 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Transformers across 2 frameworks~~
 - ~~Complete Vision Transformers across 2 frameworks~~
 - ~~Complete Graph Neural Networks across 2 frameworks~~
+- ~~Complete Variational Autoencoders across 2 frameworks~~
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -683,6 +713,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Transformers (Classification) | PyTorch | MLflow tracked + torch.save exported | PT staged for serving; TF 92.20% edges PT 91.22%. DistilBERT fine-tune (94.45%) documented in PT local metrics. |
 | Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48%, CNN #11 teacher) is the servable artifact. V4 Pre-trained (91.16%) purged — 327 MB exceeded GitHub 100 MB limit. TF V2 (63.60%) confirmed recipe cross-framework. |
 | Graph Neural Networks (GNN) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V3 GAT on Cora (0.8310, matches Velickovic 2018) + ogbn-arxiv (OGB 0.7025). From-scratch attention. TF V1 GCN within 0.6pp cross-framework. V4 GIN tuned via Optuna (20 trials). |
+| Variational Autoencoders (VAE) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V1 Vanilla on MNIST (NLL 101.98 nats, 0.11 nat parity vs TF) + PT V5 VQ-VAE+PixelCNN prior on CIFAR-10 (FID 117.27, beats V4 random-codes 202 by -85). DALL-E 1 two-stage recipe at portfolio scale. V5 deployment requires both V4 + V5 checkpoints (1.52M total params). |
 
 ### Deployment Stack (executes after all models complete)
 

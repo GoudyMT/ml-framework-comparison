@@ -23,12 +23,15 @@ This project is my hands-on portfolio to deepen understanding of machine learnin
 
 ## Key Highlights & Framework Insights
 
-(Updated as models complete)
+(Findings from the completed 20-model build, #01-#20)
 
-- Scikit-Learn: Fastest prototyping for tabular/classical ML; built-in pipelines and cross-validation save significant time.
-- PyTorch: Dynamic computation graphs excel for custom architectures, sequences, and research-like flexibility.
-- TensorFlow: Strong for production workflows, with Keras for rapid builds and tools for deployment/scaling.
-- No-Framework: Reveals core math (manual gradients, matrix operations); slower but builds deepest conceptual understanding.
+**Scikit-Learn** (implemented #01-#10, retired after Autoencoders): Won deployment for #06 DT/RF (F1 0.48, GridSearchCV-tuned), #07 SVM (best calibration AUC 0.9164), and #08 PCA (IncrementalPCA + sklearn Pipeline, lowest memory 11.74 MB). Normal Equation solving in 0.03s vs No-Framework's 0.38s established the speed-vs-understanding trade-off early. Hit its ceiling at #10 Autoencoders — sklearn's MLP-only neural net couldn't compete with PyTorch's conv denoising AE (MSE 0.0037 vs sklearn's 0.0103). Retired after #10 — the line between "classical ML" and "deep learning" is approximately the line between "sklearn dominates" and "PT/TF dominates."
+
+**PyTorch** (implemented all 20 models, won deployment for 14 of 17 deployable artifacts): Specific wins include DNN 96.03%, CNN 80.1%, GANs FID 30.57, Attention BLEU 0.3803, ViT V3 Distillation 67.48%, GNN V3 GAT (Cora 0.8310 + arxiv 0.7025), VAE V5 FID 117.27, and Q-Learning V2 CartPole 500.00 perfect 3/3 seeds. Eager mode is 14-24x faster than TF eager for tight per-step loops (measured on VAE V1 and Q-Learning V2), dynamic graphs cut debug time on custom architectures (GNN sparse adjacency, RL replay integration, VAE masked-conv causality), and `nn.Module` subclassing makes from-scratch reimplementation idiomatic. The dominant framework for #09-#20.
+
+**TensorFlow** (implemented #01-#20 with scope reductions from #15 onward): Won deployment for #16 Transformers Translation (BLEU 0.4456 vs PT 0.3625, +17% over the #15 Bahdanau baseline) — Keras 3's recipe-style training was actively helpful for production seq2seq. WSL2 GPU constraints forced scope drops on five subsequent models: ViT V3 (cuDNN Conv2D unreliable), GNN V2/V4 (Spektral 1.3.1 broken on Keras 3), VAE V2 (Conv2D again), Q-Learning V3-V5 (marginal cross-framework value vs implementation cost). Eager mode is 14-24x slower than PT for tight loops; production TF RL (`tf-agents`) uses `@tf.function` decorators throughout for this reason. Best for production seq2seq; weaker on research-pace workflows requiring fast iteration.
+
+**No-Framework** (implemented #01-#08, retired after PCA): Useful for solidifying math fundamentals — every parameter's role becomes explicit when you write `theta -= lr * gradient` directly. Scaled poorly past #08: SVM's dual gradient ascent took 5K+ iterations to match sklearn's converged solution, and matrix-heavy operations couldn't compete with optimized BLAS calls. Retired after PCA, beyond classical ML, framework-level optimizations dominate, and from-scratch becomes teaching theater rather than honest comparison.
 
 ## Table of Contents
 
@@ -74,12 +77,13 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 ```text
 ├── README.md
 ├── LICENSE
-├── data/       # .gitignore for entire folder (large files + processed data from data-preperation)
-│   ├── raw/
+├── data/                                       # .gitignore'd (raw datasets + preprocessed arrays + comparison JSONs)
+│   ├── raw/                                    # Source datasets + RL env render frames
 │   │   ├── vehicles.csv
 │   │   ├── creditcard.csv
-│   │   └── bank-additional-full.csv
-│   ├── processed/
+│   │   ├── bank-additional-full.csv
+│   │   └── eda_envs/                           # Q-Learning #20: env render frames + reward-distribution PNG
+│   ├── processed/                              # Preprocessed numpy arrays per model (no q_learning/ - RL is online)
 │   │   ├── linear_regression/
 │   │   ├── logistic_regression/
 │   │   ├── knn/
@@ -93,20 +97,14 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   │   ├── autoencoder/
 │   │   ├── cnn/
 │   │   ├── rnn/
-│   │   ├── lstm/
-│   │   │   ├── ecg/       # Augmented ECG5000
-│   │   │   └── imdb/      # Padded IMDB sequences
-│   │   ├── gans/          # CIFAR-10 [-1,1] normalized for tanh output
-│   │   ├── attention/     # Tatoeba EN→ES vocab + train/val/test splits
-│   │   ├── transformers_translation/     # Tatoeba BPE 8K shared EN+ES
-│   │   ├── transformers_classification/  # AG News BPE 16K English
-│   │   ├── gnn/                          # Cora (row-norm BoW) + ogbn-arxiv (symmetrized)
-│   │   │   ├── Cora/                     # PyG Planetoid cache
-│   │   │   └── ogbn_arxiv/               # OGB cache + mapping/
-│   │   └── vae/                          # MNIST + CIFAR-10 [0,1] normalized
-│   │       ├── mnist/                    # (60K/10K, 28x28 grayscale) + .json info
-│   │       └── cifar10/                  # (50K/10K, 32x32 RGB) + .json info
-│   └── results/            # Cross-framework comparison JSONs (one per model)
+│   │   ├── lstm/                               # ECG5000 (augmented) + IMDB (padded sequences)
+│   │   ├── gans/                               # CIFAR-10, [-1, 1] normalized for tanh output
+│   │   ├── attention/                          # Tatoeba EN-ES, word-level vocab + splits
+│   │   ├── transformers_translation/           # Tatoeba BPE 8K shared EN+ES
+│   │   ├── transformers_classification/        # AG News BPE 16K English
+│   │   ├── gnn/                                # Cora (BoW row-norm) + ogbn-arxiv (symmetrized)
+│   │   └── vae/                                # MNIST + CIFAR-10, [0, 1] normalized
+│   └── results/                                # Cross-framework comparison JSONs (one per model/dataset)
 │       ├── kmeans.json
 │       ├── naive_bayes.json
 │       ├── decision_tree.json
@@ -126,43 +124,47 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │       ├── gnn_cora.json
 │       ├── gnn_ogbn_arxiv.json
 │       ├── vae_mnist.json
-│       └── vae_cifar10.json
-├── data-preperation/
-│   ├── clean_vehicles.py
-│   ├── preprocess_logistic.py
-│   ├── preprocess_knn.py
-│   ├── preprocess_kmeans.py
-│   ├── preprocess_naive_bayes.py
-│   ├── preprocess_decision_tree.py
-│   ├── preprocess_svm.py
-│   ├── preprocess_pca.py
-│   ├── preprocess_dnn.py
-│   ├── preprocess_autoencoder.py
-│   ├── preprocess_cnn.py
+│       ├── vae_cifar10.json
+│       ├── q_learning_taxi.json
+│       ├── q_learning_cartpole.json
+│       └── q_learning_lunarlander.json
+├── data-preperation/                           # Preprocess scripts + EDA notebooks per model (#01 -> #20)
+│   ├── clean_vehicles.py                       # #01 Linear Regression
+│   ├── preprocess_logistic.py                  # #02 Logistic Regression
+│   ├── preprocess_knn.py                       # #03 KNN
+│   ├── preprocess_kmeans.py                    # #04 K-Means
+│   ├── preprocess_naive_bayes.py               # #05 Naive Bayes
+│   ├── preprocess_decision_tree.py             # #06 Decision Trees / RF
 │   ├── eda_decision_tree.ipynb
+│   ├── preprocess_svm.py                       # #07 SVM
 │   ├── eda_svm.ipynb
+│   ├── preprocess_pca.py                       # #08 PCA
 │   ├── eda_pca.ipynb
+│   ├── preprocess_dnn.py                       # #09 DNN
 │   ├── eda_dnn.ipynb
+│   ├── preprocess_autoencoder.py               # #10 Autoencoders
 │   ├── eda_autoencoder.ipynb
+│   ├── preprocess_cnn.py                       # #11 CNN
 │   ├── eda_cnn.ipynb
-│   ├── preprocess_rnn.py
+│   ├── preprocess_rnn.py                       # #12 RNN
 │   ├── eda_rnn.ipynb
-│   ├── preprocess_lstm.py
+│   ├── preprocess_lstm.py                      # #13 LSTM
 │   ├── eda_lstm.ipynb
-│   ├── preprocess_gans.py
+│   ├── preprocess_gans.py                      # #14 GANs
 │   ├── eda_gans.ipynb
-│   ├── preprocess_attention.py
+│   ├── preprocess_attention.py                 # #15 Attention
 │   ├── eda_attention.ipynb
-│   ├── preprocess_transformers_translation.py
+│   ├── preprocess_transformers_translation.py  # #16 Transformers (2 datasets: translation + classification)
 │   ├── preprocess_transformers_classification.py
 │   ├── eda_transformers_translation.ipynb
 │   ├── eda_transformers_classification.ipynb
-│   ├── eda_vit.ipynb
-│   ├── preprocess_gnn.py
+│   ├── eda_vit.ipynb                           # #17 ViT (no preprocess; reused CNN #11 data)
+│   ├── preprocess_gnn.py                       # #18 GNN
 │   ├── eda_gnn.ipynb
-│   ├── preprocess_vae.py
-│   └── eda_vae.ipynb
-├── utils/
+│   ├── preprocess_vae.py                       # #19 VAE
+│   ├── eda_vae.ipynb
+│   └── eda_envs.ipynb                          # #20 Q-Learning (no preprocess; RL is online)
+├── utils/                                      # Shared utilities (#02 onward; see "Shared Utilities Architecture" below)
 │   ├── __init__.py
 │   ├── data_loader.py
 │   ├── metrics.py
@@ -177,8 +179,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── transformer_utils.py
 │   ├── vit_utils.py
 │   ├── gnn_utils.py
-│   └── vae_utils.py
-├── No-Framework/
+│   ├── vae_utils.py
+│   └── rl_utils.py
+├── No-Framework/                               # #01-#08 only (retired after PCA; from-scratch ceiling for classical ML)
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
@@ -187,8 +190,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 06-decision-trees-random-forests/
 │   ├── 07-svm/
 │   └── 08-pca/
-│   (No-Framework retired after PCA)
-├── Scikit-Learn/
+├── Scikit-Learn/                               # #01-#10 only (retired after Autoencoders; sklearn MLP can't compete with PT/TF conv AE)
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
@@ -199,8 +201,7 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 08-pca/
 │   ├── 09-dnn/
 │   └── 10-autoencoders/
-│   (Scikit-Learn retired after Autoencoders)
-├── PyTorch/
+├── PyTorch/                                    # All 20 models; deployment winner for 14 of 17 deployable artifacts
 │   ├── 01-linear-regression/
 │   ├── 02-logistic-regression/
 │   ├── 03-knn/
@@ -219,8 +220,9 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
 │   ├── 16-transformers/
 │   ├── 17-vit/
 │   ├── 18-gnn/
-│   └── 19-vae/
-└── TensorFlow/
+│   ├── 19-vae/
+│   └── 20-q-learning/
+└── TensorFlow/                                 # All 20 models with WSL2 cuDNN scope reductions on #17 V3, #18 V2/V4, #19 V2, #20 V3-V5
     ├── 01-linear-regression/
     ├── 02-logistic-regression/
     ├── 03-knn/
@@ -239,7 +241,8 @@ Models progress from beginner (basic concepts) to advanced (latest deep learning
     ├── 16-transformers/
     ├── 17-vit/
     ├── 18-gnn/
-    └── 19-vae/
+    ├── 19-vae/
+    └── 20-q-learning/
 ```
 
 Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
@@ -255,6 +258,7 @@ The package evolves organically: during the planning phase when new model types 
 
 | Module | Functions | Added In | Purpose |
 |--------|-----------|----------|---------|
+| `rl_utils.py` | `seed_everything`, `epsilon_greedy`, `LinearEpsilonSchedule`, `ReplayBuffer`, `PrioritizedReplayBuffer` (with `_SumTree`), `soft_target_update`, `evaluate_policy`, `plot_learning_curve` | Q-Learning | Eight RL primitives shared between PT + TF pipelines: cyclic replay buffer (V2-V4), prioritized replay via O(log N) sum-tree (V5; proportional-sampling unit-tested at <5% relative error), epsilon-greedy action selection, linear epsilon decay schedule, Polyak target-net update (PT lazy torch import), deterministic policy rollout, learning curve plotter with rolling mean overlay. `seed_everything` plumbs Python random + numpy + torch (lazy) + gymnasium env action_space sampler in one call |
 | `vae_utils.py` | `reparameterize`, `kl_divergence_gaussian`, `vq_straight_through`, `vq_commit_loss`, `latent_traversal`, `interpolate_latent` | VAE | Six probabilistic-latent primitives: reparameterization trick (z = mu + exp(0.5*logvar)*eps), analytical KL divergence between N(mu, sigma^2) and N(0, I), VQ-VAE straight-through estimator + commitment loss, β-VAE single-dim latent traversals, latent-space interpolation. Note: V4 + V5 inline VQ math; the util's `vq_straight_through` has a known gradient-flow bug deferred to future cleanup |
 | `gnn_utils.py` | `normalize_adj_symmetric`, `edge_softmax`, `evaluate_ogb` | GNN | Symmetric-normalized adjacency (`D^(-1/2)(A+I)D^(-1/2)` as sparse COO) for GCN, scatter-softmax wrapper for from-scratch GAT attention, OGB Evaluator shape-shim from logits/labels to leaderboard metric |
 | `vit_utils.py` | `apply_mixup_cutmix`, `distillation_loss`, `attention_rollout`, `cls_attention_map` | Vision Transformers | Batch-level MixUp/CutMix with soft labels, DeiT dual-head distillation loss (hard/soft modes), Abnar & Zuidema attention rollout, CLS-to-patches heatmap upsampling |
@@ -328,6 +332,10 @@ model_size = get_model_size(model, framework='sklearn')
 
 (Newest entries at top; grows downward as we complete models)
 
+- **2026-04-27 | Q-Learning Summary: *Modeling phase complete (#01-#20). PT 5 variants across 3 envs (Taxi/CartPole/LunarLander). V1 perfect bit-identical cross-framework parity. V3 Double DQN reduces overestimation 32% (verified). V5 PER honest negative result (0/3 seeds solved on LunarLander, 5x wall-clock).***
+- 2026-04-27 | Q-Learning / TensorFlow | V1 Tabular (Taxi-v4) + V2 DQN (CartPole-v1) only. **V1 parity 0.00% (bit-identical Q-tables)**. V2 eval **+403.20** vs PT +500.00 (19.36% gap, within Henderson 2018 RL noise floor). Wall-clock **24x slower** than PT in eager mode (288 min vs 12 min/seed) — eager mode unsuited to tight RL sample loops. | [TensorFlow/20-q-learning](TensorFlow/20-q-learning/)
+- 2026-04-26 | Q-Learning / PyTorch | 5 variants on 3 gymnasium envs. V1 Tabular **+8.38** (Taxi-v4, 5.7s on numpy). V2 DQN **+500.00 perfect 3/3 seeds** (CartPole-v1). V3 Double DQN **-32% overestimation** (verified). V4 Dueling DQN **+206.90 mean, 2/3 seeds solved** (LunarLander-v3). **V5 PER honest negative result** (0/3 seeds, 5x V4 wall-clock; PER amplified Q-divergence + Python sum-tree bottleneck). Best-checkpoint tracking added in V4/V5 to handle catastrophic forgetting. | [PyTorch/20-q-learning](PyTorch/20-q-learning/)
+- 2026-04-25 | Q-Learning / EDA + Utilities | env characterization (no static dataset, RL is online): Taxi-v4 random baseline -780, CartPole-v1 +21, LunarLander-v3 -186 (gaps to learn +788/+454/+386). New `utils/rl_utils.py` (8 RL primitives, shared between PT + TF, sum-tree proportional-sampling unit-tested). | [data-preperation/](data-preperation/) and [utils/](utils/)
 - **2026-04-24 | VAE Summary: *PT 5 variants on MNIST + CIFAR-10. Cross-framework parity 0.11 nats (TF V1 102.09 vs PT 101.98). DALL-E 1 recipe at portfolio scale.***
 - 2026-04-24 | VAE / TensorFlow | V1 Vanilla VAE only (V2 cuDNN-blocked: 9.1.0 runtime vs 9.3.0 compiled). MNIST test NLL **102.09** nats, parity delta **+0.11** vs PT. WSL2 GPU eager mode 14x slower (1048s vs 73s). | [TensorFlow/19-vae](TensorFlow/19-vae/)
 - 2026-04-23 | VAE / PyTorch | 5 variants on MNIST + CIFAR-10. V1 Vanilla NLL **101.98**, **V5 VQ-VAE + PixelCNN prior FID 117.27** (DALL-E 1 two-stage recipe). Built from `nn.Linear`/`nn.Conv2d`/`nn.Embedding` + masked-conv causality. | [PyTorch/19-vae](PyTorch/19-vae/)
@@ -432,6 +440,19 @@ model_size = get_model_size(model, framework='sklearn')
 ## Overall Learnings & Conclusions
 
 (Updated over time)
+
+### Q-Learning (Completed) - FINAL MODEL, MODELING PHASE COMPLETE (#01-#20)
+
+- **Only reinforcement-learning model in the 20-model portfolio**: completes the four-paradigm coverage (supervised + unsupervised + generative + reinforcement). Watkins 1989 -> Mnih 2015 -> van Hasselt 2016 -> Wang 2016 -> Schaul 2016 lineage with one isolated lever per variant. RL has no static dataset - the agent generates training data online via `env.step()`. Documented as a structural break in folder structure (no `data/processed/q_learning/`)
+- **5 variants on PyTorch, 2 on TensorFlow**: V1 Tabular (Taxi-v4) + V2 DQN + V3 Double DQN (CartPole-v1) + V4 Dueling DQN + V5 PER (LunarLander-v3) on PT; V1 + V2 on TF. V3-V5 are PT-only by plan (V3 is one-line target-computation change from V2; V4 architectural decomposition; V5 sum-tree priority buffer - each adds substantial implementation work for marginal cross-framework value, matching ViT/GNN/VAE TF-scope precedent)
+- **V1 cross-framework parity is bit-identical**: max relative diff 0.00% across all 3000 (state, action) Q-table entries. Same numpy training loop, same seed, same Taxi-v4 transitions. The TF involvement is `tf.constant` + `tf.argmax` at the inference boundary, cosmetic but auditable. The math is the math; tabular Q-learning is numpy-native
+- **V2 single-seed cross-framework gap is 19.36%, within Henderson 2018 RL noise floor**: TF V2 reached eval +403.20 vs PT V2's +500.00 (3-seed all-perfect). Same algorithm, same hyperparameters, same seed, **different framework** -> mean max-Q values remarkably close (133.49 vs 135.01, both overestimating by ~34 the same way) but final-policy quality diverges. Default Dense init schemes (Glorot vs Kaiming), Adam epsilon defaults (1e-7 vs 1e-8), and divergent RNG paths during replay sampling produce ~100-point eval gaps on saturating envs at single-seed even with identical hyperparameters
+- **TF eager mode is 24x slower than PT for tight RL loops**: 288 min/seed vs 12 min/seed on V2. TF eager dispatches small graphs ~250K times per training run; PT eager amortizes this much better. Production TF RL (`tf-agents`, `tensorflow/agents`) uses `@tf.function` decorators throughout for this reason. Documented as portfolio finding; we don't use them to maintain "PT-eager parity" for honest comparison
+- **V3 Double DQN's overestimation fix replicates cleanly at -32%**: V2 mean max-Q 133.49 (overestimation +33.99 above true ~99.5), V3 122.58 (overestimation +23.08). 32% of V2's overestimation eliminated. Algorithmic claim verified. CartPole eval saturates for both at 500 (when V3 doesn't catastrophically forget); the algorithmic improvement is in Q-value calibration, not eval saturation
+- **V5 PER does NOT replicate Schaul 2016**: 0/3 seeds solved on LunarLander vs V4's 2/3. Two contributors: (1) PER amplified Q-divergence on seed 115 - high-TD-error transitions ARE the divergent ones, resampling them drives Q further off track; (2) Python sum-tree was the wall-clock bottleneck (134 min/seed = 5x V4's 26 min). Sum-tree implementation correctness verified via proportional-sampling unit test (1.4-2.5% relative error). Honest negative result documented as portfolio asset, not embarrassment - paper claims do not auto-replicate without retuning (Henderson 2018 in miniature)
+- **Best-checkpoint tracking matters for DQN-family**: V3 seed 115 demonstrated catastrophic forgetting late in training (rolling-100 +436 at ep 700, +125 at ep 900, eval-on-final-weights +149). Added best-rolling-100 weight tracking in V4/V5 (`train_dueling_dqn`); deployed weights are the peak observed during training, not the final-epoch ones
+- **Multi-seed reporting catches failures invisible to single-seed**: V3 seed 115 collapsed; V4 seed 114 had a 400-episode catastrophic-forgetting window; V5 all 3 seeds underperformed. Single-seed reporting could have shown +500 (lucky) or +149 (unlucky) for V3 - neither is the truth. Following Henderson 2018's standard for portfolio honesty
+- **CartPole-scale epsilon decay is not Atari-scale**: first V2 run used `eps_decay_steps=50_000` (Atari-paper convention). Result: 1/3 seeds barely cleared random because epsilon was still 0.4-0.5 at end of training (CartPole's short early episodes accumulate env-steps slowly). Fixed to 5,000 (~200 random episodes worth); all 3 seeds then hit 500.00. Lesson: decay-step budget must scale to total env-step budget, not be ported rotely from Atari conventions
 
 ### Variational Autoencoders (Completed)
 
@@ -687,6 +708,10 @@ model_size = get_model_size(model, framework='sklearn')
 - ~~Complete Vision Transformers across 2 frameworks~~
 - ~~Complete Graph Neural Networks across 2 frameworks~~
 - ~~Complete Variational Autoencoders across 2 frameworks~~
+- ~~Complete Q-Learning across 2 frameworks~~
+
+> **Modeling phase complete (#01-#20).** All four learning paradigms covered: supervised (#01-#06, #09-#13, #15-#18) + unsupervised (#04, #08, #10) + generative (#14, #19) + reinforcement (#20).
+
 - Deploy all best-performing models end-to-end (see Deployment Roadmap below)
 - Explore real-world datasets beyond toys
 - Compare inference speed and memory on larger inputs
@@ -714,6 +739,7 @@ model_size = get_model_size(model, framework='sklearn')
 | Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48%, CNN #11 teacher) is the servable artifact. V4 Pre-trained (91.16%) purged — 327 MB exceeded GitHub 100 MB limit. TF V2 (63.60%) confirmed recipe cross-framework. |
 | Graph Neural Networks (GNN) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V3 GAT on Cora (0.8310, matches Velickovic 2018) + ogbn-arxiv (OGB 0.7025). From-scratch attention. TF V1 GCN within 0.6pp cross-framework. V4 GIN tuned via Optuna (20 trials). |
 | Variational Autoencoders (VAE) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V1 Vanilla on MNIST (NLL 101.98 nats, 0.11 nat parity vs TF) + PT V5 VQ-VAE+PixelCNN prior on CIFAR-10 (FID 117.27, beats V4 random-codes 202 by -85). DALL-E 1 two-stage recipe at portfolio scale. V5 deployment requires both V4 + V5 checkpoints (1.52M total params). |
+| Q-Learning (RL Basics) | PyTorch | MLflow tracked + torch.save / np.save exported | Three envs staged: PT V1 Tabular (Taxi-v4 +8.38, bit-identical TF parity) + PT V2 Vanilla DQN (CartPole-v1 +500.00 perfect 3/3 seeds, TF 19% gap from framework RNG paths) + PT V4 Dueling DQN (LunarLander-v3 +207 cross-seed, 2/3 solved). V5 PER honest negative result (0/3 seeds). Deployment artifact pattern: `state -> action`. |
 
 ### Deployment Stack (executes after all models complete)
 

@@ -1,0 +1,11 @@
+# docker-compose.yml - Deployment Phase
+# Service definitions populated incrementally:
+#   - Phase 1 adds sklearn-svc (D1 SK PCA)
+#   - Phases 2-4 expand pt-svc (D2 DNN, D3 GAN, D4 Q-Learning Taxi)
+#   - Phase 5 adds tf-svc (D5 TF Transformer Translation)
+#   - Phase 6 finalizes networking, volumes, env vars
+
+version: "3.9"
+
+services:
+  # Placeholder - filled in at later Phase

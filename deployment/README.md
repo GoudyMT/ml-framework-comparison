@@ -2,7 +2,7 @@
 
 Production-grade FastAPI services for the staged deployment winners from the modeling phase (#01-#20). Demonstrates every distinct deployment pattern the portfolio produced via 5 representative models across 3 framework runtimes.
 
-> **Status: Phase 0 - scaffolding in progress.** This README will be filled in at Phase 11 once all services are running.
+> **Status: Phase 0 complete - moving to Phase 1 (D1 SK PCA endpoint).** This README will be filled in at Phase 11 once all services are running.
 
 ## Models Deployed
 
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8000/predict/dnn -d '...'
 
 ## Phase Progress
 
-- [ ] Phase 0 - Pre-flight (scaffolding + MLflow audit + artifact verification)
+- [x] **Phase 0 - Pre-flight** (scaffolding + MLflow consolidated registry + dependency strategy + artifact verification)
 - [ ] Phase 1 - FastAPI scaffolding + D1 SK PCA endpoint
 - [ ] Phase 2 - D2 PT DNN endpoint
 - [ ] Phase 3 - D3 PT GAN endpoint (image-bytes response)

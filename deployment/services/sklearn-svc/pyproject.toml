@@ -1,0 +1,189 @@
+# pyproject.toml - The Modern Python Project Manifest
+#
+# WHAT THIS FILE IS:
+#   The single source of truth for "this Python project". Defined by
+#   PEP 518 (build) + PEP 621 (project metadata). Replaces older files:
+#     - setup.py    (build script - replaced by [build-system] + [project])
+#     - setup.cfg   (configuration - replaced by [project] + [tool.X])
+#     - requirements.txt (we still GENERATE this from here, via pip-compile)
+#     - tox.ini     (tool config - replaced by [tool.X])
+
+# WHY TOML FORMAT:
+#   Tom's Obvious Minimal Language. Like INI files but with proper types
+#   (strings, lists, tables). Has comments (unlike JSON). All modern Python
+#   tooling reads TOML natively as of Python 3.11.
+
+# HOW TOOLS READ THIS:
+#   - pip / build / pip-tools: read [build-system] + [project]
+#   - ruff: reads [tool.ruff]
+#   - mypy: reads [tool.mypy]
+#   - pytest: reads [tool.pytest.ini_options]
+
+
+
+# [project] - PEP 621 metadata. Tells the world: who is this project +
+# what does it need to run.
+
+[project]
+# Package name. Used in PyPI + `pip install <name>` + service identity.
+name = "sklearn-svc"
+
+# Semantic versioning: MAJOR.MINOR.PATCH.
+# Bump PATCH for bugfixes, MINOR for new features, MAJOR for breaking changes.
+version = "0.1.0"
+
+# One-line description shown in package indexes + deployment dashboards.
+description = "FastAPI service for D1 SK PCA - Fashion-MNIST dimensionality reduction"
+
+# Hard pin: must run on exactly Python 3.12.2 (matches modeling-phase
+# training env per dependency-strategy.md). `==` means exact; `>=3.12`
+# would allow any 3.12.x but we pin precisely to avoid surprises.
+requires-python = "==3.12.2"
+
+# RUNTIME dependencies - what the service needs to RUN in production.
+# These get installed inside the Docker container later on.
+
+# Each entry uses PEP 440 version specifiers:
+#   - >=0.115     "at least this version"
+#   - ==1.8.0     "exactly this version (no flexibility)"
+#   - >=1.4,<2.0  "range"
+
+# `pip-compile` resolves these abstract specs into a concrete
+# requirements.txt where EVERY transitive dep is pinned exactly + hash-locked.
+dependencies = [
+    # FastAPI - the web framework. Provides HTTP routing, request/response
+    # plumbing, async support, and auto-generated OpenAPI/Swagger docs.
+    "fastapi>=0.115",
+
+    # Uvicorn - the ASGI server that actually runs FastAPI.
+    # The `[standard]` extra pulls in optional speedups (websockets,
+    # watchgod for --reload mode in dev, httptools for faster parsing).
+    "uvicorn[standard]>=0.30",
+
+    # Pydantic - data validation + serialization. We define request/response
+    # schemas as Pydantic models; FastAPI uses them to validate incoming
+    # JSON and serialize outgoing responses. v2+ is the Rust-cored fast version.
+    "pydantic>=2.5",
+
+    # scikit-learn - PINNED EXACTLY to 1.8.0. Phase 0.4 verification flagged
+    # `InconsistentVersionWarning` when loading our trained PCA with 1.7.2.
+    # Production must match training to avoid pickle compatibility issues
+    # or silent numerical drift in transform output.
+    "scikit-learn==1.8.0",
+
+    # joblib - the binary serialization library scikit-learn uses.
+    # Faster than pickle for numpy arrays. Used to load `pca_model.joblib`.
+    "joblib>=1.4",
+
+    # MLflow - the model registry client. Used to load the PCA from
+    # `models:/sk-pca@production`. Pulls in alembic + sqlalchemy for the
+    # metadata DB and pandas for some operations (~50 MB of transitive deps).
+    "mlflow>=3.10",
+
+    # NumPy - numerical arrays. Required by sklearn + by our request handler
+    # which converts incoming JSON lists into numpy arrays for transform().
+    "numpy>=1.26",
+
+    # Structlog - structured (JSON) logging. Each log line is a parseable
+    # JSON object instead of free-form text. Critical for production
+    # because log aggregators (CloudWatch, Datadog, etc.) can index fields.
+    "structlog>=24.0",
+
+    # Prometheus client - exposes a `/metrics` endpoint that monitoring
+    # systems (Prometheus, Grafana) scrape periodically. Counters for
+    # request count, histograms for latency, gauges for in-flight requests.
+    "prometheus-client>=0.20",
+]
+
+
+
+# [project.optional-dependencies] - DEV-ONLY tooling
+
+# These are needed during development (running tests, linting code) but NOT
+# in the production container. Keeping them separate means production images
+# stay small and have a smaller attack surface.
+
+# Installed via: pip install -e ".[dev]"   OR   pip-sync requirements-dev.txt
+
+[project.optional-dependencies]
+dev = [
+    # pytest - the test runner. Auto-discovers any `test_*.py` files in tests/.
+    "pytest>=8.0",
+
+    # pytest-asyncio - support for async def test functions (FastAPI is async).
+    # With asyncio_mode='auto' (set below), no @pytest.mark.asyncio needed.
+    "pytest-asyncio>=0.23",
+
+    # httpx - modern HTTP client. FastAPI's TestClient uses httpx internally.
+    "httpx>=0.27",
+
+    # Ruff - super-fast Rust-based linter + formatter. Replaces the old
+    # black + flake8 + isort + pyupgrade stack with one tool that's ~100x
+    # faster. The de-facto standard for new Python projects in 2026.
+    "ruff>=0.6",
+
+    # mypy - static type checker. Reads our type hints (def foo(x: int) -> str:)
+    # and verifies all usages are consistent. Catches whole categories of
+    # bugs without running the code.
+    "mypy>=1.11",
+]
+
+
+# [build-system] - how pip BUILDS this project from source
+
+# Even though we're not publishing to PyPI, pip uses this for editable
+# installs (`pip install -e .`). setuptools is the standard build backend.
+
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Tell setuptools WHERE our package code lives. Without this, it doesn't
+# know that `app/` is the importable package.
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["app*"]    # match "app" and any "app.X" subpackages
+exclude = ["tests*"]   # tests/ is NOT part of the installable package
+
+
+# [tool.ruff] - linter + formatter config (ruff replaces black/flake8/isort)
+
+[tool.ruff]
+line-length    = 100       # Max line width. PEP 8 default is 79; we go 100 for readability.
+target-version = "py312"   # Assume Python 3.12 syntax features are available.
+
+[tool.ruff.lint]
+# Each two-letter code is a rule family. We enable a curated set:
+select = [
+    "E", "F", "W",  # pycodestyle (E/W) + pyflakes (F) - the basics
+    "I",            # isort - automatic import ordering
+    "B",            # flake8-bugbear - flags common bug patterns (mutable defaults, etc.)
+    "UP",           # pyupgrade - modernize syntax (e.g., dict() -> {} where simpler)
+    "C4",           # flake8-comprehensions - cleaner list/dict/set comprehensions
+    "SIM",          # flake8-simplify - simpler equivalents (e.g., `not x in y` -> `x not in y`)
+]
+
+ignore = [
+    "E501",   # line-too-long. Ruff's formatter already handles wrapping.
+]
+
+
+# [tool.mypy] - static type checker config
+
+[tool.mypy]
+python_version       = "3.12"
+strict               = true     # Enables all strictness flags. Catches more bugs.
+warn_unused_ignores  = true     # Tell us when a `# type: ignore` is no longer needed.
+
+# mlflow, sklearn, joblib, prometheus_client don't ship type stubs (.pyi files).
+# Without this flag, mypy errors on every `import mlflow` line. We enforce
+# strict typing on OUR code; missing stubs in libraries are silently ignored.
+ignore_missing_imports = true
+
+
+# [tool.pytest.ini_options] - test runner config
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"             # Auto-detect async test functions; no decorator needed
+testpaths    = ["tests"]          # Where to look for tests
+addopts      = "-v --tb=short"    # Verbose output + short traceback format on failures

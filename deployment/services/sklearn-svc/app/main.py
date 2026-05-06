@@ -25,9 +25,11 @@ WHAT WILL BE ADDED LATER:
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.middleware.logging import LoggingMiddleware, configure_logging
+from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers import pca as pca_router
 from app.services import pca_loader
@@ -119,11 +121,14 @@ last). Registration order for incoming flow:
     request_id (outermost - generates the ID)
         -> logging   (binds request_id into structlog contextvars,
                       logs request_started + request_finished)
-            -> [1.6c will add metrics here]
+            -> metrics (counter+histogram+gauge per request)
                 -> handler
 
 So we add_middleware in REVERSE: innermost first, outermost last.
+Metrics is innermost so the latency it measures is purely handler time,
+not the bookkeeping done by the outer layers.
 """
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
@@ -203,3 +208,27 @@ async def ready() -> dict[str, str | bool]:
         "model_name": pca_loader.MODEL_NAME,
         "model_version": pca_loader.get_model_version(),
     }
+
+
+# Prometheus metrics endpoint
+"""
+Plain GET that returns the current state of all registered metrics in
+Prometheus exposition format. Prometheus servers scrape this endpoint
+on a schedule (default 15s) and store the time series.
+
+We return a raw Response (not a Pydantic model) because the body is
+plain text in a specific format - Pydantic JSON serialization would
+break it. CONTENT_TYPE_LATEST is "text/plain; version=0.0.4; charset=utf-8"
+which is what Prometheus servers expect.
+
+This endpoint is excluded from MetricsMiddleware instrumentation
+(EXCLUDED_PATHS in middleware/metrics.py) so scrapes don't inflate
+the very counters they're reading.
+"""
+
+@app.get("/metrics", tags=["observability"])
+async def metrics() -> Response:
+    """
+    Expose registered Prometheus metrics in text exposition format.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

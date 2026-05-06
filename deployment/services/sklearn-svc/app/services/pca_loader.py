@@ -170,6 +170,7 @@ better than letting the caller hit a confusing AttributeError later.
 """
 _MODEL: Any | None = None
 _VARIANCE_EXPLAINED: float | None = None
+_MODEL_VERSION: str | None = None  # Set to e.g. "1" once the alias is resolved
 
 
 # Public API
@@ -193,7 +194,7 @@ def load_pca_model() -> None:
           up the same registry).
         - Mutates module-level _MODEL and _VARIANCE_EXPLAINED.
     """
-    global _MODEL, _VARIANCE_EXPLAINED
+    global _MODEL, _VARIANCE_EXPLAINED, _MODEL_VERSION
 
     # Idempotency guard: if the cache is already populated, skip.
     # Useful for test suites that call lifespan startup multiple times.
@@ -270,6 +271,7 @@ def load_pca_model() -> None:
 
     _MODEL = model
     _VARIANCE_EXPLAINED = variance_explained
+    _MODEL_VERSION = str(version.version)
 
     print(
         f"[pca_loader] Loaded PCA: n_components={model.n_components_}, "
@@ -313,6 +315,28 @@ def get_variance_explained() -> float:
             "PCA model not loaded. Call load_pca_model() first."
         )
     return _VARIANCE_EXPLAINED
+
+
+def get_model_version() -> str:
+    """
+    Return the resolved registry version of the loaded model.
+
+    Useful for /ready, log lines, and the response payload - lets clients
+    and operators see exactly which version is serving traffic without a
+    separate registry call.
+
+    Returns:
+        The version as a string (e.g., "1"). Stringified because MLflow
+        stores it that way; keeping the same type avoids surprises.
+
+    Raises:
+        RuntimeError: If the model hasn't been loaded yet.
+    """
+    if _MODEL_VERSION is None:
+        raise RuntimeError(
+            "PCA model not loaded. Call load_pca_model() first."
+        )
+    return _MODEL_VERSION
 
 
 def is_loaded() -> bool:

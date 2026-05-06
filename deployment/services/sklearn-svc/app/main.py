@@ -12,32 +12,84 @@ The `app.main:app` notation means: in the module `app.main`, find the
 attribute named `app`. The `--reload` flag auto-restarts the server on file
 changes (DEV ONLY - never use --reload in production; it adds overhead).
 
-WHAT THIS FILE CONTAINS NOW (after Step 1.2):
+WHAT THIS FILE CONTAINS:
     - The FastAPI() instance with metadata for OpenAPI/Swagger docs
-    - Two health-check endpoints: /health (liveness) + /ready (readiness)
-    - NO ML routes yet - those come in Step 1.5
+    - A `lifespan` async context manager that loads the PCA at startup
+    - /health (liveness) - cheap, never does work
+    - /ready (readiness) - returns 503 until the model is loaded
 
 WHAT WILL BE ADDED LATER:
     - Step 1.5: mount the /predict/pca router from app.routers.pca
-    - Step 1.6: wire in middleware (request ID, structured logging, metrics)
-    - Step 1.4: ready endpoint will report whether the PCA model is loaded
+    - Step 1.6: middleware (request ID, structured logging, metrics)
 """
 
-from fastapi import FastAPI
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
-# The FastAPI() constructor accepts metadata that powers the auto-generated
-# OpenAPI/Swagger UI at /docs. Things to know:
-#
-#   title         = human-readable service name; shown at top of /docs
-#   version       = API version. Separate from the package version in
-#                   pyproject.toml because APIs can evolve independently
-#                   of internal code.
-#   description   = markdown-supported overview text. Shows under the title.
-#   docs_url      = path for Swagger UI (default /docs)
-#   redoc_url     = path for ReDoc UI (default /redoc) - alternative renderer
-#   openapi_url   = path for raw openapi.json schema (default /openapi.json)
-#                   This JSON is what Swagger UI and ReDoc render from.
+from fastapi import FastAPI, HTTPException
 
+from app.services import pca_loader
+
+# Lifespan event
+"""
+FastAPI's modern startup/shutdown hook. Runs ONCE per process:
+  - Code BEFORE `yield` -> startup
+  - The `yield` itself  -> the entire serving window (could be days)
+  - Code AFTER `yield`  -> shutdown (SIGTERM, ctrl-C, etc.)
+
+Wrapped with @asynccontextmanager because FastAPI expects an async context
+manager. The `app` parameter is the FastAPI instance - unused here, but
+part of the required signature so FastAPI can pass references through.
+
+WHY EAGER LOAD AT STARTUP (not on first request):
+  - Failures are surfaced immediately, before any traffic arrives. The
+    container exits, k8s sees the crash, alerts fire, deploy rolls back.
+    Lazy load would let the container come up "alive" while every
+    subsequent request 500s.
+  - The 1-2s load cost is paid once at boot. Lazy would slow the first
+    request unpredictably (cold-start tax).
+  - readinessProbe handles the load window: /ready returns 503 until the
+    loader finishes, so load balancers don't route to a not-yet-ready pod.
+
+IF THE LOAD FAILS:
+  pca_loader.load_pca_model() raises RuntimeError. We do NOT catch it
+  here - we want it to propagate. Uvicorn will log the traceback and the
+  process will exit non-zero. Docker / k8s will detect the failure and
+  handle restart / alerting / rollback per their configured policy.
+
+Anything we'd add at SHUTDOWN (after yield) goes here later. For now
+there's nothing to clean up - the model is in-memory only and process
+exit reclaims it.
+"""
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """
+    FastAPI lifespan: load the PCA at startup; nothing to do at shutdown.
+    """
+    # Startup
+    pca_loader.load_pca_model()
+
+    yield
+
+    # Shutdown - intentionally empty for now.
+
+
+# FastAPI application
+"""
+The FastAPI() constructor accepts metadata that powers the auto-generated
+OpenAPI/Swagger UI at /docs. Things to know:
+
+  title         = human-readable service name; shown at top of /docs
+  version       = API version. Separate from the package version in
+                  pyproject.toml because APIs can evolve independently
+                  of internal code.
+  description   = markdown-supported overview text. Shows under the title.
+  lifespan      = the async context manager defined above
+  docs_url      = path for Swagger UI (default /docs)
+  redoc_url     = path for ReDoc UI (default /redoc) - alternative renderer
+  openapi_url   = path for raw openapi.json schema (default /openapi.json)
+"""
 app = FastAPI(
     title="sklearn-svc",
     version="0.1.0",
@@ -48,16 +100,18 @@ app = FastAPI(
         "Loads the PCA from the consolidated MLflow registry to test and practice real world deployment "
         "(`models:/sk-pca@production`)."
     ),
+    lifespan=lifespan,
 )
 
 
 # Health check endpoints
-# Two distinct concepts that orchestrators (Docker, k8s, load balancers)
-# query independently. See module-level comments for the full explanation.
-#
-# We tag both with `tags=["health"]` so they appear grouped together in the
-# Swagger UI at /docs - cleaner than having them inline with the ML routes.
+"""
+Two distinct concepts that orchestrators (Docker, k8s, load balancers)
+query independently. /health = "is the process alive?" /ready = "should
+I send real traffic?" A starting-up service is alive but not ready.
 
+Both are tagged `health` so they group together in the Swagger UI.
+"""
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
@@ -80,17 +134,20 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/ready", tags=["health"])
-async def ready() -> dict[str, str]:
+async def ready() -> dict[str, str | bool]:
     """
     Readiness check - the service can accept traffic.
 
     Returns:
-        {"status": "ready", ...} with HTTP 200 when ready;
-        will return 503 when the model isn't loaded yet (added in Step 1.4).
+        - HTTP 200 with {status, model_loaded, model_name, model_version}
+          when the PCA is loaded and the service is ready for /predict calls.
+        - HTTP 503 (Service Unavailable) when the PCA hasn't loaded yet.
+          The body has detail="model_not_loaded" so log scrapers can grep
+          for it without parsing free-form text.
 
     Differs from /health: a service starting up is ALIVE but not READY.
-    During the ~2 seconds it takes to load the PCA model on startup,
-    /health returns 200 (process is alive) but /ready should return 503
+    During the ~1-2 seconds it takes the lifespan event to load the PCA,
+    /health returns 200 (process is alive) but /ready returns 503
     (don't send real traffic yet).
 
     Used by:
@@ -98,7 +155,17 @@ async def ready() -> dict[str, str]:
           traffic from the Service load balancer
         - Rolling-deploy systems - wait for /ready before draining old pods
     """
-    # In Step 1.4, this will check whether the PCA model has been loaded
-    # into memory and return 503 if not. For now we just say "ready"
-    # since there's no model to wait for.
-    return {"status": "ready", "model_loaded": "not yet (Step 1.4 adds this)"}
+    if not pca_loader.is_loaded():
+        # 503 Service Unavailable = "I exist but can't serve requests now."
+        # Standard HTTP code for "still warming up." Distinct from 500
+        # (something broke) and 404 (route doesn't exist).
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+
+    # Echo the resolved version + name so operators (and clients) can
+    # confirm WHICH model is running without a separate registry call.
+    return {
+        "status": "ready",
+        "model_loaded": True,
+        "model_name": pca_loader.MODEL_NAME,
+        "model_version": pca_loader.get_model_version(),
+    }

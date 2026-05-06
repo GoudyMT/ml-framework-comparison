@@ -28,6 +28,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
+from app.routers import pca as pca_router
 from app.services import pca_loader
 
 # Lifespan event
@@ -102,6 +103,16 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+"""
+Mount domain routers
+Each router (in app/routers/) groups related endpoints under a shared
+prefix. include_router() registers all the router's routes onto the
+main app at startup. Order doesn't matter for routing, but grouping
+imports near the top + mounts here keeps the wiring obvious.
+"""
+app.include_router(pca_router.router)
 
 
 # Health check endpoints

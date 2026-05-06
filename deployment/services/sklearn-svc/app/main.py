@@ -28,6 +28,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
+from app.middleware.request_id import RequestIDMiddleware
 from app.routers import pca as pca_router
 from app.services import pca_loader
 
@@ -103,6 +104,23 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+"""
+Middleware - run on every request, in reverse-add order.
+FastAPI/Starlette executes middleware as a stack: the LAST add_middleware
+call becomes the OUTERMOST layer (sees the request first, the response
+last). We want request_id to be outermost so every later layer (logging,
+metrics in later parts) sees the ID we generated.
+
+Currently just request_id; 1.6b adds logging, 1.6c adds metrics. When
+those land, registration order will become:
+    app.add_middleware(MetricsMiddleware)        # innermost
+    app.add_middleware(LoggingMiddleware)        # middle
+    app.add_middleware(RequestIDMiddleware)      # outermost
+so the request flows: request_id -> logging -> metrics -> handler.
+"""
+app.add_middleware(RequestIDMiddleware)
 
 
 """

@@ -44,7 +44,13 @@ from urllib.parse import unquote, urlparse
 
 import joblib
 import mlflow
+import structlog
 from mlflow.tracking import MlflowClient
+
+# Module-level structlog logger. Bound name "pca_loader" appears as
+# `logger=pca_loader` in JSON output, letting log queries filter by
+# component without parsing the stack.
+log = structlog.get_logger("pca_loader")
 
 # Configuration
 """
@@ -209,8 +215,11 @@ def load_pca_model() -> None:
     os.environ[TRACKING_URI_ENV] = tracking_uri
     mlflow.set_tracking_uri(tracking_uri)
 
-    print(
-        f"[pca_loader] Resolving {MODEL_NAME}@{MODEL_ALIAS} from {tracking_uri}"
+    log.info(
+        "pca_load_start",
+        model_name=MODEL_NAME,
+        model_alias=MODEL_ALIAS,
+        tracking_uri=tracking_uri,
     )
 
     try:
@@ -222,9 +231,12 @@ def load_pca_model() -> None:
         version = client.get_model_version_by_alias(
             name=MODEL_NAME, alias=MODEL_ALIAS
         )
-        print(
-            f"[pca_loader] Resolved {MODEL_NAME}@{MODEL_ALIAS} -> "
-            f"v{version.version} (run={version.run_id[:8] if version.run_id else 'n/a'})"
+        log.info(
+            "pca_alias_resolved",
+            model_name=MODEL_NAME,
+            model_alias=MODEL_ALIAS,
+            version=version.version,
+            run_id=version.run_id[:8] if version.run_id else None,
         )
 
         # Step 2: convert the file:// URI to a local Path, then joblib.load
@@ -273,9 +285,12 @@ def load_pca_model() -> None:
     _VARIANCE_EXPLAINED = variance_explained
     _MODEL_VERSION = str(version.version)
 
-    print(
-        f"[pca_loader] Loaded PCA: n_components={model.n_components_}, "
-        f"variance_explained={variance_explained:.4f}"
+    log.info(
+        "pca_load_complete",
+        model_name=MODEL_NAME,
+        version=str(version.version),
+        n_components=int(model.n_components_),
+        variance_explained=round(variance_explained, 4),
     )
 
 

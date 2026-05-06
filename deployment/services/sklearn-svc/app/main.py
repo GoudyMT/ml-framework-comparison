@@ -19,7 +19,6 @@ WHAT THIS FILE CONTAINS:
     - /ready (readiness) - returns 503 until the model is loaded
 
 WHAT WILL BE ADDED LATER:
-    - Step 1.5: mount the /predict/pca router from app.routers.pca
     - Step 1.6: middleware (request ID, structured logging, metrics)
 """
 
@@ -28,9 +27,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
+from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers import pca as pca_router
 from app.services import pca_loader
+
+# Configure structured (JSON) logging at module import. Runs ONCE per
+# process. Must happen before any module-level logger is created so
+# everything in the app emits through the structlog pipeline.
+configure_logging()
 
 # Lifespan event
 """
@@ -110,16 +115,16 @@ app = FastAPI(
 Middleware - run on every request, in reverse-add order.
 FastAPI/Starlette executes middleware as a stack: the LAST add_middleware
 call becomes the OUTERMOST layer (sees the request first, the response
-last). We want request_id to be outermost so every later layer (logging,
-metrics in later parts) sees the ID we generated.
+last). Registration order for incoming flow:
+    request_id (outermost - generates the ID)
+        -> logging   (binds request_id into structlog contextvars,
+                      logs request_started + request_finished)
+            -> [1.6c will add metrics here]
+                -> handler
 
-Currently just request_id; 1.6b adds logging, 1.6c adds metrics. When
-those land, registration order will become:
-    app.add_middleware(MetricsMiddleware)        # innermost
-    app.add_middleware(LoggingMiddleware)        # middle
-    app.add_middleware(RequestIDMiddleware)      # outermost
-so the request flows: request_id -> logging -> metrics -> handler.
+So we add_middleware in REVERSE: innermost first, outermost last.
 """
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 

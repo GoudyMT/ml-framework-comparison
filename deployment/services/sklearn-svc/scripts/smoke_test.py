@@ -30,9 +30,18 @@ USAGE (from deployment/services/sklearn-svc/):
 
 ASSUMPTIONS:
     - The server is running on localhost:8001
-    - sample_raw.npy lives next to this script
+    - sample_raw.npy lives next to this script (committed; ~3KB)
     - The service's loaded PCA + scaler match the modeling-phase
       artifacts at data/processed/pca/ and Scikit-Learn/08-pca/results/
+
+REGENERATING sample_raw.npy:
+    The fixture was extracted once via tensorflow.keras.datasets.
+    To regenerate (e.g., test against a different sample):
+        from tensorflow.keras.datasets import fashion_mnist
+        (_, _), (X, _) = fashion_mnist.load_data()
+        np.save('sample_raw.npy', X[0].flatten().astype(np.float32))
+    deployment/.gitignore has a negation rule preserving this file
+    despite the global *.npy ignore.
 """
 
 import sys

@@ -57,7 +57,9 @@ def test_predict_pca_happy_path(client: TestClient) -> None:
     is that the request flowed through validation, the handler called
     the cached model, and the response satisfied PCAResponse's schema.
     """
-    response = client.post("/predict/pca", json=_features_payload(0.5))
+    # 100.0 is a typical raw pixel value (mid-tone). The schema accepts
+    # [0, 255]; the service applies divide-by-255 + StandardScaler before PCA.
+    response = client.post("/predict/pca", json=_features_payload(100.0))
 
     assert response.status_code == 200
 
@@ -105,15 +107,15 @@ def test_predict_pca_too_many_features(client: TestClient) -> None:
 
 def test_predict_pca_pixel_out_of_range(client: TestClient) -> None:
     """
-    Pixel > 1.0 -> 422 from our _features_in_unit_range validator.
+    Pixel > 255.0 -> 422 from our _features_in_pixel_range validator.
 
-    The custom validator's ValueError text is part of our API contract
-    (it tells clients HOW to fix the issue: 'divide by 255 before
-    sending'). We pin the actionable hint so future refactors don't
-    accidentally drop it.
+    Out-of-range values almost always mean the client sent already-
+    normalized or already-standardized data. The validator's error
+    message tells them to send raw uint8 pixels instead. We pin the
+    actionable hint so future refactors don't accidentally drop it.
     """
     payload = _features_payload(0.0)
-    payload["features"][42] = 5.0  # raw 0-255-style value
+    payload["features"][42] = 300.0  # above the 255 raw-pixel ceiling
 
     response = client.post("/predict/pca", json=payload)
 
@@ -124,10 +126,10 @@ def test_predict_pca_pixel_out_of_range(client: TestClient) -> None:
     feature_errors = [err for err in detail if "features" in err["loc"]]
     assert feature_errors, f"Expected features error, got: {detail}"
 
-    # Our validator's message includes the hint. Pinning it ensures the
-    # client-facing fix instruction stays in place.
+    # Pin the actionable hint so the client-facing fix instruction
+    # stays in place across refactors.
     msg = feature_errors[0]["msg"]
-    assert "divide by 255" in msg
+    assert "raw uint8 pixel values" in msg
 
 
 def test_predict_pca_wrong_type(client: TestClient) -> None:

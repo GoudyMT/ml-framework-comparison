@@ -5,8 +5,12 @@ WHAT THIS FILE PROVIDES:
     - `FakePCA` - a stand-in for sklearn's PCA estimator, sufficient
       to make the router happy. Just enough surface to look like a
       real PCA from the handler's perspective.
+    - `make_identity_scaler()` - factory for a {'mean': zeros, 'std':
+      ones} scaler. Identity scaler means the (X - mean) / std step
+      is a no-op, isolating tests from scaler details.
     - `client` - a TestClient with the loader's cache populated by
-      a FakePCA instance. Use this for tests that expect a loaded model.
+      a FakePCA + identity scaler. Use for tests that expect a
+      loaded model.
     - `client_unloaded` - a TestClient with the loader's cache cleared.
       Use this for tests that expect 503 / unloaded behavior.
 
@@ -46,6 +50,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services import pca_loader
+from app.services.preprocessing import ScalerDict
 
 
 class FakePCA:
@@ -87,6 +92,21 @@ class FakePCA:
         return np.tile(row_means, (1, self.n_components_))
 
 
+def make_identity_scaler(n_features: int = 784) -> ScalerDict:
+    """
+    Build an identity scaler dict for tests.
+
+    With mean=zeros and std=ones, the (X - mean) / std step in
+    apply_preprocessing is a no-op. The full preprocessing chain
+    therefore reduces to just `X / 255` - tests get a predictable
+    transformation without depending on the real training scaler.
+    """
+    return ScalerDict(
+        mean=np.zeros(n_features, dtype=np.float32),
+        std=np.ones(n_features, dtype=np.float32),
+    )
+
+
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """
@@ -102,9 +122,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     needed; no risk of state leaking between tests.
     """
     fake_model: Any = FakePCA()
+    fake_scaler: Any = make_identity_scaler()
     monkeypatch.setattr(pca_loader, "_MODEL", fake_model)
     monkeypatch.setattr(pca_loader, "_VARIANCE_EXPLAINED", 1.0)
     monkeypatch.setattr(pca_loader, "_MODEL_VERSION", "1")
+    monkeypatch.setattr(pca_loader, "_SCALER", fake_scaler)
 
     # Yield a TestClient. Without `with`, lifespan does NOT run - so
     # our manually-set cache is what get_pca_model() sees, not the real
@@ -124,5 +146,6 @@ def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(pca_loader, "_MODEL", None)
     monkeypatch.setattr(pca_loader, "_VARIANCE_EXPLAINED", None)
     monkeypatch.setattr(pca_loader, "_MODEL_VERSION", None)
+    monkeypatch.setattr(pca_loader, "_SCALER", None)
 
     yield TestClient(app)

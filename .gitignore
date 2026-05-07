@@ -11,6 +11,11 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Tooling caches (ruff/mypy/pytest auto-create these wherever they run)
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb_checkpoints

@@ -35,10 +35,22 @@ PROMOTIONS = [
         'name':          'sk-pca',
         'source_db':     'Scikit-Learn/08-pca/mlflow.db',
         'source_run_id': '378a610e2eed470db16065cf9584634a',
-        'artifacts':     ['Scikit-Learn/08-pca/results/pca_model.joblib'],
+        # The deployed service must reproduce the EXACT preprocessing the
+        # modeling phase used: divide-by-255 + StandardScaler. The PCA was
+        # fit on standardized data, so feeding it raw or naively-normalized
+        # pixels produces silently-wrong components. Bundling scaler.pkl
+        # alongside pca_model.joblib lets the registry act as a single
+        # source of truth: one alias resolution gives the deployer
+        # everything needed for inference. (scaler.pkl is a dict
+        # {'mean': ndarray(784), 'std': ndarray(784)} - manual scaler
+        # stored as numpy arrays, not a sklearn StandardScaler instance.)
+        'artifacts': [
+            'Scikit-Learn/08-pca/results/pca_model.joblib',
+            'data/processed/pca/scaler.pkl',
+        ],
         'framework':     'Scikit-Learn',
         'paradigm':      'unsupervised_dim_reduction',
-        'description':   'D1: SK PCA dimensionality reduction (Fashion-MNIST, 150 components)',
+        'description':   'D1: SK PCA dimensionality reduction (Fashion-MNIST, 150 components) bundled with StandardScaler for deployment-time preprocessing',
     },
     {
         'name':          'pt-dnn',

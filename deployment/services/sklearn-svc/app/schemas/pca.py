@@ -30,11 +30,13 @@ PYDANTIC v2 NOTES (we pinned >=2.5):
     - The Rust core makes v2 ~10-50x faster than v1 (matters at high RPS)
 
 DESIGN DECISIONS LOCKED FOR THIS ENDPOINT:
-    - Pixel range: STRICT 0.0 <= x <= 1.0 (matches modeling-phase normalization).
-      Sending raw 0-255 produces silently-wrong PCA components, so we reject
-      loudly at the boundary instead of returning garbage.
-    - No request echo in response. Clients correlate via the request_id that
-      Step 1.6's middleware will add to logs/headers.
+    - Pixel range: STRICT 0.0 <= x <= 255.0 (raw uint8 pixel range).
+      The SERVICE owns preprocessing - clients send raw pixels, we
+      apply the modeling pipeline (divide-by-255 -> StandardScaler -> PCA)
+      in app/services/preprocessing.py. Out-of-range values still get
+      rejected loudly (likely indicate a client sent the wrong data).
+    - No request echo in response. Clients correlate via the request_id
+      that Step 1.6's middleware adds to logs/headers.
 """
 
 from pydantic import BaseModel, Field, field_validator
@@ -50,8 +52,12 @@ from pydantic import BaseModel, Field, field_validator
 
 INPUT_DIM: int = 784           # Fashion-MNIST flattened image length
 OUTPUT_DIM: int = 150          # PCA n_components fit at training time
-PIXEL_MIN: float = 0.0         # Normalized pixel floor
-PIXEL_MAX: float = 1.0         # Normalized pixel ceiling
+# Raw pixel range. Clients send unnormalized 0-255 values - the SERVICE
+# does the divide-by-255 + StandardScaler in app/services/preprocessing.py.
+# This API contract means clients don't have to know preprocessing details:
+# any client with raw pixel data can call us correctly.
+PIXEL_MIN: float = 0.0
+PIXEL_MAX: float = 255.0
 
 
 # Step 1: Request schema
@@ -68,11 +74,13 @@ class PCARequest(BaseModel):
 
     Attributes:
         features: Flattened 28x28 Fashion-MNIST image as a list of 784
-            normalized floats in [0.0, 1.0]. Row-major order (the same
-            order numpy's `arr.flatten()` produces).
+            raw pixel values in [0.0, 255.0]. Row-major order (the same
+            order numpy's `arr.flatten()` produces). The service applies
+            the modeling-phase preprocessing (divide-by-255 + StandardScaler)
+            internally - send pixels as-is.
 
     Example payload (truncated):
-        {"features": [0.0, 0.0, ..., 0.78, 0.91, ..., 0.0]}
+        {"features": [0.0, 0.0, ..., 200.0, 232.0, ..., 0.0]}
     """
 
     features: list[float] = Field(
@@ -81,8 +89,9 @@ class PCARequest(BaseModel):
         max_length=INPUT_DIM,
         description=(
             f"Flattened {INPUT_DIM}-element Fashion-MNIST image. "
-            f"Each value must be a normalized pixel in [{PIXEL_MIN}, {PIXEL_MAX}]. "
-            "Row-major order (same as numpy's flatten())."
+            f"Each value must be a raw pixel in [{PIXEL_MIN}, {PIXEL_MAX}]. "
+            "Row-major order (same as numpy's flatten()). The service "
+            "handles all preprocessing - no client-side normalization needed."
         ),
         examples=[[0.0] * INPUT_DIM],  # Swagger shows a 784-zero example
     )
@@ -92,14 +101,14 @@ class PCARequest(BaseModel):
     # (Field constrains the LIST, not its elements).
     @field_validator("features")
     @classmethod
-    def _features_in_unit_range(cls, value: list[float]) -> list[float]:
+    def _features_in_pixel_range(cls, value: list[float]) -> list[float]:
         """
-        Reject pixels outside [0.0, 1.0].
+        Reject values outside the raw pixel range [0.0, 255.0].
 
-        Why strict: the PCA was fit on normalized data (pixels / 255). Raw
-        0-255 input would produce silently-wrong components - the math
-        runs, but the numbers are nonsense. Better to fail loudly here
-        than mislead a client with bad predictions.
+        Out-of-range values almost certainly indicate the client sent
+        wrong-shape data (e.g., already-normalized 0-1 floats, or
+        already-standardized features). Better to fail loudly here
+        than silently produce nonsense components.
         """
         # next() with a generator finds the first offender lazily - we
         # don't need to scan all 784 elements once we've found one bad value.
@@ -110,9 +119,10 @@ class PCARequest(BaseModel):
         if bad is not None:
             idx, val = bad
             raise ValueError(
-                f"features[{idx}] = {val} is out of range; "
-                f"each pixel must be normalized to [{PIXEL_MIN}, {PIXEL_MAX}]. "
-                f"If you have raw 0-255 pixels, divide by 255 before sending."
+                f"features[{idx}] = {val} is out of range; each pixel must "
+                f"be a raw value in [{PIXEL_MIN}, {PIXEL_MAX}]. "
+                f"The service applies normalization internally - send raw "
+                f"uint8 pixel values, not pre-normalized floats."
             )
         return value
 

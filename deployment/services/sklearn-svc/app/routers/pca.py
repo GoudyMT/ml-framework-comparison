@@ -34,11 +34,11 @@ DEFENSE IN DEPTH:
     same condition. "Should never fail" eventually does, at 3am.
 """
 
-import numpy as np
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.pca import OUTPUT_DIM, PCARequest, PCAResponse
 from app.services import pca_loader
+from app.services.preprocessing import apply_preprocessing
 
 """
 APIRouter() instances are like mini FastAPI apps. They collect routes
@@ -76,26 +76,29 @@ async def predict_pca(req: PCARequest) -> PCAResponse:
         HTTPException 503: If the PCA isn't loaded (extremely unlikely
             given the lifespan event, but kept as defense-in-depth).
     """
-    # Defensive: pull the cached model. The except clause should never
-    # trigger in production - lifespan loads before we accept requests.
-    # If it does, return 503 "model_not_loaded" matching /ready's contract.
+    # Defensive: pull the cached model + scaler. The except clause should
+    # never trigger in production - lifespan loads both before we accept
+    # requests. If it does, return 503 "model_not_loaded" matching /ready's
+    # contract. We treat scaler-not-loaded the same way: from the client's
+    # perspective the service is just not ready.
     try:
         model = pca_loader.get_pca_model()
+        scaler = pca_loader.get_scaler()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="model_not_loaded") from exc
 
     """
-    Reshape: Pydantic gave us a 1D Python list of length 784.
-    Sklearn's transform expects a 2D array of shape (batch, n_features).
-    `.reshape(1, -1)` makes a single-row batch; the -1 means "infer this
-    dimension from the data" (= 784). dtype=np.float32 keeps memory low
-    without sacrificing PCA precision (we trained at float32 anyway).
+    Apply the modeling-phase preprocessing pipeline:
+      raw uint8 features -> /255 -> StandardScaler -> ready for PCA.
+    `apply_preprocessing` lives in app/services/preprocessing.py - pure
+    function, no I/O, easy to unit-test. Returns shape (1, INPUT_DIM)
+    float32, which is exactly what PCA.transform expects.
     """
-    X = np.array(req.features, dtype=np.float32).reshape(1, -1)
+    X = apply_preprocessing(req.features, scaler)
 
     """
     The actual inference. transform() applies the learned linear
-    projection: out = (X - mean_) @ components_.T
+    projection: out = (X - pca.mean_) @ pca.components_.T
     For a single sample this is a few microseconds of matmul - the
     network round-trip dominates total request time, not the math.
     """

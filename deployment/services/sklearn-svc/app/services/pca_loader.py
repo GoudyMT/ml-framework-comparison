@@ -79,10 +79,15 @@ this loader. The registry contract (name + alias) stays stable.
 MODEL_NAME: str = "sk-pca"
 MODEL_ALIAS: str = "production"
 
-# Filename of the actual joblib artifact inside the registered version's
-# artifact directory. This is what Phase 0 promotion uploaded; if the
-# training pipeline ever renames the file, update this constant.
-ARTIFACT_FILENAME: str = "pca_model.joblib"
+# Filenames of the artifacts inside the registered version's artifact
+# directory. promote_to_registry.py logs both files at the top level
+# of artifacts/, so we can load them by name from the same dir.
+PCA_FILENAME: str = "pca_model.joblib"
+SCALER_FILENAME: str = "scaler.pkl"
+
+# Backward-compat alias (some pre-Phase-B references): same value as
+# PCA_FILENAME. Remove once any external readers migrate.
+ARTIFACT_FILENAME: str = PCA_FILENAME
 
 """
 Env var name MLflow's client reads automatically when no URI is passed
@@ -177,6 +182,7 @@ better than letting the caller hit a confusing AttributeError later.
 _MODEL: Any | None = None
 _VARIANCE_EXPLAINED: float | None = None
 _MODEL_VERSION: str | None = None  # Set to e.g. "1" once the alias is resolved
+_SCALER: Any | None = None         # Dict {'mean': ndarray(784), 'std': ndarray(784)}
 
 
 # Public API
@@ -200,7 +206,7 @@ def load_pca_model() -> None:
           up the same registry).
         - Mutates module-level _MODEL and _VARIANCE_EXPLAINED.
     """
-    global _MODEL, _VARIANCE_EXPLAINED, _MODEL_VERSION
+    global _MODEL, _VARIANCE_EXPLAINED, _MODEL_VERSION, _SCALER
 
     # Idempotency guard: if the cache is already populated, skip.
     # Useful for test suites that call lifespan startup multiple times.
@@ -256,16 +262,32 @@ def load_pca_model() -> None:
                 f"source URI. The registry entry is malformed."
             )
         artifact_dir = _file_uri_to_path(version.source)
-        model_file = artifact_dir / ARTIFACT_FILENAME
-        if not model_file.is_file():
-            raise FileNotFoundError(
-                f"Expected joblib artifact at {model_file}, but it doesn't exist. "
-                f"Check that promote_to_registry.py uploaded {ARTIFACT_FILENAME} "
-                f"to the registered version."
-            )
+
+        # Verify both expected artifacts exist BEFORE loading either.
+        # Failing fast here gives a clear error; loading partial state
+        # would let pca load succeed and only blow up later when the
+        # router tries to use the missing scaler.
+        model_file = artifact_dir / PCA_FILENAME
+        scaler_file = artifact_dir / SCALER_FILENAME
+        for required, label in (
+            (model_file, "PCA model"),
+            (scaler_file, "scaler"),
+        ):
+            if not required.is_file():
+                raise FileNotFoundError(
+                    f"Expected {label} artifact at {required}, but it "
+                    f"doesn't exist. Check promote_to_registry.py logged "
+                    f"both {PCA_FILENAME} and {SCALER_FILENAME} to the "
+                    f"registered version."
+                )
+
         # joblib.load deserializes the pickle. Same call sklearn docs use
         # everywhere - no MLflow magic in the hot path.
+        # The scaler is a plain dict {'mean': ndarray, 'std': ndarray} - we
+        # do the standardization arithmetic in app/services/preprocessing.py
+        # without instantiating a sklearn StandardScaler.
         model = joblib.load(model_file)
+        scaler = joblib.load(scaler_file)
     except Exception as exc:
         # Re-raise as RuntimeError with chained cause. The lifespan
         # handler in main.py will catch this and Docker/k8s will see
@@ -284,6 +306,7 @@ def load_pca_model() -> None:
     _MODEL = model
     _VARIANCE_EXPLAINED = variance_explained
     _MODEL_VERSION = str(version.version)
+    _SCALER = scaler
 
     log.info(
         "pca_load_complete",
@@ -291,6 +314,8 @@ def load_pca_model() -> None:
         version=str(version.version),
         n_components=int(model.n_components_),
         variance_explained=round(variance_explained, 4),
+        scaler_loaded=True,
+        scaler_features=int(scaler["mean"].shape[0]),
     )
 
 
@@ -313,6 +338,25 @@ def get_pca_model() -> Any:
             "(usually done by the FastAPI lifespan event)."
         )
     return _MODEL
+
+
+def get_scaler() -> Any:
+    """
+    Return the cached scaler dict.
+
+    Returns:
+        Dict with two keys, 'mean' and 'std', each a numpy.ndarray of
+        shape (784,) and dtype float32. The router uses these for the
+        per-pixel standardization step before PCA.transform.
+
+    Raises:
+        RuntimeError: If `load_pca_model()` hasn't been called yet.
+    """
+    if _SCALER is None:
+        raise RuntimeError(
+            "Scaler not loaded. Call load_pca_model() first."
+        )
+    return _SCALER
 
 
 def get_variance_explained() -> float:
@@ -359,6 +403,8 @@ def is_loaded() -> bool:
     Cheap status check for the /ready endpoint.
 
     Returns:
-        True iff `load_pca_model()` has populated the cache.
+        True iff `load_pca_model()` has populated BOTH cache slots
+        (PCA + scaler). Both are required for inference, so partial
+        load is "not ready" from the service's perspective.
     """
-    return _MODEL is not None
+    return _MODEL is not None and _SCALER is not None

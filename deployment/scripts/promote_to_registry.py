@@ -56,10 +56,20 @@ PROMOTIONS = [
         'name':          'pt-dnn',
         'source_db':     'PyTorch/09-dnn/mlflow.db',
         'source_run_id': 'aa31927a343e4c4a848a8938508f689f',
-        'artifacts':     ['PyTorch/09-dnn/results/dnn_model.pth'],
+        # Same pattern as sk-pca: bundle the StandardScaler so the
+        # service can reproduce the exact training preprocessing chain
+        # (raw [-1, 1] -> StandardScaler.transform -> DNN). The scaler
+        # for D2 is a real sklearn.preprocessing.StandardScaler instance
+        # (joblib.load returns a fitted estimator), unlike sk-pca's
+        # dict {'mean', 'std'}. The loader will call scaler.transform()
+        # directly.
+        'artifacts': [
+            'PyTorch/09-dnn/results/dnn_model.pth',
+            'data/processed/dnn/scaler.pkl',
+        ],
         'framework':     'PyTorch',
         'paradigm':      'supervised_classifier',
-        'description':   'D2: PT DNN classifier (UCI HAR, 96.03% test accuracy)',
+        'description':   'D2: PT DNN classifier (UCI HAR, 96.03% test accuracy) bundled with StandardScaler for deployment-time preprocessing',
     },
     {
         'name':          'pt-gan-dcgan',

@@ -47,9 +47,10 @@ mlruns/
 *.pkl
 *.model
 
-# Exceptions: small committed test fixtures (regeneration would
-# require TF/torchvision which not all developers have installed)
+# Exceptions: small committed test fixtures (regeneration paths
+# documented in each service's smoke_test.py docstring)
 !services/sklearn-svc/scripts/sample_raw.npy
+!services/pt-svc/scripts/sample_raw.npy
 
 # Logs
 *.log

@@ -29,10 +29,20 @@ WHAT WILL BE ADDED LATER:
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.middleware.logging import LoggingMiddleware, configure_logging
+from app.middleware.metrics import MetricsMiddleware
+from app.middleware.request_id import RequestIDMiddleware
 from app.routers import dnn as dnn_router
 from app.services import dnn_loader
+
+# Configure structured (JSON) logging at module import. Runs ONCE per
+# process. Must happen before any module-level logger is created so
+# everything emits through the structlog pipeline (including the
+# dnn_loader logger that fires during the lifespan event below).
+configure_logging()
 
 """
 Lifespan event - runs once per process, before any request is served.
@@ -67,6 +77,22 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+# Middleware - run on every request, in REVERSE-add order.
+# Starlette executes the LAST add_middleware as the OUTERMOST layer
+# (sees the request first, the response last). For incoming requests:
+#     request_id (outermost - generates the ID)
+#         -> logging   (binds request_id into structlog contextvars,
+#                       emits request_started + request_finished)
+#             -> metrics (counter + histogram + gauge per request)
+#                 -> handler
+# So we add in REVERSE: innermost first, outermost last. Metrics is
+# innermost so its measured latency is just the handler work, not the
+# bookkeeping of the outer layers.
+app.add_middleware(MetricsMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 
 # Mount domain routers. Each router groups related endpoints under a
@@ -116,3 +142,23 @@ async def ready() -> dict[str, str | bool]:
         "model_name": dnn_loader.MODEL_NAME,
         "model_version": dnn_loader.get_model_version(),
     }
+
+
+# Prometheus scrape endpoint
+# Plain GET that returns the current state of all registered metrics
+# in Prometheus text exposition format. We return a raw Response (not
+# Pydantic) because the body is plain text in a specific format -
+# Pydantic JSON serialization would break it. CONTENT_TYPE_LATEST is
+# "text/plain; version=0.0.4; charset=utf-8" which is what Prometheus
+# servers expect.
+
+# This path is in EXCLUDED_PATHS in middleware/metrics.py so scrapes
+# don't inflate the very counters they're reading.
+
+
+@app.get("/metrics", tags=["observability"])
+async def metrics() -> Response:
+    """
+    Expose registered Prometheus metrics in text exposition format.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

@@ -31,6 +31,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
+from app.routers import dnn as dnn_router
 from app.services import dnn_loader
 
 """
@@ -66,6 +67,12 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+# Mount domain routers. Each router groups related endpoints under a
+# shared prefix. include_router() registers all the router's routes
+# onto the main app at startup.
+app.include_router(dnn_router.router)
 
 
 # Health check endpoints

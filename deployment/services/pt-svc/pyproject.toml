@@ -1,0 +1,127 @@
+# pt-svc/pyproject.toml
+#
+# This service hosts the PyTorch model endpoints (D2 DNN, eventually
+# D3 GAN, D4 Q-Learning). Layout + tooling config mirrors sklearn-svc.
+# Comments here focus on what's DIFFERENT for the PyTorch runtime;
+# see sklearn-svc/pyproject.toml for the introductory walkthrough of
+# pyproject.toml structure, ruff/mypy/pytest config, etc.
+
+[project]
+name = "pt-svc"
+version = "0.1.0"
+description = "FastAPI service for PyTorch deployments (D2 DNN, D3 GAN, D4 Q-Learning)"
+requires-python = "==3.12.2"
+
+# RUNTIME dependencies. Most overlap with sklearn-svc - same FastAPI/
+# Pydantic/structlog/prometheus stack because those are framework-
+# agnostic. PyTorch-specific changes:
+#   1. ADD `torch` (the model runtime).
+#   2. KEEP `scikit-learn` because the bundled scaler.pkl is a real
+#      sklearn StandardScaler instance - joblib.load() needs sklearn
+#      importable to deserialize it. (For sk-pca's scaler, it was a
+#      plain dict, no sklearn needed at unpickle time. For pt-dnn's
+#      scaler, it's a real estimator - sklearn IS required.)
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.5",
+
+    # PyTorch CPU-only runtime. The "+cpu" local version identifier
+    # (PEP 440) is critical: it locks us to the explicit CPU build
+    # rather than letting pip choose. PyPI's `torch==2.5.1` is CPU on
+    # Windows but CUDA on Linux - so without "+cpu" the lock file
+    # would resolve to different wheels per platform, breaking
+    # reproducibility once we containerize on Linux.
+    
+    # The "+cpu" wheels live at https://download.pytorch.org/whl/cpu
+    # (NOT PyPI). pip-compile needs to know about that index:
+    #   pip-compile --extra-index-url https://download.pytorch.org/whl/cpu ...
+    # The resulting requirements.txt embeds that --extra-index-url
+    # directive so subsequent installs resolve from the same source.
+    
+    # Why CPU: inference at 0.4 us/sample on the modeling phase makes
+    # CPU more than fast enough. CUDA wheels are ~10x larger (~2 GB
+    # vs ~200 MB) and require GPU drivers on the deployment host. CPU
+    # keeps the container portable.
+    "torch==2.5.1+cpu",
+
+    # scikit-learn - REQUIRED for unpickling pt-dnn's scaler.pkl, which
+    # is a fitted StandardScaler instance. Pinned to 1.8.0 to match the
+    # version that fit the scaler (mismatched sklearn versions trigger
+    # InconsistentVersionWarning at unpickle time).
+    "scikit-learn==1.8.0",
+
+    # joblib - StandardScaler is serialized via joblib in the modeling
+    # phase. PyTorch state_dicts use torch.load (also pickle-based but
+    # via PyTorch's own serializer, NOT joblib).
+    "joblib>=1.4",
+
+    # MLflow - registry client;
+    "mlflow>=3.10",
+
+    # NumPy - numerical arrays. PyTorch tensors interop with numpy via
+    # torch.from_numpy() / tensor.numpy().
+    "numpy>=1.26",
+
+    # Structlog + prometheus_client
+    # Framework-agnostic observability.
+    "structlog>=24.0",
+    "prometheus-client>=0.20",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["app*"]
+exclude = ["tests*"]
+
+
+# Linter + formatter
+
+[tool.ruff]
+line-length    = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",
+    "I",
+    "B",
+    "UP",
+    "C4",
+    "SIM",
+]
+ignore = [
+    "E501",
+]
+
+
+# Static type checker
+
+[tool.mypy]
+python_version       = "3.12"
+strict               = true
+warn_unused_ignores  = true
+ignore_missing_imports = true
+
+
+# Test runner
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths    = ["tests"]
+addopts      = "-v --tb=short"

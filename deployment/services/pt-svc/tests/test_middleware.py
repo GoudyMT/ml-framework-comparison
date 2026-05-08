@@ -66,9 +66,9 @@ def test_request_id_echoed_when_client_sends_valid_uuid(
     """
     Client sends a valid UUID -> server echoes it back unchanged.
 
-    This is the distributed-tracing path: an upstream service passes its
-    own request_id, sklearn-svc adopts it so logs across services can
-    be correlated by one ID.
+    This is the distributed-tracing path: an upstream service passes
+    its own request_id, this service adopts it so logs across services
+    can be correlated by one ID.
     """
     client_id = "11111111-2222-3333-4444-555555555555"
     response = client.get(

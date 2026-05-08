@@ -13,11 +13,11 @@ WHY THIS EXISTS:
     Without an ID, you're guessing from timestamps and IPs. With an ID, you
     grep one string across the log system and get the full story.
 
-    The same ID also lets you correlate across services: if sklearn-svc
-    eventually calls pt-svc internally, propagating the ID through the
-    HTTP call means the entire distributed flow is traceable from a single
-    grep. We don't have multi-service flows yet, but we set up the
-    infrastructure now.
+    The same ID also lets you correlate across services: if an upstream
+    caller propagates its X-Request-ID header into requests to this
+    service, the entire distributed flow shares one trace key, greppable
+    across every service's logs. We don't have multi-service flows yet,
+    but we set up the infrastructure now.
 
 DESIGN: TRUST-BUT-VERIFY
     If the client sends `X-Request-ID: <something>`, we'll honor it - but

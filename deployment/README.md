@@ -2,7 +2,7 @@
 
 Production-grade FastAPI services for the staged deployment winners from the modeling phase (#01-#20). Demonstrates every distinct deployment pattern the portfolio produced via 5 representative models across 3 framework runtimes.
 
-> **Status: Phase 0 complete - moving to Phase 1 (D1 SK PCA endpoint).** This README will be filled in at Phase 11 once all services are running.
+> **Status: Phase 2 complete - pt-svc D2 DNN endpoint live + verified end-to-end (96.03% accuracy preserved through deployment). Moving to Phase 3 (D3 PT DCGAN image generation).** This README will be filled in at Phase 11 once all services are running.
 
 ## Models Deployed
 
@@ -43,8 +43,8 @@ curl -X POST http://localhost:8000/predict/dnn -d '...'
 ## Phase Progress
 
 - [x] **Phase 0 - Pre-flight** (scaffolding + MLflow consolidated registry + dependency strategy + artifact verification)
-- [ ] Phase 1 - FastAPI scaffolding + D1 SK PCA endpoint
-- [ ] Phase 2 - D2 PT DNN endpoint
+- [x] **Phase 1 - FastAPI scaffolding + D1 SK PCA endpoint** (sklearn-svc: schemas, lifespan loader with scaler bundling, /predict/pca router, request_id + structlog + prometheus middleware, 20 pytest tests, real Fashion-MNIST smoke test bit-exact PASS)
+- [x] **Phase 2 - D2 PT DNN endpoint** (pt-svc: torch CPU-only build, DNN architecture class + state_dict loader, scaler bundling, /predict/dnn router with softmax/argmax + Literal-typed predicted_label, 16 pytest tests, real UCI HAR smoke test bit-exact PASS - real sample classified as STANDING with ~100% confidence)
 - [ ] Phase 3 - D3 PT GAN endpoint (image-bytes response)
 - [ ] Phase 4 - D4 PT Q-Learning endpoint (state -> action)
 - [ ] Phase 5 - D5 TF Transformer endpoint (tokenization preprocessing)

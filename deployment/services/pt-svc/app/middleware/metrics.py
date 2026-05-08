@@ -60,8 +60,9 @@ Latency histogram buckets (in SECONDS).
 Tuned for fast inference services (single-digit ms typical):
   - Fine resolution at the low end where most requests live
   - Wider buckets at the high end to catch slow outliers
-Prometheus default starts at 5ms; we go finer because our PCA inference
-is sub-millisecond. Bucket boundaries are inclusive ("le" = "less or equal").
+Prometheus default starts at 5ms; we go finer because the DNN
+inference is sub-millisecond. Bucket boundaries are inclusive
+("le" = "less or equal").
 """
 HTTP_LATENCY_BUCKETS: tuple[float, ...] = (
     0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0,

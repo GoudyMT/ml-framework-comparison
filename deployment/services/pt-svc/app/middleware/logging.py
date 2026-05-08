@@ -12,7 +12,7 @@ WHY STRUCTURED LOGS:
     Free-form text logs are searchable by substring; structured (JSON)
     logs are queryable by field. Production log aggregators (CloudWatch,
     Datadog, Loki) auto-index every JSON field, so questions like
-    "show me all 5xx on /predict/pca slower than 100ms in the last hour"
+    "show me all 5xx on /predict/dnn slower than 100ms in the last hour"
     become single queries instead of regex archaeology.
 
 WHY STRUCTLOG (vs raw stdlib `logging`):
@@ -159,7 +159,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         # bind_contextvars attaches request_id to structlog's per-task
         # context. Every structlog.get_logger().info(...) call in this
-        # request - including from pca_loader and the router - will
+        # request - including from dnn_loader and the router - will
         # automatically include {"request_id": "..."} in the JSON output.
         structlog.contextvars.bind_contextvars(request_id=request_id)
 

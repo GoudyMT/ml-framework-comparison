@@ -18,9 +18,10 @@ WHY FORWARD-ONLY VERIFICATION:
     Earlier draft considered reverse-engineering raw input from the
     already-standardized data/processed/dnn/X_test.npy. That path
     is precision-lossy (StandardScaler division can amplify tiny
-    float errors at low-std features), then PCA-style propagation
-    spreads errors across all logits. Forward-pipelining from raw
-    has no such amplification - bit-exact comparison is achievable.
+    float errors at low-std features), and the network's linear
+    layers then spread those errors across all logits. Forward-
+    pipelining from raw has no such amplification - bit-exact
+    comparison is achievable.
 
 USAGE (from deployment/services/pt-svc/):
     1. Boot the server:

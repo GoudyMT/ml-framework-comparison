@@ -1,10 +1,10 @@
 # pt-svc/pyproject.toml
 #
 # This service hosts the PyTorch model endpoints (D2 DNN, eventually
-# D3 GAN, D4 Q-Learning). Layout + tooling config mirrors sklearn-svc.
-# Comments here focus on what's DIFFERENT for the PyTorch runtime;
-# see sklearn-svc/pyproject.toml for the introductory walkthrough of
-# pyproject.toml structure, ruff/mypy/pytest config, etc.
+# D3 GAN, D4 Q-Learning). PEP 518 build config + PEP 621 project
+# metadata + tool configs (ruff/mypy/pytest) all live here as the
+# single source of truth - pip-tools generates the lock files
+# (requirements*.txt) from this manifest.
 
 [project]
 name = "pt-svc"
@@ -12,15 +12,15 @@ version = "0.1.0"
 description = "FastAPI service for PyTorch deployments (D2 DNN, D3 GAN, D4 Q-Learning)"
 requires-python = "==3.12.2"
 
-# RUNTIME dependencies. Most overlap with sklearn-svc - same FastAPI/
-# Pydantic/structlog/prometheus stack because those are framework-
-# agnostic. PyTorch-specific changes:
-#   1. ADD `torch` (the model runtime).
-#   2. KEEP `scikit-learn` because the bundled scaler.pkl is a real
-#      sklearn StandardScaler instance - joblib.load() needs sklearn
-#      importable to deserialize it. (For sk-pca's scaler, it was a
-#      plain dict, no sklearn needed at unpickle time. For pt-dnn's
-#      scaler, it's a real estimator - sklearn IS required.)
+# RUNTIME dependencies - what the service needs to RUN in production.
+# The web/observability stack (FastAPI/Pydantic/structlog/prometheus)
+# is framework-agnostic. The PyTorch-specific deps:
+#   - torch: the model runtime that load_state_dict + forward run on
+#   - scikit-learn: REQUIRED at unpickle time because the bundled
+#     scaler.pkl is a real fitted StandardScaler instance. joblib.load
+#     needs sklearn importable to reconstruct the class. (If the
+#     scaler had been serialized as a plain dict of arrays, sklearn
+#     wouldn't be required - but for a fitted estimator, it is.)
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",

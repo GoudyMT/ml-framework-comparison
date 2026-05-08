@@ -79,7 +79,7 @@ class FakeStandardScaler:
           The real scaler would standardize per-feature; for tests we
           want the math to be a no-op so input -> output is predictable.
         - `.mean_`: numpy array of shape (n_features,). The loader's
-          pca_load_complete log line reads `.mean_.shape[0]`, so the
+          dnn_load_complete log line reads `.mean_.shape[0]`, so the
           attribute must exist with the right shape.
         - `.scale_`: numpy array of shape (n_features,). Symmetric
           with mean_; included for completeness even though tests

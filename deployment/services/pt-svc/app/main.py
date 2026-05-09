@@ -2,8 +2,9 @@
 pt-svc - FastAPI application entry point.
 
 Hosts the PyTorch deployment endpoints:
-    - /predict/dnn         (UCI HAR activity classification)
-    - /predict/gan/sample  (DCGAN image generation)
+    - /predict/dnn              (UCI HAR activity classification)
+    - /predict/gan/sample       (DCGAN image generation)
+    - /predict/qlearning/taxi   (Q-learning Taxi-v4 policy lookup)
 
 USAGE (from deployment/services/pt-svc/):
     .venv\\Scripts\\uvicorn.exe app.main:app --reload --port 8002
@@ -12,11 +13,12 @@ WHAT THIS FILE CONTAINS:
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
     - Middleware stack (request_id + structured logging + metrics)
     - Lifespan event that loads every registered model at startup
-      (DNN + scaler, then DCGAN; sequential, ~100ms each)
+      (DNN + scaler, then DCGAN, then Q-table; sequential)
     - /health (liveness) - cheap, never does work
     - /ready (readiness) - 503 until every model is loaded; 200 with
       a per-model `models` dict once loaded
-    - Mounted routers: /predict/dnn, /predict/gan/sample
+    - Mounted routers: /predict/dnn, /predict/gan/sample,
+      /predict/qlearning/taxi
     - /metrics (Prometheus scrape endpoint)
 """
 
@@ -32,7 +34,8 @@ from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers import dnn as dnn_router
 from app.routers import gan as gan_router
-from app.services import dnn_loader, gan_loader
+from app.routers import qlearning as qlearning_router
+from app.services import dnn_loader, gan_loader, qlearning_loader
 
 # Configure structured (JSON) logging at module import. Runs ONCE per
 # process. Must happen before any module-level logger is created so
@@ -69,6 +72,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     dnn_loader.load_dnn_model()
     gan_loader.load_gan_model()
+    qlearning_loader.load_qlearning_model()
     yield
     # Shutdown - intentionally empty.
 
@@ -110,6 +114,7 @@ app.add_middleware(RequestIDMiddleware)
 # health-check `models` dict for readability.
 app.include_router(dnn_router.router)
 app.include_router(gan_router.router)
+app.include_router(qlearning_router.router)
 
 
 # Health check endpoints
@@ -159,7 +164,11 @@ async def ready() -> dict[str, Any]:
         - Kubernetes readinessProbe
         - Rolling-deploy systems waiting before draining old pods
     """
-    if not (dnn_loader.is_loaded() and gan_loader.is_loaded()):
+    if not (
+        dnn_loader.is_loaded()
+        and gan_loader.is_loaded()
+        and qlearning_loader.is_loaded()
+    ):
         raise HTTPException(status_code=503, detail="model_not_loaded")
 
     return {
@@ -172,6 +181,10 @@ async def ready() -> dict[str, Any]:
             gan_loader.MODEL_NAME: {
                 "loaded": True,
                 "version": gan_loader.get_model_version(),
+            },
+            qlearning_loader.MODEL_NAME: {
+                "loaded": True,
+                "version": qlearning_loader.get_model_version(),
             },
         },
     }

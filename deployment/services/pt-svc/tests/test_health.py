@@ -72,6 +72,7 @@ def test_ready_when_loaded(client: TestClient) -> None:
     models = body["models"]
     assert models["pt-dnn"] == {"loaded": True, "version": "1"}
     assert models["pt-gan-dcgan"] == {"loaded": True, "version": "1"}
+    assert models["pt-qlearning-taxi"] == {"loaded": True, "version": "1"}
 
 
 def test_ready_when_unloaded(client_unloaded: TestClient) -> None:

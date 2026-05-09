@@ -13,9 +13,13 @@ WHAT THIS FILE PROVIDES:
       Forward IS z-dependent (different noise -> different output) so
       future seed-reproducibility tests can verify the seed plumbing
       without loading the 1M-param real model.
-    - `client` - TestClient with BOTH loader caches populated by the
+    - `make_fake_qtable()` - builds a deterministic (500, 6) Q-table
+      where state s -> action (s % 6). Lets state-aware tests assert
+      specific argmax outcomes without loading the real registered
+      Q-table.
+    - `client` - TestClient with EVERY loader cache populated by the
       fakes. Use for tests expecting "all loaded" state.
-    - `client_unloaded` - TestClient with BOTH caches cleared. Use for
+    - `client_unloaded` - TestClient with EVERY cache cleared. Use for
       503 / unloaded behavior tests.
 
 WHY MOCK THE MODELS:
@@ -43,7 +47,8 @@ from fastapi.testclient import TestClient
 from torch import nn
 
 from app.main import app
-from app.services import dnn_loader, gan_loader
+from app.schemas.qlearning import N_ACTIONS, N_STATES
+from app.services import dnn_loader, gan_loader, qlearning_loader
 
 
 class FakeDNN(nn.Module):
@@ -137,16 +142,45 @@ class FakeGenerator(nn.Module):
         return torch.tanh(broadcast)
 
 
+def make_fake_qtable() -> np.ndarray:
+    """
+    Build a deterministic (500, 6) Q-table for testing.
+
+    Each row has exactly one non-zero entry at column `state % 6`,
+    so argmax(qtable[state]) == state % 6:
+        state 0   -> action 0 (south)
+        state 1   -> action 1 (north)
+        state 2   -> action 2 (east)
+        state 3   -> action 3 (west)
+        state 4   -> action 4 (pickup)
+        state 5   -> action 5 (dropoff)
+        state 6   -> action 0 (south)   ... and so on, cycling.
+
+    This deterministic mapping lets state-aware tests assert specific
+    argmax outcomes without loading the real registered Q-table.
+    Returns dtype float64 to match the real artifact's dtype.
+    """
+    qt = np.zeros((N_STATES, N_ACTIONS), dtype=np.float64)
+    for s in range(N_STATES):
+        qt[s, s % N_ACTIONS] = 1.0
+    return qt
+
+
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """
-    TestClient with BOTH loader caches pre-populated by fakes.
+    TestClient with EVERY loader cache pre-populated by fakes.
 
     Use this fixture in any test expecting an "all loaded" state -
-    the production state after lifespan finishes. The DNN loader's
-    get_dnn_model()/get_scaler()/get_model_version() return the
-    FakeDNN/FakeStandardScaler/"1"; the GAN loader's
-    get_gan_model()/get_model_version() return the FakeGenerator/"1".
+    the production state after lifespan finishes. Each loader's
+    accessors return the corresponding fake:
+        - dnn_loader: get_dnn_model() -> FakeDNN,
+                      get_scaler() -> FakeStandardScaler,
+                      get_model_version() -> "1"
+        - gan_loader: get_gan_model() -> FakeGenerator,
+                      get_model_version() -> "1"
+        - qlearning_loader: get_qtable() -> deterministic (500, 6) array,
+                            get_model_version() -> "1"
 
     monkeypatch.setattr swaps the module attribute for the duration
     of THIS test only - automatically restored at teardown. No manual
@@ -166,6 +200,10 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(gan_loader, "_MODEL", fake_gen)
     monkeypatch.setattr(gan_loader, "_MODEL_VERSION", "1")
 
+    # Q-learning loader cache slots
+    monkeypatch.setattr(qlearning_loader, "_QTABLE", make_fake_qtable())
+    monkeypatch.setattr(qlearning_loader, "_MODEL_VERSION", "1")
+
     # TestClient(app) without `with` does NOT trigger lifespan, so
     # our manually-populated caches are what the loaders' getters see.
     yield TestClient(app)
@@ -174,12 +212,13 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
 @pytest.fixture
 def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """
-    TestClient with BOTH loader caches CLEARED.
+    TestClient with EVERY loader cache CLEARED.
 
     Use this fixture for tests exercising the "model not loaded"
     path - /ready returning 503, /predict/dnn returning 503,
-    /predict/gan/sample returning 503. Mirrors the real-world
-    startup window before the lifespan event finishes loading.
+    /predict/gan/sample returning 503, /predict/qlearning/taxi
+    returning 503. Mirrors the real-world startup window before
+    the lifespan event finishes loading.
     """
     # DNN loader cache slots
     monkeypatch.setattr(dnn_loader, "_MODEL", None)
@@ -189,5 +228,9 @@ def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # GAN loader cache slots
     monkeypatch.setattr(gan_loader, "_MODEL", None)
     monkeypatch.setattr(gan_loader, "_MODEL_VERSION", None)
+
+    # Q-learning loader cache slots
+    monkeypatch.setattr(qlearning_loader, "_QTABLE", None)
+    monkeypatch.setattr(qlearning_loader, "_MODEL_VERSION", None)
 
     yield TestClient(app)

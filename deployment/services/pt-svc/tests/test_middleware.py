@@ -18,9 +18,10 @@ WHAT THESE TESTS COVER:
 
 WHAT THESE TESTS DO NOT COVER:
     - Logging middleware: structlog output is hard to assert against
-      cleanly (it goes to stdout via the stdlib bridge). Manually
-      verified end-to-end in 1.6b. Could capture stdout in a future
-      pass if it matters.
+      cleanly (it goes to stdout via the stdlib bridge). Verified
+      end-to-end manually by booting the server and watching the
+      JSON log lines for `request_started` / `request_finished`
+      events with the right `request_id` propagated.
     - Real Prometheus scraping (out of scope for unit tests).
 """
 

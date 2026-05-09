@@ -1,15 +1,16 @@
 # pt-svc/pyproject.toml
 #
-# This service hosts the PyTorch model endpoints (D2 DNN, eventually
-# D3 GAN, D4 Q-Learning). PEP 518 build config + PEP 621 project
-# metadata + tool configs (ruff/mypy/pytest) all live here as the
-# single source of truth - pip-tools generates the lock files
-# (requirements*.txt) from this manifest.
+# This service hosts the PyTorch model endpoints: a DNN classifier,
+# a DCGAN image generator, and a tabular Q-learning policy. PEP 518
+# build config + PEP 621 project metadata + tool configs
+# (ruff/mypy/pytest) all live here as the single source of truth -
+# pip-tools generates the lock files (requirements*.txt) from this
+# manifest.
 
 [project]
 name = "pt-svc"
 version = "0.1.0"
-description = "FastAPI service for PyTorch deployments (D2 DNN, D3 GAN, D4 Q-Learning)"
+description = "FastAPI service for PyTorch deployments: DNN classifier, DCGAN image generator, tabular Q-learning policy"
 requires-python = "==3.12.2"
 
 # RUNTIME dependencies - what the service needs to RUN in production.

@@ -2,7 +2,8 @@
 Pydantic schemas for the /predict/dnn endpoint.
 
 WHAT THIS FILE IS:
-    The API contract for D2 (PyTorch DNN, UCI HAR activity classification).
+    The API contract for the PyTorch DNN endpoint (UCI HAR activity
+    classification).
     Two classes:
         - DNNRequest:  what the client MUST send (validated on the way in)
         - DNNResponse: what the service WILL return (validated on the way out)

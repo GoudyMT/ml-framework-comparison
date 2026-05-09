@@ -11,7 +11,7 @@ WHAT THIS FILE PROVIDES:
       `.scale_` attributes so the loader's logging path doesn't break.
     - `FakeGenerator` - real nn.Module stand-in for the DCGAN generator.
       Forward IS z-dependent (different noise -> different output) so
-      future seed-reproducibility tests can verify the seed plumbing
+      the seed-reproducibility tests can verify the seed plumbing
       without loading the 1M-param real model.
     - `make_fake_qtable()` - builds a deterministic (500, 6) Q-table
       where state s -> action (s % 6). Lets state-aware tests assert
@@ -32,9 +32,8 @@ WHY MOCK THE MODELS:
 
 LIFESPAN BEHAVIOR:
     `TestClient(app)` (without `with`) does NOT trigger the lifespan
-    event. So our dnn_loader.load_dnn_model() and
-    gan_loader.load_gan_model() do NOT run during tests - we manually
-    populate the cache slots in the fixtures instead.
+    event. So none of the load_*_model() functions run during tests -
+    the fixtures manually populate each loader's cache slots instead.
 """
 
 from collections.abc import Iterator
@@ -113,12 +112,12 @@ class FakeGenerator(nn.Module):
         Output:    (batch, 3, 32, 32)  float32 in [-1, 1]
 
     Forward IS z-dependent: different noise produces different output.
-    Critical for future seed-reproducibility tests - if the fake
-    ignored z and returned constants, "POST with seed=42 twice"
-    would always look identical regardless of whether the seed
-    plumbing actually worked. With z-dependence, identical seeds
-    produce identical bytes only when torch.manual_seed() is being
-    called correctly in the router.
+    Critical for the seed-reproducibility tests - if the fake ignored
+    z and returned constants, "POST with seed=42 twice" would always
+    look identical regardless of whether the seed plumbing actually
+    worked. With z-dependence, identical seeds produce identical
+    bytes only when torch.manual_seed() is being called correctly
+    in the router.
 
     The math is intentionally simple (broadcast + tanh) so test
     output is deterministic given z, with no Conv2d / BatchNorm /

@@ -1,5 +1,5 @@
 """
-DNN architecture for D2 (UCI HAR activity classification).
+DNN architecture for the UCI HAR activity classification endpoint.
 
 WHAT THIS FILE IS:
     JUST the model class. No I/O, no MLflow, no scaler. The trained

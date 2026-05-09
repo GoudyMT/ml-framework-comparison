@@ -2,7 +2,8 @@
 Pydantic schemas for the /predict/gan/sample endpoint.
 
 WHAT THIS FILE IS:
-    The API contract for D3 (PyTorch DCGAN, CIFAR-10 image generation).
+    The API contract for the PyTorch DCGAN endpoint (CIFAR-10 image
+    generation).
     Two classes:
         - GANRequest:  what the client MUST send (validated on the way in)
         - GANResponse: what the service WILL return (validated on the way out)

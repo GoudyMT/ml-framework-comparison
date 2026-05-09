@@ -81,11 +81,11 @@ app = FastAPI(
     title="pt-svc",
     version="0.1.0",
     description=(
-        "Deployment service for PyTorch models: D2 DNN (UCI HAR activity "
-        "recognition, 96.03% test accuracy), D3 DCGAN (CIFAR-10 image "
-        "generation, FID 30.57), D4 Q-Learning V1 Tabular (Taxi-v4). "
-        "Loads from the consolidated MLflow registry at "
-        "`deployment/mlflow.db`."
+        "Deployment service for PyTorch models: DNN classifier (UCI HAR "
+        "activity recognition, 96.03% test accuracy), DCGAN image "
+        "generator (CIFAR-10, FID 30.57), and tabular Q-learning "
+        "policy (Gymnasium Taxi-v4). Loads from the consolidated "
+        "MLflow registry at `deployment/mlflow.db`."
     ),
     lifespan=lifespan,
 )

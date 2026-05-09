@@ -2,7 +2,7 @@
 
 Production-grade FastAPI services for the staged deployment winners from the modeling phase (#01-#20). Demonstrates every distinct deployment pattern the portfolio produced via 5 representative models across 3 framework runtimes.
 
-> **Status: Phase 3 complete - pt-svc D3 DCGAN endpoint live + verified end-to-end (real DCGenerator forward bit-matches service output to the pixel; ~17ms single-sample, ~0.7ms/img at batch=16). Moving to Phase 4 (D4 PT Q-Learning Taxi-v4).** This README will be filled in at Phase 11 once all services are running.
+> **Status: Phase 4 complete - pt-svc D4 Q-Learning Taxi-v4 endpoint live + verified end-to-end (real Q-table forward bit-matches service output across 15 states with max_q_diff=0.0; sub-millisecond inference). Moving to Phase 5 (D5 TF Transformer Translation - new tf-svc service).** This README will be filled in at Phase 11 once all services are running.
 
 ## Models Deployed
 
@@ -46,7 +46,7 @@ curl -X POST http://localhost:8000/predict/dnn -d '...'
 - [x] **Phase 1 - FastAPI scaffolding + D1 SK PCA endpoint** (sklearn-svc: schemas, lifespan loader with scaler bundling, /predict/pca router, request_id + structlog + prometheus middleware, 20 pytest tests, real Fashion-MNIST smoke test bit-exact PASS)
 - [x] **Phase 2 - D2 PT DNN endpoint** (pt-svc: torch CPU-only build, DNN architecture class + state_dict loader, scaler bundling, /predict/dnn router with softmax/argmax + Literal-typed predicted_label, 16 pytest tests, real UCI HAR smoke test bit-exact PASS - real sample classified as STANDING with ~100% confidence)
 - [x] **Phase 3 - D3 PT DCGAN endpoint** (pt-svc: DCGenerator architecture class + state_dict loader, /predict/gan/sample router with server-side noise sampling + optional seed for reproducibility + base64-PNG response, /ready refactored to multi-model dict shape, Pillow promoted from transitive to direct dep, 13 new pytest tests including seed plumbing + decode-and-shape, real DCGAN smoke test bit-exact PASS - 0 pixels differ between manual forward and service round-trip)
-- [ ] Phase 4 - D4 PT Q-Learning endpoint (state -> action)
+- [x] **Phase 4 - D4 PT Q-Learning Taxi-v4 endpoint** (pt-svc: Q-table loader with shape assertion, /predict/qlearning/taxi router with state-as-int input + action/action_name/q_values response, /ready expanded to report 3 models, FakeQtable test fixture with deterministic state to action cycle, 15 new pytest tests including parametrized action_name mapping across all 6 Gymnasium actions, real Q-table smoke test bit-exact PASS - 0 disagreements across 15 states)
 - [ ] Phase 5 - D5 TF Transformer endpoint (tokenization preprocessing)
 - [ ] Phase 6 - Containerization (Dockerfiles + docker-compose)
 - [ ] Phase 7 - MLflow Model Registry stage promotion

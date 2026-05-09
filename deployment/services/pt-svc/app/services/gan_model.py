@@ -1,5 +1,5 @@
 """
-DCGAN Generator architecture for D3 (CIFAR-10 image generation).
+DCGAN Generator architecture for the CIFAR-10 image generation endpoint.
 
 WHAT THIS FILE IS:
     JUST the generator class. No I/O, no MLflow, no denormalization.

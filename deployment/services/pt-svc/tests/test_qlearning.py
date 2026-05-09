@@ -107,7 +107,7 @@ def test_predict_qlearning_state_echoed(client: TestClient) -> None:
     The state field in the response equals the request's state.
 
     Echoing the state lets clients confirm what was queried without
-    having to remember (parallel to GAN's seed echo).
+    having to remember.
     """
     response = client.post(
         "/predict/qlearning/taxi", json=_state_payload(123)

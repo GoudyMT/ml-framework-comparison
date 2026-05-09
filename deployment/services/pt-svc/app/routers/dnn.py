@@ -2,7 +2,7 @@
 Router for the /predict/dnn endpoint.
 
 WHAT THIS FILE IS:
-    The HTTP-facing layer for D2 DNN inference. One POST handler:
+    The HTTP-facing layer for DNN inference. One POST handler:
         1. Receives a validated DNNRequest (Pydantic enforced 561 floats
            in [-1, 1] before this code runs)
         2. Standardizes via the cached StandardScaler
@@ -17,9 +17,10 @@ WHAT THIS FILE IS:
 
 URL SHAPE:
     `prefix="/predict"` on the router + `@router.post("/dnn")` on the
-    handler -> final URL is `POST /predict/dnn`. Future PyTorch
-    endpoints in this service (D3 GAN, D4 Q-Learning) will share the
-    same /predict prefix without each handler repeating it.
+    handler -> final URL is `POST /predict/dnn`. The other endpoints
+    in this service (/predict/gan/sample, /predict/qlearning/taxi)
+    share the same /predict prefix - the prefix lives on the router
+    instead of being repeated on every handler decorator.
 
 INFERENCE PATTERN - torch.no_grad():
     The model.eval() that the loader applied switches BatchNorm +

@@ -2,7 +2,7 @@
 Router for the /predict/gan/sample endpoint.
 
 WHAT THIS FILE IS:
-    The HTTP-facing layer for D3 DCGAN image generation. One POST
+    The HTTP-facing layer for DCGAN image generation. One POST
     handler:
         1. Receives a validated GANRequest (Pydantic enforced
            n_samples in [1, 16] + optional seed before this code runs)

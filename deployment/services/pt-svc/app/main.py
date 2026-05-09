@@ -14,7 +14,7 @@ Port convention across services:
     pt-svc      -> 8002    (this service)
     tf-svc      -> 8003
 
-WHAT THIS FILE CONTAINS NOW (after Step 3.4):
+WHAT THIS FILE CONTAINS NOW (after Step 3.5):
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
     - Middleware stack (request_id + structured logging + metrics)
     - Lifespan event that loads the DNN + scaler AND the DCGAN
@@ -22,11 +22,11 @@ WHAT THIS FILE CONTAINS NOW (after Step 3.4):
     - /health (liveness) - cheap, never does work
     - /ready (readiness) - returns 503 until BOTH models are loaded;
       200 with a per-model `models` dict once loaded
-    - /predict/dnn (D2 router)
+    - /predict/dnn         (D2 router)
+    - /predict/gan/sample  (D3 router)
     - /metrics (Prometheus scrape endpoint)
 
 WHAT WILL BE ADDED LATER:
-    - Step 3.5: include POST /predict/gan/sample router (D3)
     - Phase 4: include POST /predict/qlearning/taxi router (D4)
 """
 
@@ -41,6 +41,7 @@ from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers import dnn as dnn_router
+from app.routers import gan as gan_router
 from app.services import dnn_loader, gan_loader
 
 # Configure structured (JSON) logging at module import. Runs ONCE per
@@ -114,8 +115,11 @@ app.add_middleware(RequestIDMiddleware)
 
 # Mount domain routers. Each router groups related endpoints under a
 # shared prefix. include_router() registers all the router's routes
-# onto the main app at startup.
+# onto the main app at startup. Order doesn't affect routing (FastAPI
+# matches by exact path + method); we list in the same order as the
+# health-check `models` dict for readability.
 app.include_router(dnn_router.router)
+app.include_router(gan_router.router)
 
 
 # Health check endpoints

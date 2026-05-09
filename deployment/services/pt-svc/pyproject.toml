@@ -67,6 +67,27 @@ dependencies = [
     # Framework-agnostic observability.
     "structlog>=24.0",
     "prometheus-client>=0.20",
+
+    # Pillow (PIL) - directly imported by app/routers/gan.py to convert
+    # the DCGAN generator's output tensors into PNG bytes for the
+    # /predict/gan/sample response. Specifically:
+    #   PIL.Image.fromarray(uint8_HWC_array, mode="RGB") -> Image
+    #   Image.save(BytesIO(), format="PNG")              -> PNG bytes
+    # The PNG bytes are then base64-encoded into the JSON response
+    # per app/schemas/gan.py's GANResponse contract.
+    
+    # Why declare directly: Pillow is currently in the venv as a
+    # transitive dep (mlflow -> matplotlib -> Pillow). Relying on the
+    # transitive chain would silently break if a future mlflow release
+    # drops matplotlib. Declaring it here makes pt-svc's actual
+    # consumption explicit and decouples our runtime from mlflow's
+    # internal dependency choices.
+    
+    # Lower bound 11.0: Pillow 11 (Oct 2024) is the first release with
+    # AVIF-via-libaom support, dropped Python 3.8 support, and is on
+    # the maintained track. >=11.0 excludes long-EOL versions while
+    # leaving room for future minor bumps without pyproject churn.
+    "pillow>=11.0",
 ]
 
 

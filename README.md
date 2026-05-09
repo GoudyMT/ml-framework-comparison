@@ -1,755 +1,115 @@
 # ML Framework Comparisons: From Scratch to Production-Ready
 
-U.S. Navy veteran (promoted to senior rank in under 6 years) transitioning to ML/AI Engineering. Over the past 1.5 years, I have built and tuned models achieving 91-98% accuracy and F1 scores up to 0.97 using Scikit-learn, XGBoost, and modern NLP techniques. Previously led 40-person technical teams and restored $7.8M in critical navigation/comms systems under deployment conditions. Currently pursuing a B.A. in Computer Science (expected Apr 2027). This repository combines my ML engineering hands-on work with proven leadership and systems-thinking, aimed at high-impact roles in Big Tech or defense.
-
-This project is my hands-on portfolio to deepen understanding of machine learning and deep learning pipelines. I implement the same models across four approaches: Scikit-Learn (high-level classical ML), PyTorch (flexible deep learning), TensorFlow (production-oriented deep learning), and No-Framework (pure NumPy/SciPy from scratch). The goal is to compare how each makes building easier (time saved, built-in tools) or better suits certain data situations (tabular vs. images/sequences, scalability, custom needs). Every model of the same type uses the identical dataset for fair metric comparisons (e.g., same MSE or accuracy).
+U.S. Navy veteran rapidly promoted to E-6 in under 6 years — leading technical teams of up to 44 personnel in high-tempo deployed environments while restoring $7.8M+ in RADAR, navigation, and satellite-communication systems at 94-98% sustained uptime. This portfolio applies that same systems-thinking to ML/AI engineering: **20 models across Scikit-learn, PyTorch, TensorFlow, and from-scratch NumPy** — achieving up to **96.03% accuracy and 0.97 F1**, with production-ready FastAPI deployment pipelines covering GANs, Vision Transformers, GNNs, and reinforcement learning. Currently pursuing a B.A. in Computer Science at SNHU (expected Apr 2027, **3.92 GPA**), targeting high-impact roles in AI/ML engineering and defense technology.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat&logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=flat&logo=mlflow&logoColor=white)](https://mlflow.org/)
 
-## Project Rules & Philosophy
+## Status
 
-1. Each model is hand-typed, with no auto-fill, AI copy-paste, or external file management tools.
-2. Models covering the same type of ML (e.g., Logistic Regression) utilize the same dataset across all applicable frameworks.
-3. AI guidance is acceptable for ideas, debugging, structure suggestions, and explanations, but it cannot break rule 1.
-4. Utilize best comment practices, writing code comments as if providing instructions to someone who has never read code before.
-5. Reproducibility first: Use a fixed random seed (113) in all random operations across frameworks.
-6. Consistent evaluation: Apply identical train/test splits and metrics for models of the same type to enable direct comparisons.
-7. Commit often with meaningful messages: Treat this repo like professional work—commit after each major pipeline step. Use descriptive commit messages to show iterative development process.
-8. No external heavy dependencies beyond core libraries: Stick to standard installs without niche packages unless absolutely needed for a specific advanced model. Document exact versions in a root requirements.txt.
+1. **Modeling phase complete (#01-#20).** All four learning paradigms covered: supervised + unsupervised + generative + reinforcement.
+2. **Deployment phase IN PROGRESS** — see [`deployment/README.md`](deployment/README.md) for live status.
 
-## Key Highlights & Framework Insights
+## Headline Results
 
-(Findings from the completed 20-model build, #01-#20)
+20 models trained across 4 frameworks. Selected results — full per-framework breakdown in [`docs/modeling/`](docs/modeling/).
 
-**Scikit-Learn** (implemented #01-#10, retired after Autoencoders): Won deployment for #06 DT/RF (F1 0.48, GridSearchCV-tuned), #07 SVM (best calibration AUC 0.9164), and #08 PCA (IncrementalPCA + sklearn Pipeline, lowest memory 11.74 MB). Normal Equation solving in 0.03s vs No-Framework's 0.38s established the speed-vs-understanding trade-off early. Hit its ceiling at #10 Autoencoders — sklearn's MLP-only neural net couldn't compete with PyTorch's conv denoising AE (MSE 0.0037 vs sklearn's 0.0103). Retired after #10 — the line between "classical ML" and "deep learning" is approximately the line between "sklearn dominates" and "PT/TF dominates."
+| # | Model | Headline result | Best framework |
+|---|---|---|---|
+| 01 | Linear Regression | R² 0.50, RMSE $10,100 (all 4 identical) | sklearn (0.03s, 90% less code) |
+| 02 | Logistic Regression | 83% recall on fraud detection | sklearn L-BFGS (0.32s, 57x vs NF) |
+| 03 | KNN | 93.77% accuracy (all 4 identical) | sklearn KD-tree (2,000/sec) |
+| 04 | K-Means | ARI 0.6684 (all 4 identical) | sklearn (0.06s) |
+| 05 | Naive Bayes | accuracy 0.6683 (all 4 identical) | PT GPU (3.5 µs/sample) |
+| 06 | Decision Trees / RF | F1 0.48 (sklearn-tuned) | sklearn (GridSearchCV + MLflow) |
+| 07 | SVM | F1 0.90, AUC 0.92 | sklearn (best calibration AUC 0.9164) |
+| 08 | PCA | 0.9085 explained variance, 85.99% downstream KNN | sklearn (deployed as D1) |
+| 09 | DNN | **96.03% accuracy** (UCI HAR) | PyTorch GPU (deployed as D2) |
+| 10 | Autoencoders | **MSE 0.0037** (3.6x better than sklearn) | PyTorch GPU |
+| 11 | CNN | **80.1% on CIFAR-100** (ResNet-20 + CutMix) | PyTorch GPU |
+| 12 | RNN | macro F1 0.55 on ECG5000 | PyTorch GPU |
+| 13 | LSTM | ECG F1 0.60 + IMDB 87.8% acc | PyTorch GPU |
+| 14 | GANs | **FID 30.57** (DCGAN on CIFAR-10) | PyTorch GPU |
+| 15 | Attention | **BLEU 0.3803** (Bahdanau pre-GRU context) | PyTorch GPU |
+| 16 | Transformers | **BLEU 0.4456** (Translation) + 92.20% (Classification) | TensorFlow Translation (deployed as D5) |
+| 17 | Vision Transformers | 91.16% (V4 pre-trained), 67.48% (V3 distillation) | PyTorch GPU |
+| 18 | GNN | Cora 0.8310 + arxiv OGB 0.7025 (V3 GAT) | PyTorch GPU |
+| 19 | VAE | NLL 101.98 nats + FID 117.27 (DALL-E 1 recipe) | PyTorch GPU |
+| 20 | Q-Learning | CartPole +500.00 (3/3 seeds), Taxi-v4 bit-identical parity | PyTorch (deployed as D4) |
 
-**PyTorch** (implemented all 20 models, won deployment for 14 of 17 deployable artifacts): Specific wins include DNN 96.03%, CNN 80.1%, GANs FID 30.57, Attention BLEU 0.3803, ViT V3 Distillation 67.48%, GNN V3 GAT (Cora 0.8310 + arxiv 0.7025), VAE V5 FID 117.27, and Q-Learning V2 CartPole 500.00 perfect 3/3 seeds. Eager mode is 14-24x faster than TF eager for tight per-step loops (measured on VAE V1 and Q-Learning V2), dynamic graphs cut debug time on custom architectures (GNN sparse adjacency, RL replay integration, VAE masked-conv causality), and `nn.Module` subclassing makes from-scratch reimplementation idiomatic. The dominant framework for #09-#20.
+5 representative winners are being deployed as production FastAPI services in 3 framework runtimes: **D1 SK PCA**, **D2 PT DNN**, **D3 PT DCGAN**, **D4 PT Q-Learning**, **D5 TF Transformer Translation**.
 
-**TensorFlow** (implemented #01-#20 with scope reductions from #15 onward): Won deployment for #16 Transformers Translation (BLEU 0.4456 vs PT 0.3625, +17% over the #15 Bahdanau baseline) — Keras 3's recipe-style training was actively helpful for production seq2seq. WSL2 GPU constraints forced scope drops on five subsequent models: ViT V3 (cuDNN Conv2D unreliable), GNN V2/V4 (Spektral 1.3.1 broken on Keras 3), VAE V2 (Conv2D again), Q-Learning V3-V5 (marginal cross-framework value vs implementation cost). Eager mode is 14-24x slower than PT for tight loops; production TF RL (`tf-agents`) uses `@tf.function` decorators throughout for this reason. Best for production seq2seq; weaker on research-pace workflows requiring fast iteration.
+## Project Rules
 
-**No-Framework** (implemented #01-#08, retired after PCA): Useful for solidifying math fundamentals — every parameter's role becomes explicit when you write `theta -= lr * gradient` directly. Scaled poorly past #08: SVM's dual gradient ascent took 5K+ iterations to match sklearn's converged solution, and matrix-heavy operations couldn't compete with optimized BLAS calls. Retired after PCA, beyond classical ML, framework-level optimizations dominate, and from-scratch becomes teaching theater rather than honest comparison.
+1. **Hand-typed models** — no auto-fill, no AI copy-paste
+2. **Same dataset across frameworks** for any given model type, enabling direct metric comparison
+3. **Reproducibility**: fixed random seed (113) across all frameworks
+4. **Identical train/test splits** and metrics for models of the same type
+5. **Best-comment practices** — comments written as instructions to someone who has never read code before
+6. **Frequent commits** with meaningful messages — repo treated as professional work
+7. **Standard installs only** — pinned versions in `requirements.txt`; no niche dependencies unless absolutely needed
 
-## Table of Contents
+## Quick Start
 
-- [Models Covered](#models-covered)
-- [Folder Structure](#folder-structure)
-- [Shared Utilities Architecture](#shared-utilities-architecture)
-- [Progress Log](#progress-log)
-- [How to Run / Setup](#how-to-run--setup)
-- [Overall Learnings & Conclusions](#overall-learnings--conclusions)
-- [Future Plans](#future-plans)
-- [Deployment Roadmap](#deployment-roadmap)
-- [License](#license)
+```bash
+# Clone + install root dependencies
+git clone <repo-url>
+cd ml-framework-comparisons
+python -m venv .venv && .\.venv\Scripts\activate    # Windows
+pip install -r requirements.txt
 
-## Models Covered
+# Run a modeling notebook (example)
+jupyter notebook PyTorch/09-dnn/pipeline.ipynb
 
-Models progress from beginner (basic concepts) to advanced (latest deep learning tech). Not all are implemented in every framework due to practicality.
+# Or boot a deployed service (see deployment/README.md for the full guide)
+cd deployment/services/sklearn-svc
+.\.venv\Scripts\uvicorn.exe app.main:app --port 8001
+# -> http://localhost:8001/docs for Swagger UI
+```
 
-| Model Name                        | Type
-|-----------------------------------|----------------------------
-| Linear Regression                 | Supervised Regression
-| Logistic Regression               | Supervised Classification
-| K-Nearest Neighbors (KNN)         | Supervised (non-parametric)  
-| K-Means Clustering                | Unsupervised Clustering
-| Naive Bayes                       | Supervised Probabilistic
-| Decision Trees / Random Forests   | Supervised Ensemble
-| Support Vector Machines (SVM)     | Supervised with Kernels
-| Principal Component Analysis      | Unsupervised Dim Reduction
-| Deep Neural Networks (DNN)        | Supervised Feedforward
-| Convolutional Neural Networks     | Image Supervised
-| Recurrent Neural Networks (RNN)   | Sequence Supervised
-| Long Short-Term Memory (LSTM)     | Advanced Sequence
-| Autoencoders                      | Unsupervised Reconstruction
-| Generative Adversarial Networks   | Unsupervised Generative
-| Attention Mechanisms              | Sequence Focus
-| Transformers                      | Self-Attention Models
-| Vision Transformers (ViT)         | Image Attention
-| Graph Neural Networks (GNN)       | Graph Data
-| Variational Autoencoders (VAE)    | Probabilistic Generative
-| Q-Learning (RL Basics)            | Reinforcement Learning
-
-## Folder Structure
+## Project Structure (top-level)
 
 ```text
-├── README.md
-├── LICENSE
-├── data/                                       # .gitignore'd (raw datasets + preprocessed arrays + comparison JSONs)
-│   ├── raw/                                    # Source datasets + RL env render frames
-│   │   ├── vehicles.csv
-│   │   ├── creditcard.csv
-│   │   ├── bank-additional-full.csv
-│   │   └── eda_envs/                           # Q-Learning #20: env render frames + reward-distribution PNG
-│   ├── processed/                              # Preprocessed numpy arrays per model (no q_learning/ - RL is online)
-│   │   ├── linear_regression/
-│   │   ├── logistic_regression/
-│   │   ├── knn/
-│   │   ├── kmeans/
-│   │   ├── naive_bayes_gaussian/
-│   │   ├── naive_bayes_text/
-│   │   ├── decision_tree/
-│   │   ├── svm/
-│   │   ├── pca/
-│   │   ├── dnn/
-│   │   ├── autoencoder/
-│   │   ├── cnn/
-│   │   ├── rnn/
-│   │   ├── lstm/                               # ECG5000 (augmented) + IMDB (padded sequences)
-│   │   ├── gans/                               # CIFAR-10, [-1, 1] normalized for tanh output
-│   │   ├── attention/                          # Tatoeba EN-ES, word-level vocab + splits
-│   │   ├── transformers_translation/           # Tatoeba BPE 8K shared EN+ES
-│   │   ├── transformers_classification/        # AG News BPE 16K English
-│   │   ├── gnn/                                # Cora (BoW row-norm) + ogbn-arxiv (symmetrized)
-│   │   └── vae/                                # MNIST + CIFAR-10, [0, 1] normalized
-│   └── results/                                # Cross-framework comparison JSONs (one per model/dataset)
-│       ├── kmeans.json
-│       ├── naive_bayes.json
-│       ├── decision_tree.json
-│       ├── svm.json
-│       ├── pca.json
-│       ├── dnn.json
-│       ├── autoencoder.json
-│       ├── cnn.json
-│       ├── rnn.json
-│       ├── lstm_ecg.json
-│       ├── lstm_imdb.json
-│       ├── gans.json
-│       ├── attention.json
-│       ├── transformers_translation.json
-│       ├── transformers_classification.json
-│       ├── vit.json
-│       ├── gnn_cora.json
-│       ├── gnn_ogbn_arxiv.json
-│       ├── vae_mnist.json
-│       ├── vae_cifar10.json
-│       ├── q_learning_taxi.json
-│       ├── q_learning_cartpole.json
-│       └── q_learning_lunarlander.json
-├── data-preperation/                           # Preprocess scripts + EDA notebooks per model (#01 -> #20)
-│   ├── clean_vehicles.py                       # #01 Linear Regression
-│   ├── preprocess_logistic.py                  # #02 Logistic Regression
-│   ├── preprocess_knn.py                       # #03 KNN
-│   ├── preprocess_kmeans.py                    # #04 K-Means
-│   ├── preprocess_naive_bayes.py               # #05 Naive Bayes
-│   ├── preprocess_decision_tree.py             # #06 Decision Trees / RF
-│   ├── eda_decision_tree.ipynb
-│   ├── preprocess_svm.py                       # #07 SVM
-│   ├── eda_svm.ipynb
-│   ├── preprocess_pca.py                       # #08 PCA
-│   ├── eda_pca.ipynb
-│   ├── preprocess_dnn.py                       # #09 DNN
-│   ├── eda_dnn.ipynb
-│   ├── preprocess_autoencoder.py               # #10 Autoencoders
-│   ├── eda_autoencoder.ipynb
-│   ├── preprocess_cnn.py                       # #11 CNN
-│   ├── eda_cnn.ipynb
-│   ├── preprocess_rnn.py                       # #12 RNN
-│   ├── eda_rnn.ipynb
-│   ├── preprocess_lstm.py                      # #13 LSTM
-│   ├── eda_lstm.ipynb
-│   ├── preprocess_gans.py                      # #14 GANs
-│   ├── eda_gans.ipynb
-│   ├── preprocess_attention.py                 # #15 Attention
-│   ├── eda_attention.ipynb
-│   ├── preprocess_transformers_translation.py  # #16 Transformers (2 datasets: translation + classification)
-│   ├── preprocess_transformers_classification.py
-│   ├── eda_transformers_translation.ipynb
-│   ├── eda_transformers_classification.ipynb
-│   ├── eda_vit.ipynb                           # #17 ViT (no preprocess; reused CNN #11 data)
-│   ├── preprocess_gnn.py                       # #18 GNN
-│   ├── eda_gnn.ipynb
-│   ├── preprocess_vae.py                       # #19 VAE
-│   ├── eda_vae.ipynb
-│   └── eda_envs.ipynb                          # #20 Q-Learning (no preprocess; RL is online)
-├── utils/                                      # Shared utilities (#02 onward; see "Shared Utilities Architecture" below)
-│   ├── __init__.py
-│   ├── data_loader.py
-│   ├── metrics.py
-│   ├── performance.py
-│   ├── visualization.py
-│   ├── results.py
-│   ├── tree_utils.py
-│   ├── svm_utils.py
-│   ├── rnn_utils.py
-│   ├── gan_utils.py
-│   ├── attention_utils.py
-│   ├── transformer_utils.py
-│   ├── vit_utils.py
-│   ├── gnn_utils.py
-│   ├── vae_utils.py
-│   └── rl_utils.py
-├── No-Framework/                               # #01-#08 only (retired after PCA; from-scratch ceiling for classical ML)
-│   ├── 01-linear-regression/
-│   ├── 02-logistic-regression/
-│   ├── 03-knn/
-│   ├── 04-k-means/
-│   ├── 05-naive-bayes/
-│   ├── 06-decision-trees-random-forests/
-│   ├── 07-svm/
-│   └── 08-pca/
-├── Scikit-Learn/                               # #01-#10 only (retired after Autoencoders; sklearn MLP can't compete with PT/TF conv AE)
-│   ├── 01-linear-regression/
-│   ├── 02-logistic-regression/
-│   ├── 03-knn/
-│   ├── 04-k-means/
-│   ├── 05-naive-bayes/
-│   ├── 06-decision-trees-random-forests/
-│   ├── 07-svm/
-│   ├── 08-pca/
-│   ├── 09-dnn/
-│   └── 10-autoencoders/
-├── PyTorch/                                    # All 20 models; deployment winner for 14 of 17 deployable artifacts
-│   ├── 01-linear-regression/
-│   ├── 02-logistic-regression/
-│   ├── 03-knn/
-│   ├── 04-k-means/
-│   ├── 05-naive-bayes/
-│   ├── 06-decision-trees-random-forests/
-│   ├── 07-svm/
-│   ├── 08-pca/
-│   ├── 09-dnn/
-│   ├── 10-autoencoders/
-│   ├── 11-cnn/
-│   ├── 12-rnn/
-│   ├── 13-lstm/
-│   ├── 14-gans/
-│   ├── 15-attention/
-│   ├── 16-transformers/
-│   ├── 17-vit/
-│   ├── 18-gnn/
-│   ├── 19-vae/
-│   └── 20-q-learning/
-└── TensorFlow/                                 # All 20 models with WSL2 cuDNN scope reductions on #17 V3, #18 V2/V4, #19 V2, #20 V3-V5
-    ├── 01-linear-regression/
-    ├── 02-logistic-regression/
-    ├── 03-knn/
-    ├── 04-k-means/
-    ├── 05-naive-bayes/
-    ├── 06-decision-trees-random-forests/
-    ├── 07-svm/
-    ├── 08-pca/
-    ├── 09-dnn/
-    ├── 10-autoencoders/
-    ├── 11-cnn/
-    ├── 12-rnn/
-    ├── 13-lstm/
-    ├── 14-gans/
-    ├── 15-attention/
-    ├── 16-transformers/
-    ├── 17-vit/
-    ├── 18-gnn/
-    ├── 19-vae/
-    └── 20-q-learning/
+.
+├── README.md                       # this file
+├── docs/                           # design + findings documentation (NEW)
+│   └── modeling/                   # per-framework deep dives + cross-framework findings
+├── data/                           # raw datasets + preprocessed arrays (.gitignore'd)
+├── data-preperation/               # preprocess scripts + EDA notebooks per model
+├── utils/                          # shared utilities (#02 onward)
+├── No-Framework/                   # #01-#08 only (retired after PCA)
+├── Scikit-Learn/                   # #01-#10 only (retired after Autoencoders)
+├── PyTorch/                        # all 20 models; deployment winner for 14 of 17 artifacts
+├── TensorFlow/                     # #01-#20 with WSL2 cuDNN scope reductions on 5 models
+├── deployment/                     # ACTIVE: production FastAPI services for D1-D5
+└── results/                        # cross-framework comparison artifacts
 ```
 
-Each model subfolder contains: pipeline notebook/script, README with framework notes/time estimates, results (plots/metrics), and data loading consistent with root guidelines.
+Full tree with per-folder annotations: [`docs/modeling/folder-structure.md`](docs/modeling/folder-structure.md).
 
-## Shared Utilities Architecture
+## Documentation
 
-Began implementation during Logistic Regression and introduced a shared `utils/` package to avoid duplicating code across frameworks.
-The package evolves organically: during the planning phase when new model types are started, recurring patterns are identified and moved here.
+### Modeling phase
 
-### Current Utilities
+- [`docs/modeling/no-framework.md`](docs/modeling/no-framework.md) — pure NumPy/SciPy, #01-#08 (retired after PCA)
+- [`docs/modeling/scikit-learn.md`](docs/modeling/scikit-learn.md) — #01-#10 (retired after Autoencoders); won 3 deployment slots
+- [`docs/modeling/pytorch.md`](docs/modeling/pytorch.md) — all 20 models; won 14 of 17 deployment artifacts
+- [`docs/modeling/tensorflow.md`](docs/modeling/tensorflow.md) — #01-#20 with documented scope reductions; won D5 Translation
+- [`docs/modeling/cross-framework-findings.md`](docs/modeling/cross-framework-findings.md) — parity results, framework-vs-framework patterns, general insights
+- [`docs/modeling/utilities.md`](docs/modeling/utilities.md) — the shared `utils/` package (architecture + every function added)
+- [`docs/modeling/folder-structure.md`](docs/modeling/folder-structure.md) — full project tree with annotations
 
-(Newest additions at top; table grows as new model types introduce shared patterns)
+### Deployment phase
 
-| Module | Functions | Added In | Purpose |
-|--------|-----------|----------|---------|
-| `rl_utils.py` | `seed_everything`, `epsilon_greedy`, `LinearEpsilonSchedule`, `ReplayBuffer`, `PrioritizedReplayBuffer` (with `_SumTree`), `soft_target_update`, `evaluate_policy`, `plot_learning_curve` | Q-Learning | Eight RL primitives shared between PT + TF pipelines: cyclic replay buffer (V2-V4), prioritized replay via O(log N) sum-tree (V5; proportional-sampling unit-tested at <5% relative error), epsilon-greedy action selection, linear epsilon decay schedule, Polyak target-net update (PT lazy torch import), deterministic policy rollout, learning curve plotter with rolling mean overlay. `seed_everything` plumbs Python random + numpy + torch (lazy) + gymnasium env action_space sampler in one call |
-| `vae_utils.py` | `reparameterize`, `kl_divergence_gaussian`, `vq_straight_through`, `vq_commit_loss`, `latent_traversal`, `interpolate_latent` | VAE | Six probabilistic-latent primitives: reparameterization trick (z = mu + exp(0.5*logvar)*eps), analytical KL divergence between N(mu, sigma^2) and N(0, I), VQ-VAE straight-through estimator + commitment loss, β-VAE single-dim latent traversals, latent-space interpolation. Note: V4 + V5 inline VQ math; the util's `vq_straight_through` has a known gradient-flow bug deferred to future cleanup |
-| `gnn_utils.py` | `normalize_adj_symmetric`, `edge_softmax`, `evaluate_ogb` | GNN | Symmetric-normalized adjacency (`D^(-1/2)(A+I)D^(-1/2)` as sparse COO) for GCN, scatter-softmax wrapper for from-scratch GAT attention, OGB Evaluator shape-shim from logits/labels to leaderboard metric |
-| `vit_utils.py` | `apply_mixup_cutmix`, `distillation_loss`, `attention_rollout`, `cls_attention_map` | Vision Transformers | Batch-level MixUp/CutMix with soft labels, DeiT dual-head distillation loss (hard/soft modes), Abnar & Zuidema attention rollout, CLS-to-patches heatmap upsampling |
-| `visualization.py` | `plot_attention_overlay`, `plot_attention_grid_samples` | Vision Transformers | Single-image CLS attention overlay + 2xN grid of originals vs attention for portfolio viz. `plot_bleu_progression` extended with `ylabel` param to serve as generic variant progression chart |
-| `transformer_utils.py` | `create_pad_mask`, `create_causal_mask`, `greedy_decode`, `compute_bleu_greedy`, `beam_search_decode` | Transformers | Mask creation (padding + causal), autoregressive greedy decoding, BPE-aware BLEU computation, beam search with length normalization |
-| `visualization.py` | `plot_bleu_progression`, `plot_multihead_grid` | Transformers | BLEU comparison across variants with baseline line + multi-head attention grid showing head specialization |
-| `attention_utils.py` | `compute_bleu`, `bleu_by_length` | Attention | BLEU-4 corpus scoring with smoothing + per-length-bucket analysis. Reusable for Transformers. |
-| `visualization.py` | `plot_attention_heatmap`, `plot_attention_comparison`, `plot_bleu_by_length` | Attention | Attention weight heatmaps (single + side-by-side comparison), BLEU by sentence length bar charts |
-| `gan_utils.py` | `compute_fid` | GANs | Frechet Inception Distance via InceptionV3 pool3 features. Gold-standard generative model metric. Reusable for VAE. |
-| `visualization.py` | `plot_generated_grid` | GANs | Grid display of generated images with auto [-1,1]→[0,1] rescaling and channel format detection. Reusable for VAE. |
-| `rnn_utils.py` | `jitter`, `scaling`, `time_warp`, `augment_minority_classes` | LSTM | Time-series augmentation for imbalanced datasets. Offline augmentation applied once during preprocessing. |
-| `rnn_utils.py` | `MacroF1Callback`, `extract_hidden_states` | LSTM | Keras early stopping on macro F1 (reusable for all TF sequence models). Hidden/cell state extraction for LSTM analysis (PT + TF). |
-| `visualization.py` | `plot_ecg_augmentation_samples`, `plot_class_distribution_comparison`, `plot_sequence_length_distribution` | LSTM | ECG augmentation viz, before/after class balance chart, variable-length sequence histogram |
-| `rnn_utils.py` | `compute_gradient_norms` | RNN | Per-layer gradient norms for vanishing gradient analysis (PyTorch + TensorFlow). Reusable for LSTM, Attention, Transformers |
-| `visualization.py` | `plot_gradient_flow`, `plot_ecg_predictions`, `plot_hidden_state_evolution` | RNN | Gradient norm bar charts (side-by-side models), ECG waveforms colored by prediction correctness, hidden state dimensions over timesteps |
-| `visualization.py` | `plot_superclass_confusion`, `plot_augmentation_samples` | CNN | Superclass-level confusion matrix with hierarchical evaluation, generic augmentation sample grid |
-| `data_loader.py` | `load_processed_data` (updated) | CNN | Auto-detects hierarchical labels (fine/coarse) — backward compatible with all existing models |
-| `performance.py` | `get_model_size` (fixed) | CNN | Fixed TF dtype bug — `v.dtype.name` with `np.dtype().itemsize` handles both PT and TF |
-| `visualization.py` | `plot_latent_space`, `plot_reconstruction_grid`, `plot_training_history` | Autoencoders | Latent space t-SNE/PCA projection, RGB reconstruction grids, model-agnostic training history title |
-| `results.py` | `add_result`, `print_comparison` (fixed) | Autoencoders | Removed hardcoded `/4` framework count — now dynamic for 3-framework and 2-framework models |
-| `visualization.py` | `plot_training_history` | DNN | Dual-panel training loss + accuracy curves (handles optional val_loss/val_acc) |
-| `visualization.py` | `plot_scree`, `plot_reconstruction_grid`, `plot_pca_components`, `plot_component_accuracy` | PCA | Scree/cumulative variance plots, reconstruction comparison grids, PC visualization, accuracy vs components |
-| `svm_utils.py` | `to_svm_labels`, `to_std_labels`, `platt_calibrate`, `platt_predict_proba` | SVM | Label conversion {0,1}↔{-1,+1} + Platt probability calibration for from-scratch SVMs |
-| `visualization.py` | `plot_kernel_comparison`, `plot_svm_convergence` | SVM | Kernel comparison showcase (3-panel grouped bars) + dual objective convergence |
-| `tree_utils.py` | `compute_feature_importance`, `flatten_tree`, `predict_batch` | Decision Trees | Shared DT/RF operations — Gini importance, flat array conversion, batch prediction |
-| `results.py` | `build_results_dict`, `_format_value` | Decision Trees | Standardized results construction + human-readable unit formatting (seconds, MB, µs) |
-| `visualization.py` | `plot_tree_depth_analysis`, `plot_forest_convergence` | Decision Trees | DT overfitting analysis (train vs test across max_depth) + RF convergence (accuracy vs n_estimators) |
-| `metrics.py` | `log_loss`, `brier_score`, `expected_calibration_error` | Naive Bayes | Probabilistic evaluation (calibration quality) |
-| `metrics.py` | `evaluate_classifier`, `print_metrics` | Naive Bayes | Streamlined evaluation helpers — auto-detect binary/multiclass, formatted tables |
-| `performance.py` | `track_inference`, `get_model_size` | Naive Bayes | Inference speed (per-sample μs, throughput) and model size tracking |
-| `visualization.py` | `plot_calibration_curve`, `plot_calibration_comparison` | Naive Bayes | Reliability diagrams — single model + multi-model overlay for before/after comparison |
-| `results.py` | `save_results`, `add_result`, `print_comparison` | K-Means | Cross-framework result saving and comparison |
-| `metrics.py` | `inertia`, `silhouette_score`, `silhouette_samples`, `adjusted_rand_index` | K-Means | Unsupervised clustering evaluation |
-| `visualization.py` | `plot_elbow_curve`, `plot_silhouette_comparison`, `plot_silhouette_analysis`, `plot_convergence_curve` | K-Means | Clustering visualizations |
-| `performance.py` | `track_performance(gpu=True)` | KNN (PyTorch) | GPU memory tracking for PyTorch/TensorFlow |
-| `data_loader.py` | `load_processed_data` | KNN | Generic data loader for any model |
-| `metrics.py` | `confusion_matrix_multiclass`, `macro_f1_score` | KNN | Multi-class evaluation |
-| `visualization.py` | `plot_confusion_matrix_multiclass`, `plot_validation_curve`, `plot_per_class_f1` | KNN | Multi-class visualizations |
-| `metrics.py` | `accuracy`, `precision`, `recall`, `f1_score`, `confusion_matrix_values`, `roc_curve`, `auc_score` | Logistic Regression | Classification evaluation |
-| `performance.py` | `track_performance()` | Logistic Regression | Context manager for timing and CPU memory tracking |
-| `visualization.py` | `plot_cost_curve`, `plot_confusion_matrix`, `plot_roc_curve`, `plot_feature_importance` | Logistic Regression | Consistent plots across frameworks |
-
-### Benefits
-
-- **Zero inconsistency**: All frameworks use identical metric calculations
-- **Faster development**: 3 imports vs 50 lines of boilerplate per notebook
-- **Easier maintenance**: Fix a bug once, applies everywhere
-- **Framework-agnostic**: Works with NumPy arrays from any framework
-
-### Usage Pattern
-```python
-from utils.metrics import evaluate_classifier, print_metrics
-from utils.performance import track_performance, track_inference, get_model_size
-from utils.visualization import plot_calibration_curve
-
-# Training with performance tracking
-with track_performance() as perf:
-    model.fit(X_train, y_train)
-
-# Streamlined evaluation (auto-detects binary/multiclass, includes probabilistic metrics)
-train_metrics = evaluate_classifier(y_train, train_pred, train_proba)
-test_metrics = evaluate_classifier(y_test, test_pred, test_proba)
-print_metrics(train_metrics, test_metrics, title='MultinomialNB — 20 Newsgroups')
-
-# Inference speed + model size (new from Naive Bayes onward)
-inference = track_inference(model.predict_proba, X_test, n_runs=100)
-model_size = get_model_size(model, framework='sklearn')
-```
-
-## Progress Log
-
-(Newest entries at top; grows downward as we complete models)
-
-- **2026-04-27 | Q-Learning Summary: *Modeling phase complete (#01-#20). PT 5 variants across 3 envs (Taxi/CartPole/LunarLander). V1 perfect bit-identical cross-framework parity. V3 Double DQN reduces overestimation 32% (verified). V5 PER honest negative result (0/3 seeds solved on LunarLander, 5x wall-clock).***
-- 2026-04-27 | Q-Learning / TensorFlow | V1 Tabular (Taxi-v4) + V2 DQN (CartPole-v1) only. **V1 parity 0.00% (bit-identical Q-tables)**. V2 eval **+403.20** vs PT +500.00 (19.36% gap, within Henderson 2018 RL noise floor). Wall-clock **24x slower** than PT in eager mode (288 min vs 12 min/seed) — eager mode unsuited to tight RL sample loops. | [TensorFlow/20-q-learning](TensorFlow/20-q-learning/)
-- 2026-04-26 | Q-Learning / PyTorch | 5 variants on 3 gymnasium envs. V1 Tabular **+8.38** (Taxi-v4, 5.7s on numpy). V2 DQN **+500.00 perfect 3/3 seeds** (CartPole-v1). V3 Double DQN **-32% overestimation** (verified). V4 Dueling DQN **+206.90 mean, 2/3 seeds solved** (LunarLander-v3). **V5 PER honest negative result** (0/3 seeds, 5x V4 wall-clock; PER amplified Q-divergence + Python sum-tree bottleneck). Best-checkpoint tracking added in V4/V5 to handle catastrophic forgetting. | [PyTorch/20-q-learning](PyTorch/20-q-learning/)
-- 2026-04-25 | Q-Learning / EDA + Utilities | env characterization (no static dataset, RL is online): Taxi-v4 random baseline -780, CartPole-v1 +21, LunarLander-v3 -186 (gaps to learn +788/+454/+386). New `utils/rl_utils.py` (8 RL primitives, shared between PT + TF, sum-tree proportional-sampling unit-tested). | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-24 | VAE Summary: *PT 5 variants on MNIST + CIFAR-10. Cross-framework parity 0.11 nats (TF V1 102.09 vs PT 101.98). DALL-E 1 recipe at portfolio scale.***
-- 2026-04-24 | VAE / TensorFlow | V1 Vanilla VAE only (V2 cuDNN-blocked: 9.1.0 runtime vs 9.3.0 compiled). MNIST test NLL **102.09** nats, parity delta **+0.11** vs PT. WSL2 GPU eager mode 14x slower (1048s vs 73s). | [TensorFlow/19-vae](TensorFlow/19-vae/)
-- 2026-04-23 | VAE / PyTorch | 5 variants on MNIST + CIFAR-10. V1 Vanilla NLL **101.98**, **V5 VQ-VAE + PixelCNN prior FID 117.27** (DALL-E 1 two-stage recipe). Built from `nn.Linear`/`nn.Conv2d`/`nn.Embedding` + masked-conv causality. | [PyTorch/19-vae](PyTorch/19-vae/)
-- 2026-04-22 | VAE / EDA + Preprocessing + Utilities | MNIST (60K/10K, 28x28 grayscale, bimodal pixels -> Bernoulli decoder) + CIFAR-10 (50K/10K, 32x32 RGB, [0,1] norm -> Gaussian decoder). | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-20 | GNN Summary: *PT V3 GAT wins both datasets (Cora 0.8310, arxiv OGB 0.7028). V4a GIN Baseline underperforms V1 GCN (-2.7pp arxiv) — theoretical expressiveness does not auto-transfer.***
-- 2026-04-20 | GNN / TensorFlow | V1 GCN + V3 GAT from TF primitives. Spektral dropped. WSL2 GPU. V1 GCN: Cora **0.8090**, arxiv OGB **0.7045**. V3 GAT: Cora 0.8060, arxiv OGB 0.7004. | [TensorFlow/18-gnn](TensorFlow/18-gnn/)
-- 2026-04-19 | GNN / PyTorch | 4 variants on Cora + ogbn-arxiv: **V3 GAT** from scratch (Cora **0.8310** matches Velickovic / arxiv **0.7025**) | [PyTorch/18-gnn](PyTorch/18-gnn/)
-- 2026-04-18 | GNN / EDA + Preprocessing + Utilities | Cora (2,708 nodes, 7 classes, edge homophily 0.81) + ogbn-arxiv (169K nodes, 40 classes, temporal split, 942x class imbalance).  | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-17 | Vision Transformers Summary: *PT V4 Pre-trained (91.16%) beats CNN #11 by +10.93pp. From-scratch ViT underperforms CNN (-12.75pp). TF V2 confirms recipe cross-framework.***
-- 2026-04-17 | Vision Transformers / TensorFlow | V2 Recipe only (WSL2 GPU). **63.60% test**. V3 Distillation skipped | [TensorFlow/17-vit](TensorFlow/17-vit/)
-- 2026-04-15 | Vision Transformers / PyTorch | 4 variants on CIFAR-100 (reused from CNN #11). V1 Vanilla **50.33%** -> **91.16%**. Built from `nn.Linear` with no `nn.TransformerEncoder`. | [PyTorch/17-vit](PyTorch/17-vit/)
-- 2026-04-14 | Vision Transformers / EDA + Preprocessing + Utilities | CIFAR-100 patch decomposition EDA (32x32 -> 8x8 grid of 4x4 patches, 64 tokens + CLS). No new preprocessing (reused CNN #11). | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-12 | Transformers Summary: *TensorFlow Transformer (BLEU 0.4456) > PyTorch Transformer+Beam (0.3625). Classification: TF 92.20% vs PT 91.22%.***
-- 2026-04-12 | Transformers / TensorFlow | Recipe variant (WSL2 GPU). Translation **BLEU 0.4456**. Classification **92.20% acc**. 241 min translation training (8.5x WSL2 overhead). | [TensorFlow/16-transformers](TensorFlow/16-transformers/)
-- 2026-04-11 | Transformers / PyTorch | 5 variants across 2 tasks. **Translation**: Beam Search (**0.3625**). **Classification (AG News)**: DistilBERT fine-tuned **94.45%**. Built from `nn.Linear` with no `nn.Transformer`. | [PyTorch/16-transformers](PyTorch/16-transformers/)
-- 2026-04-10 | Transformers / EDA + Preprocessing + Utilities | BPE tokenization via SentencePiece. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-06 | Attention Summary: *PyTorch Bahdanau (BLEU 0.380) > TensorFlow Bahdanau (0.337) | Same architecture, TF hampered by WSL2 cuDNN workaround. Pre-GRU context injection is the dominant quality factor.***
-- 2026-04-06 | Attention / TensorFlow | Bahdanau only (WSL2 GPU). **BLEU 0.3368**, 278 min training (17x slower — non-CuDNN GRU kernel + /mnt/c/ filesystem). | [TensorFlow/15-attention](TensorFlow/15-attention/)
-- 2026-04-05 | Attention / PyTorch | 4 variants: **Bahdanau (BLEU 0.380)** Pre-GRU context injection >> post-GRU attention on short sentences | [PyTorch/15-attention](PyTorch/15-attention/)
-- 2026-04-05 | Attention / EDA + Preprocessing + Utilities | Tatoeba EN→ES (144K pairs, word-level). `attention_utils.py` + 3 attention viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-04-03 | GANs Summary: *PyTorch DCGAN (FID 30.57) — best quality. TF DCGAN visually comparable but 15x slower (WSL2 /mnt/c/ bottleneck). Conv architecture >> loss function for image quality.***
-- 2026-04-03 | GANs / TensorFlow | DCGAN only (WSL2 GPU). 79 min training (15x slower — filesystem overhead). WGAN-GP skipped (6h+ estimate, worse FID in PT). | [TensorFlow/14-gans](TensorFlow/14-gans/)
-- 2026-04-02 | GANs / PyTorch | 4 variants: Vanilla (FID 261), **DCGAN (FID 30.57)**, WGAN-GP (FID 55), cGAN (FID 148). Progressive build | [PyTorch/14-gans](PyTorch/14-gans/)
-- 2026-04-02 | GANs / EDA + Preprocessing + Utilities | CIFAR-10 (50K images, [-1,1] normalization). added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-30 | LSTM Summary: *Two datasets — ECG5000 augmented (PT 0.60, TF 0.59 macro F1 — broke RNN's 0.55 ceiling via augmentation) + IMDB sentiment (PT 87.8%, TF 86.5% accuracy). Augmentation > architecture change.***
-- 2026-03-30 | LSTM / TensorFlow | ECG: LSTM-128 **0.607 macro F1** (augmented). IMDB: LSTM-128 **86.5% acc**. CPU training (8 min ECG, 24 min IMDB). Sweep/ablation skipped (PT covered). | [TensorFlow/13-lstm](TensorFlow/13-lstm/)
-- 2026-03-29 | LSTM / PyTorch | ECG: LSTM-128 **0.603 macro F1** (augmented, broke 0.55 ceiling). IMDB: LSTM-128 **87.8% acc**, 0.946 AUC. Sequence length ablation (300 optimal). | [PyTorch/13-lstm](PyTorch/13-lstm/)
-- 2026-03-29 | LSTM / EDA + Preprocessing + Utilities | IMDB EDA (50K reviews, binary). `preprocess_lstm.py` (ECG augmentation + IMDB padding). Augmentation utils + MacroF1Callback + 3 viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-28 | RNN Summary: *PyTorch GRU-128 (91.8%, F1 0.55) vs TensorFlow BiGRU-64 (89.8%, F1 0.54) | Different winners per framework, same macro F1 ceiling from 121.6x class imbalance***
-- 2026-03-28 | RNN / TensorFlow | BiGRU-64 (2 layers), **89.8% accuracy, 0.54 macro F1** on ECG5000. Keras Sequential + model.fit + custom MacroF1Callback. CPU training (218s). | [TensorFlow/12-rnn](TensorFlow/12-rnn/)
-- 2026-03-27 | RNN / PyTorch | GRU-128 (2 layers), **91.8% accuracy, 0.55 macro F1** on ECG5000 (5-class heartbeat, 121.6x imbalance). Vanilla RNN vs GRU comparison + gradient flow analysis. | [PyTorch/12-rnn](PyTorch/12-rnn/)
-- 2026-03-27 | RNN / EDA + Preprocessing + Utilities | ECG5000 (5,000 heartbeats, 140 timesteps, 5 classes). `rnn_utils.py` + 3 RNN viz functions added. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-26 | CNN Summary: *PyTorch leads (80.1%) > TensorFlow (79.5%) on CIFAR-100 | Same ResNet-20 + CutMix recipe, PT 11x faster training. First TF model on GPU via WSL2.***
-- 2026-03-26 | CNN / TensorFlow | ResNet-20 via Keras Functional API + CutMix + Nesterov SGD, **79.5% accuracy** on CIFAR-100. WSL2 GPU (RTX 4090). | [TensorFlow/11-cnn](TensorFlow/11-cnn/)
-- 2026-03-25 | CNN / PyTorch | ResNet-20 + CutMix + Label Smoothing + Nesterov SGD, **80.1% accuracy** on CIFAR-100 (100 classes). Progression: 56.9% -> 80.1%. Superclass accuracy 87.9%. | [PyTorch/11-cnn](PyTorch/11-cnn/)
-- 2026-03-22 | CNN / EDA + Preprocessing + Utilities | CIFAR-100 (60K color images, 100 fine classes, 20 superclasses). WSL2 + TF GPU setup. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-21 | Autoencoders Summary: *PyTorch conv denoising AE leads (MSE 0.0037) > TF dense (0.0096) > SK dense (0.0133) | Conv AE skipped on TF (CPU OOM). SK retired.***
-- 2026-03-21 | Autoencoders / TensorFlow | Dense AE only (128-dim, MSE 0.0096, 15K subset). Conv AE skipped — TF CPU crashes on conv training with color images. | [TensorFlow/10-autoencoders](TensorFlow/10-autoencoders/)
-- 2026-03-20 | Autoencoders / PyTorch | GPU conv denoising AE (64-128-256, lat=256), MSE 0.0037 (3.6x better than SK). Architecture sweep + noise level sweep. 0.07 µs/sample. | [PyTorch/10-autoencoders](PyTorch/10-autoencoders/)
-- 2026-03-20 | Autoencoders / Scikit-Learn | Dense AE (MLPRegressor), 128-dim bottleneck, MSE 0.0133, 24x compression. SK's LAST model — retired. | [Scikit-Learn/10-autoencoders](Scikit-Learn/10-autoencoders/)
-- 2026-03-20 | Autoencoders / EDA + Preprocessing + Utilities | CIFAR-10 (60K color images, 3,072 features, 10 classes). | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-18 | DNN Summary: *PyTorch GPU leads (96.03%) > SK (94.91%) > TF CPU (94.23%) | SK fastest training (2.42s), PT fastest inference (0.35 µs)***
-- 2026-03-18 | DNN / TensorFlow | Keras Sequential + callbacks, 128-64 architecture, 94.23% accuracy. 9.14s training, 31.68 µs/sample. | [TensorFlow/09-dnn](TensorFlow/09-dnn/)
-- 2026-03-18 | DNN / PyTorch | GPU-accelerated RegularizedDNN 256-128 architecture, 96.03% accuracy, 96.02% F1. | [PyTorch/09-dnn](PyTorch/09-dnn/)
-- 2026-03-17 | DNN / Scikit-Learn | MLPClassifier 128-64 architecture, 94.91% accuracy, 94.93% F1. | [Scikit-Learn/09-dnn](Scikit-Learn/09-dnn/)
-- 2026-03-17 | DNN / EDA + Preprocessing + Utilities | UCI HAR (10,299 samples, 561 features, 6 activities). `plot_training_history` added to utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-16 | PCA Summary: *All 4 frameworks identical: 90.85% variance, 0.0951 MSE, 85.99% KNN accuracy | PyTorch GPU fastest (0.11s fit, 0.39 µs/sample)***
-- 2026-03-16 | PCA / TensorFlow | CPU eager-mode tensor ops (0.17s fit, 0.93 µs/sample). Eager vs tf.function showcase: 1.10x graph speedup. | [TensorFlow/08-pca](TensorFlow/08-pca/)
-- 2026-03-15 | PCA / PyTorch | GPU eigendecomposition fastest (0.11s fit, 0.39 µs/sample). 9.1x GPU vs CPU speedup showcase. 599 MB GPU memory. | [PyTorch/08-pca](PyTorch/08-pca/)
-- 2026-03-14 | PCA / No-Framework | From-scratch eigendecomposition matches SK exactly (0.9085 variance, 0.8599 KNN). 0.23s fit, 0.89 µs/sample. | [No-Framework/08-pca](No-Framework/08-pca/)
-- 2026-03-13 | PCA / Scikit-Learn | 150 components retain 90.85% variance, KNN accuracy 85.99%. IncrementalPCA showcase. 0.19s fit, 0.52 µs/sample. | [Scikit-Learn/08-pca](Scikit-Learn/08-pca/)
-- 2026-03-13 | PCA / EDA + Preprocessing + Utilities | Fashion-MNIST (60K train, 784 features, 10 classes). 4 new viz functions in utils/. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-11 | SVM Summary: *All 4 frameworks achieve ~86% accuracy | PyTorch GPU fastest (9.03s), TF eager CPU 1.9x faster than raw NumPy***
-- 2026-03-11 | SVM / TensorFlow | CPU tensor-based dual gradient descent (85.77s training, 1.9x faster than NF). 15.55 µs/sample inference. | [TensorFlow/07-svm](TensorFlow/07-svm/)
-- 2026-03-10 | SVM / PyTorch | GPU-accelerated dual gradient descent (9.03s training, 17.7x faster than NF). 0.59 µs/sample inference. | [PyTorch/07-svm](PyTorch/07-svm/)
-- 2026-03-10 | SVM / No-Framework | Poly kernel SVM via dual gradient descent (C=10, F1 0.90, AUC 0.91). From-scratch projected gradient ascent. | [No-Framework/07-svm](No-Framework/07-svm/)
-- 2026-03-09 | SVM / Scikit-Learn | Poly kernel SVC (C=10, F1 0.89, AUC 0.92). Kernel comparison showcase + MLflow + model export. | [Scikit-Learn/07-svm](Scikit-Learn/07-svm/)
-- 2026-03-09 | SVM / EDA + Preprocessing + Utilities | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-03-07 | Decision Trees & RF Summary: *All 4 frameworks achieve ~89% accuracy | euribor3m, age, campaign top features across all***
-- 2026-03-07 | Decision Trees & RF / TensorFlow | CPU tensor ops DT+RF. NumPy 1.06x faster than TF for split search (showcase). Slowest framework (199 min) | [TensorFlow/06-decision-trees-random-forests](TensorFlow/06-decision-trees-random-forests/)
-- 2026-03-04 | Decision Trees & RF / PyTorch | GPU-accelerated DT+RF via hybrid CPU/GPU approach. 16% faster training than No-Framework. | [PyTorch/06-decision-trees-random-forests](PyTorch/06-decision-trees-random-forests/)
-- 2026-03-03 | Decision Trees & RF / No-Framework | From-scratch DT+RF (F1 0.41, AUC 0.78). Gini vs Entropy + manual OOB showcases. | [No-Framework/06-decision-trees-random-forests](No-Framework/06-decision-trees-random-forests/)
-- 2026-03-01 | Decision Trees & RF / Scikit-Learn | GridSearchCV tuned RF (F1 0.48, AUC 0.80). First MLflow + model export. | [Scikit-Learn/06-decision-trees-random-forests](Scikit-Learn/06-decision-trees-random-forests/)
-- 2026-03-01 | Decision Trees & RF / Preprocessing | Bank Marketing UCI: 41,188 samples, 19 features. OrdinalEncoder, `duration` dropped (leakage). | [data-preperation/](data-preperation/)
-- 2026-02-28 | Decision Trees & RF / EDA + Utilities | First dedicated EDA notebook. | [data-preperation/](data-preperation/) and [utils/](utils/)
-- **2026-02-28 | Naive Bayes Summary: *All 4 frameworks achieve identical metrics | accuracy 66.83%, macro F1 63.94%***
-- 2026-02-28 | Naive Bayes / TensorFlow | CPU tensor ops (TF 2.20.0, no Windows GPU). 0.10s training, 7.62 μs/sample. | [TensorFlow/05-naive-bayes](TensorFlow/05-naive-bayes/)
-- 2026-02-27 | Naive Bayes / PyTorch | GPU-accelerated NB on RTX 4090. Fastest: 0.028s training, 3.5 μs/sample inference. | [PyTorch/05-naive-bayes](PyTorch/05-naive-bayes/)
-- 2026-02-26 | Naive Bayes / No-Framework | Pure NumPy GaussianNB + MultinomialNB. Faster (0.13s vs 0.21s), 18x less memory. | [No-Framework/05-naive-bayes](No-Framework/05-naive-bayes/)
-- 2026-02-25 | Naive Bayes / Scikit-Learn | GaussianNB (89.5%) + MultinomialNB (66.8%). | [Scikit-Learn/05-naive-bayes](Scikit-Learn/05-naive-bayes/)
-- 2026-02-24 | Naive Bayes / Preprocessing | Breast Cancer (GaussianNB baseline: 569 samples, 30 features) + 20 Newsgroups (MultinomialNB: 11,314 train, 10K TF-IDF features, 20 categories) | [data-preperation/](data-preperation/)
-- 2026-02-24 | Naive Bayes / Utilities | Added probabilistic metrics (log-loss, Brier, ECE), evaluation helpers (evaluate_classifier, print_metrics), inference tracking, model size, calibration curves | [utils/](utils/)
-- **2026-02-24 | K-Means Summary: *All 4 frameworks achieve identical clustering quality | ARI 0.6684, Silhouette 0.3064***
-- 2026-02-24 | K-Means / TensorFlow | CPU tensor ops, tf.TensorArray for immutable tensors. 0.3064 silhouette, 0.6684 ARI, slowest at 2.01s. | [TensorFlow/04-k-means](TensorFlow/04-k-means/)
-- 2026-02-22 | K-Means / PyTorch | GPU-accelerated torch.cdist + torch.vmap/torch.compile showcases. 0.3064 silhouette, 0.6684 ARI. | [PyTorch/04-k-means](PyTorch/04-k-means/)
-- 2026-02-21 | K-Means / No-Framework | From-scratch Lloyd's algorithm, K-Means++ init. Matches sklearn metrics, 17x slower. | [No-Framework/04-k-means](No-Framework/04-k-means/)
-- 2026-02-18 | K-Means / Scikit-Learn | KMeans + MiniBatchKMeans comparison. K=7, 0.3061 silhouette, 0.6686 ARI. | [Scikit-Learn/04-k-means](Scikit-Learn/04-k-means/)
-- 2026-02-17 | K-Means / Utilities | Preprocessing script, results.py, clustering metrics + visualizations in utils/ | [utils/](utils/)
-- **2026-02-15 | KNN Summary: *All 4 frameworks achieve 93.77% accuracy | Scikit-Learn KD-tree fastest (57s)***
-- 2026-02-15 | KNN / TensorFlow | Chunked broadcasting on CPU (TF 2.11+ no Windows GPU). 93.77% accuracy, 110/sec. | [TensorFlow/03-knn](TensorFlow/03-knn/)
-- 2026-02-14 | KNN / PyTorch | GPU-accelerated torch.cdist, 7.2GB VRAM. 93.77% accuracy, 1,164/sec. | [PyTorch/03-knn](PyTorch/03-knn/)
-- 2026-02-14 | KNN / No-Framework | Manual Manhattan distance + weighted voting. 93.79% accuracy, ~1,300x slower. | [No-Framework/03-knn](No-Framework/03-knn/)
-- 2026-02-12 | KNN / Scikit-Learn | GridSearchCV tuning, K=3 manhattan distance. 93.77% accuracy. | [Scikit-Learn/03-knn](Scikit-Learn/03-knn/)
-- **2026-02-10 | Logistic Regression Summary: *All 4 frameworks achieve 83% recall on fraud detection | 70% Time saved with `utils/`***
-- 2026-02-10 | Logistic Regression / TensorFlow | Keras model.fit() abstraction. Slowest (52.95s). | [TensorFlow/02-logistic-regression](TensorFlow/02-logistic-regression/)
-- 2026-02-10 | Logistic Regression / PyTorch | Autograd + SGD, 7.8x faster than No-Framework (2.36s). | [PyTorch/02-logistic-regression](PyTorch/02-logistic-regression/)
-- 2026-02-09 | Logistic Regression / Scikit-Learn | L-BFGS solver, 57x faster than No-Framework (0.32s). | [Scikit-Learn/02-logistic-regression](Scikit-Learn/02-logistic-regression/)
-- 2026-02-09 | Logistic Regression / No-Framework | Manual sigmoid, BCE loss, gradient descent. 18.3s training. | [No-Framework/02-logistic-regression](No-Framework/02-logistic-regression/)
-- **2026-02-08 | Linear Regression Summary: *All 4 frameworks achieve identical accuracy: R²=0.50, RMSE=$10,105***
-- 2026-02-08 | Linear Regression / TensorFlow | Keras model.fit() abstraction. Slowest (23.58s) but simplest code. | [TensorFlow/01-linear-regression](TensorFlow/01-linear-regression/)
-- 2026-02-07 | Linear Regression / PyTorch | Autograd vs manual gradients. Slower (3.44s) and more memory (54MB) | [PyTorch/01-linear-regression](PyTorch/01-linear-regression/)
-- 2026-02-05 | Linear Regression / Scikit-Learn | Normal Equation vs Gradient Descent. 13x faster, 7.5x more memory. 90% less code. | [Scikit-Learn/01-linear-regression](Scikit-Learn/01-linear-regression/)
-- 2026-02-04 | Linear Regression / No-Framework | Built from scratch with NumPy: gradient descent, MSE cost, z-score scaling. | [No-Framework/01-linear-regression](No-Framework/01-linear-regression/)
-
-## How to Run / Setup
-
-1. Python 3.10+ recommended.
-2. Install dependencies per framework (see each subfolder's README for specifics; common: numpy, pandas, matplotlib, scikit-learn, torch, tensorflow).
-3. Navigate to a model subfolder and run the notebook/script.
-4. Use consistent random seeds 113 for reproducibility.
-
-## Overall Learnings & Conclusions
-
-(Updated over time)
-
-### Q-Learning (Completed) - FINAL MODEL, MODELING PHASE COMPLETE (#01-#20)
-
-- **Only reinforcement-learning model in the 20-model portfolio**: completes the four-paradigm coverage (supervised + unsupervised + generative + reinforcement). Watkins 1989 -> Mnih 2015 -> van Hasselt 2016 -> Wang 2016 -> Schaul 2016 lineage with one isolated lever per variant. RL has no static dataset - the agent generates training data online via `env.step()`. Documented as a structural break in folder structure (no `data/processed/q_learning/`)
-- **5 variants on PyTorch, 2 on TensorFlow**: V1 Tabular (Taxi-v4) + V2 DQN + V3 Double DQN (CartPole-v1) + V4 Dueling DQN + V5 PER (LunarLander-v3) on PT; V1 + V2 on TF. V3-V5 are PT-only by plan (V3 is one-line target-computation change from V2; V4 architectural decomposition; V5 sum-tree priority buffer - each adds substantial implementation work for marginal cross-framework value, matching ViT/GNN/VAE TF-scope precedent)
-- **V1 cross-framework parity is bit-identical**: max relative diff 0.00% across all 3000 (state, action) Q-table entries. Same numpy training loop, same seed, same Taxi-v4 transitions. The TF involvement is `tf.constant` + `tf.argmax` at the inference boundary, cosmetic but auditable. The math is the math; tabular Q-learning is numpy-native
-- **V2 single-seed cross-framework gap is 19.36%, within Henderson 2018 RL noise floor**: TF V2 reached eval +403.20 vs PT V2's +500.00 (3-seed all-perfect). Same algorithm, same hyperparameters, same seed, **different framework** -> mean max-Q values remarkably close (133.49 vs 135.01, both overestimating by ~34 the same way) but final-policy quality diverges. Default Dense init schemes (Glorot vs Kaiming), Adam epsilon defaults (1e-7 vs 1e-8), and divergent RNG paths during replay sampling produce ~100-point eval gaps on saturating envs at single-seed even with identical hyperparameters
-- **TF eager mode is 24x slower than PT for tight RL loops**: 288 min/seed vs 12 min/seed on V2. TF eager dispatches small graphs ~250K times per training run; PT eager amortizes this much better. Production TF RL (`tf-agents`, `tensorflow/agents`) uses `@tf.function` decorators throughout for this reason. Documented as portfolio finding; we don't use them to maintain "PT-eager parity" for honest comparison
-- **V3 Double DQN's overestimation fix replicates cleanly at -32%**: V2 mean max-Q 133.49 (overestimation +33.99 above true ~99.5), V3 122.58 (overestimation +23.08). 32% of V2's overestimation eliminated. Algorithmic claim verified. CartPole eval saturates for both at 500 (when V3 doesn't catastrophically forget); the algorithmic improvement is in Q-value calibration, not eval saturation
-- **V5 PER does NOT replicate Schaul 2016**: 0/3 seeds solved on LunarLander vs V4's 2/3. Two contributors: (1) PER amplified Q-divergence on seed 115 - high-TD-error transitions ARE the divergent ones, resampling them drives Q further off track; (2) Python sum-tree was the wall-clock bottleneck (134 min/seed = 5x V4's 26 min). Sum-tree implementation correctness verified via proportional-sampling unit test (1.4-2.5% relative error). Honest negative result documented as portfolio asset, not embarrassment - paper claims do not auto-replicate without retuning (Henderson 2018 in miniature)
-- **Best-checkpoint tracking matters for DQN-family**: V3 seed 115 demonstrated catastrophic forgetting late in training (rolling-100 +436 at ep 700, +125 at ep 900, eval-on-final-weights +149). Added best-rolling-100 weight tracking in V4/V5 (`train_dueling_dqn`); deployed weights are the peak observed during training, not the final-epoch ones
-- **Multi-seed reporting catches failures invisible to single-seed**: V3 seed 115 collapsed; V4 seed 114 had a 400-episode catastrophic-forgetting window; V5 all 3 seeds underperformed. Single-seed reporting could have shown +500 (lucky) or +149 (unlucky) for V3 - neither is the truth. Following Henderson 2018's standard for portfolio honesty
-- **CartPole-scale epsilon decay is not Atari-scale**: first V2 run used `eps_decay_steps=50_000` (Atari-paper convention). Result: 1/3 seeds barely cleared random because epsilon was still 0.4-0.5 at end of training (CartPole's short early episodes accumulate env-steps slowly). Fixed to 5,000 (~200 random episodes worth); all 3 seeds then hit 500.00. Lesson: decay-step budget must scale to total env-step budget, not be ported rotely from Atari conventions
-
-### Variational Autoencoders (Completed)
-
-- **First likelihood-based deep generative model in the portfolio**: AE #10 (deterministic encoding, no generation) and GANs #14 (implicit likelihood, adversarial) are the prior generative entries. VAE #19 fills the third philosophical slot — explicit probabilistic latent, ELBO-trained, samplable. Five variants spanning the full discrete-latent lineage that powers Stable Diffusion, DALL-E 1, EnCodec
-- **5 variants on PyTorch, 1 on TensorFlow**: V1 Vanilla, V2 Conv, V3 β-VAE sweep, V4 VQ-VAE, V5 VQ-VAE+PixelCNN prior (PT) vs V1 only (TF). V2 dropped on TF due to WSL2 `Conv2D` cuDNN constraint (loaded 9.1.0, TF 2.21 compiled against 9.3.0) — same blocker that surfaced on ViT #17. V3-V5 are PT-only by plan: single-coefficient β change (V3) doesn't exercise new TF primitives; STE codebook (V4) and masked-conv autoregressive sampling (V5) are substantial scope for marginal cross-framework value
-- **Cross-framework parity 0.11 nats** (TF V1 102.09 vs PT V1 101.98) — the tightest reproducibility result in the portfolio. Same architecture, same hyperparameters, same dataset; reparameterization trick + analytical KL implement identically. TF eager-mode is 14x slower in wall-clock but converges to the same ELBO. **The math is the math; the framework is just plumbing**
-- **The FID ladder is the portfolio's headline result**: GAN #14 30.57 < V4 reconstruction 97.81 < **V5 prior-sampled 117.27** < V2 prior 165 < V4 random-codes 202. Each gap isolates a lever. V5 - V4 random = -85 FID is **the learned-prior contribution** (PixelCNN doing its job). V4 recon - V5 = -19 is the prior's information loss vs the encoder's ceiling. GAN - V4 recon = -67 is the **honest VAE-vs-adversarial gap** that explains why modern generation moved to GAN, then diffusion
-- **The prior does the generation, not the decoder**: V4 and V5 share the exact same decoder. V4 from uniform-random codes = FID 202 (noise). V5 from PixelCNN-sampled codes = FID 117 (coherent skies, animals, horizons). The decoder is identical; only the distribution of codes fed in changed. This is the whole thesis of the two-stage recipe (DALL-E 1, Stable Diffusion, Muse, EnCodec)
-- **Discrete latents reconstruct better than continuous VAEs at similar scale**: V4 (138K params, MSE 0.0071) beats V2 (582K params, MSE 0.0166) by 2.3x with 4.2x fewer parameters. The codebook acts as a learned 512-point quantization grid that prevents latent drift into under-trained regions. Quantization is a feature, not a bug — same insight that made VQ-VAE the foundation of DALL-E 1 in 2021 and Stable Diffusion's encoder/decoder stage in 2022
-- **β-VAE's disentanglement is a Pareto trade-off, not a free lunch**: V3 β=4 cleanly separates digit identity (dim 3) from style (other dims) but pays 44 nats in NLL vs V1. β=10 collapses most dims to zero activation. The "sweet spot" is task-dependent — there is no universal β
-- **V4 VQ-VAE failed three times before working**: gradient-killing detach in `vq_straight_through` util (fix: inline VQ math returning two separate tensors with separate gradient paths), winner-take-all codebook collapse with random init (fix: data-dependent codebook init from one batch of encoder outputs), 6-orders-of-magnitude scale mismatch between sum-reduced reconstruction and mean-reduced VQ losses (fix: mean-reduce all three loss terms). Each diagnosis required tracing the actual forward/backward pass, not pattern-matching the docstring
-- **Information gain (uniform_baseline_CE - test_CE) is a cleaner prior-quality metric than FID**: V5 captured 2.893 of 6.238 nats/position possible = 46% of maximum. Reports prior tightness independent of decoder image-quality ceiling. FID conflates prior + decoder; CE isolates the prior
-- **Two-stage cost accounting matters for deployment honesty**: V5 is "1.4M params" in isolation, but its inference pipeline requires V4's 138K params + codebook → 1.52M total. Same for train time: V5 70.5s + V4 156.6s = 227s end-to-end. A reader looking at V5's row alone would underestimate the deployment footprint by 10%
-- **`utils.vae_utils.vq_straight_through` has a known gradient-flow bug** (detach kills the codebook gradient). Bypassed by V4/V5 inline math; util fix deferred. Lesson re-learned: smoke tests that check shape don't catch gradient-flow bugs — also need a small numerical-gradient sanity test
-
-### Graph Neural Networks (Completed)
-
-- **First non-Euclidean model in the portfolio**: every prior model assumed regular structure (grids, sequences, positional embeddings). GNNs handle arbitrary neighbor counts, no canonical ordering. Shifted the core primitive from dense matmul to `torch.sparse.mm` / `tf.sparse.sparse_dense_matmul` over message-passing operators
-- **Two datasets instead of one**: Cora (2,708 nodes, 7 classes, transductive Kipf benchmark — small-graph sanity) + ogbn-arxiv (169K nodes, 40 classes, temporal split — OGB leaderboard parity). Mirrors LSTM's dual-dataset pattern. Homophily gap quantified: Cora 0.81 vs random baseline 0.18; arxiv 0.65 vs 0.08
-- **4 variants on PyTorch, 2 on TensorFlow**: V1 GCN, V2 GraphSAGE, V3 GAT, V4 GIN (PT) vs V1 GCN + V3 GAT (TF). V2 and V4 are PT-only — their lever is library-dependent machinery (`NeighborLoader`, `GINConv`) with no mature TF equivalent after Spektral 1.3.1 broke on Keras 3 (list-of-Nones mask bug). Plan pivoted to from-scratch TF primitives
-- **PT V3 GAT wins both datasets on PyTorch**: Cora 0.8310 (matches Velickovic 2018 exactly), arxiv OGB 0.7025 (V1 GCN 0.6985, V2 SAGE 0.6948, V4a GIN 0.6714). Attention over edges provides +1.7pp on Cora; +0.4pp on arxiv — the smaller the graph, the bigger attention's contribution
-- **V4 GIN underperforms V1 GCN by 2.7pp on arxiv**: More theoretical expressiveness (WL-equivalent) does not auto-transfer to node classification with pre-trained word2vec features. Baseline's learned epsilons (+2.14, +2.50, +0.19) showed the model partially rejecting GIN's paradigm — upweighting each node's own features 3x over summed neighbors. GIN's native domain is graph-level classification (molecules, proteins); arxiv is the wrong task family
-- **Optuna 20-trial sweep surfaced `num_layers=2` (not paper's 3) as the #1 arxiv fix**: 400-epoch budget per trial with MedianPruner. Top-5 configs agree: 2 layers, hidden=256, train_eps=True, lr 5-10x lower than paper's 0.01. V4b tuned recovered +1.80pp val acc and +5.41pp macro F1 — but lost -1.01pp test accuracy to the **concept-drift tax** (val set is 2018, test is 2019-2020; configs optimized for 2018 distribution don't automatically track class-proportion shifts like cs.lg +14pp, cs.it -12pp)
-- **V3 GAT on arxiv costs 13.4 GB GPU** (from-scratch, materializes `(E+N, H, D)` attention intermediates per layer). PyG's `GATConv` with fused scatter kernels uses ~4 GB for the same accuracy. Portfolio honest cost: our from-scratch attention is 3x the memory of production-ready implementations, but we see the per-edge computation explicitly
-- **TF V1 GCN slightly beats TF V3 GAT on both datasets** (intra-framework reversal from PT). Framework matters more than architecture at this margin: Keras 3's AdamW-style decoupled weight decay + Glorot init combination doesn't favor attention as clearly as PT's L2 Adam + Kaiming init. TF V1 GCN at arxiv OGB 0.7045 even edges PT V3 GAT (0.7028) cross-framework. Attention's lift on these graphs is <1pp and framework-sensitive
-- **Per-class F1 tracks edge homophily almost monotonically**: On Cora, Neural_Networks (0.91 homophily) got F1 0.905; Case_Based (0.70) got 0.724. On arxiv, cs.cv/cs.it/cs.cl (high homophily, top 3 by count) reach F1 ~0.85; cs.gl (29 papers, 0.04 homophily) gets F1=0.00 across every variant. Message passing only works as well as the graph lets it
-- **Each framework showcased unique strengths**: PT (4-variant exploration, Optuna sweep, MLflow model registry, `torch_scatter.scatter_softmax` + `scatter_add`), TF (from-scratch with `tf.sparse` + `tf.math.unsorted_segment_*`, manual `tf.GradientTape` with masked transductive loss, OGB Evaluator for leaderboard parity)
-
-### Vision Transformers (Completed)
-
-- **Dataset reused from CNN #11**: CIFAR-100 (45K train / 5K val / 10K test, 32x32x3), enabling direct ViT vs ResNet-20 comparison on identical data. ViT-Small (6L, d=384, 6 heads, patch=4, 10.73M params) built from scratch with `nn.Linear`/`tf.keras.layers.Dense` — no `nn.TransformerEncoder` or `tf.keras.layers.MultiHeadAttention`
-- **4 variants isolate distinct levers in PyTorch**: V1 Vanilla (50.33%) → V2 DeiT Recipe (64.45%, +14.12pp) → V3 DeiT Distillation with CNN #11 teacher (67.48%, +3.03pp) → V4 Fine-tune pre-trained ViT-B/16 (91.16%, +23.68pp). Each lever's contribution quantified independently
-- **Pre-training dominates on small data**: V4's +23.68pp jump from V3 is larger than V1→V2→V3 combined (+17.15pp). ImageNet-21k features transfer cleanly to CIFAR-100 despite the 7x resolution upscale
-- **V4 beats CNN #11 baseline by +10.93pp**: Pre-trained ViT-B/16 (91.16%) surpasses the CNN #11 ResNet-20 reference (80.23%), but at 29x inference cost (1117 us vs 38.9 us per sample). CNN stays Pareto-optimal for low-latency deployment
-- **From-scratch ViT underperforms CNN on small data**: V3 Distillation (67.48%) still lands -12.75pp below CNN #11. ViT's lack of convolutional inductive bias is a real cost without pretraining. This is the CLEAN honest portfolio finding
-- **DeiT distillation with own CNN teacher is a rare portfolio loop**: CNN #11 (80.23%) supervises ViT student during training; student absorbs ~57% of teacher's advantage over vanilla. Hard distillation ([DIST] token + teacher argmax) per DeiT paper
-- **Attention visualization confirms learned spatial structure**: Per-head CLS attention maps show emergent specialization — some heads focus on object centers, others on edges/context. On baby samples, one head clearly learned "face features" (two bright spots where eyes are). Rollout across 6 layers (Abnar & Zuidema 2020) captures end-to-end dependency
-- **TF V2 confirms cross-framework recipe transfer (63.60% vs PT 64.45%, -0.85pp)**: DeiT recipe is robust to framework choice. TF trained ~30% faster due to simplified aug stack (no RandAugment / RandomErasing); TF inference ~2x slower due to framework overhead + Dense-based patch embed workaround
-- **TF V3 Distillation skipped due to cuDNN Conv2D env constraint**: TF 2.21 on WSL2 build fails on Conv2D ops (`No DNN in stream executor`). Forced CPU teacher fallback caused two system crashes even with core affinity capping. Documented as environment limitation; PT V3 findings preserved
-- **V4 pre-trained weights deleted during git cleanup**: The 327 MB HuggingFace state_dict exceeds GitHub's 100 MB file limit. `git filter-repo` stripped it from history; re-generating requires re-running Cell 7 (~1h training). V4 metrics fully documented in metrics.json; deployment falls back to V3 as the servable PT artifact
-- **Each framework showcased unique strengths**: PT (4-variant exploration, DeiT distillation with own teacher, HF ViT-B/16 fine-tune, attention rollout viz), TF (tf.keras.Model subclassing, @tf.function + tf.GradientTape custom loop, cross-framework recipe confirmation)
-
-### Transformers (Completed)
-
-- **Two tasks, two datasets**: Tatoeba EN->ES translation (same as Attention #15 for direct BLEU comparison) + AG News 4-class classification (new dirty dataset for encoder-only + fine-tuning showcase). First model in the project covering two task types
-- **BPE subword tokenization (0% UNK rate)**: SentencePiece shared 8K EN+ES vocab for translation, English-only 16K vocab for classification. Eliminates the 2.6%/7.3% UNK rates from #15's word-level tokenization. BPE expansion ratio ~1.37x vs word-level
-- **Built from scratch in both frameworks**: `MultiHeadAttention`, `TransformerEncoderLayer`, `TransformerDecoderLayer` all defined with basic primitives (`nn.Linear`/`tf.keras.layers.Dense`) -- no `nn.Transformer` or `tf.keras.layers.MultiHeadAttention`
-- **TF Translation BLEU (0.4456) dramatically exceeds PT (0.3625)**: Same architecture, same data, same hyperparameters. TF greedy decode alone beats PT beam search. Random initialization + optimizer implementation details produce meaningfully different training trajectories
-- **TF beats #15 Bahdanau by +17%**: BLEU 0.4456 vs 0.3803. The Transformer DOES surpass RNN+attention -- just not in PyTorch. Framework implementation details matter more than architecture when models haven't converged
-- **Training recipe matters as much as architecture**: PT Vanilla 0.3289 -> PT Recipe 0.3462 (+0.0172 BLEU) for zero architecture change. Warmup scheduler + label smoothing 0.1 + dropout 0.15
-- **Beam search is the cheapest improvement**: PT only: k=5 with length_penalty=0.6 added +0.0164 BLEU with zero retraining
-- **Classification close across frameworks**: TF 92.20% vs PT 91.22% (+0.98%). Both below DistilBERT fine-tuned 94.45% (PT only, same pre-trained weights across frameworks)
-- **DistilBERT quantifies pre-training advantage**: +3.22% accuracy for 9.2x more parameters on AG News. Measurable but not dramatic on this benchmark
-- **WSL2 adds 8.5-17x speed overhead**: Translation training 241 min (TF) vs 28 min (PT). Inference 377 ms vs 22.6 ms. /mnt/c/ filesystem + TF eager decode overhead
-- **Each framework showcased unique strengths**: PT (5-variant progressive exploration, beam search, DistilBERT fine-tuning, per-length BLEU), TF (tf.keras.Model subclassing, @tf.function graph compilation, tf.GradientTape, custom LearningRateSchedule)
-
-### Attention Mechanisms (Completed)
-
-- **Tatoeba EN→ES dataset**: 143,098 sentence pairs (114K train / 14K val / 14K test), word-level tokenization, 10K vocab per language. First machine translation model — seq2seq encoder-decoder with attention
-- **Pre-GRU context injection is the dominant factor**: Bahdanau (BLEU 0.3803) feeds full 1024-dim encoder context INTO the GRU before the state update. Luong (0.2966) and Multi-Head (0.3682) compute attention AFTER the GRU, getting only compressed 512-dim context. On short sentences (avg 6 tokens), the GRU needs maximum context at every step
-- **Multi-Head attention nearly closes the gap**: 8 parallel heads with Q·K^T/√d_k scoring (0.3682) recover most of Bahdanau's advantage despite the post-GRU disadvantage. Each head specializes in different alignment patterns — this IS the Transformer mechanism wrapped in an RNN
-- **Attention eliminates the length penalty**: No-attention BLEU drops 27% on long sentences (0.340→0.248); Bahdanau drops only 8% (0.387→0.357). This is the core argument from Bahdanau et al. (2014) reproduced on our data
-- **Luong's input feeding doesn't help on short sequences**: Section 3.3 feeds h̃_{t-1} back into the GRU for attention memory. Paper reports +1.0-1.3 BLEU on WMT data, but on Tatoeba's 6-token average sentences there aren't enough decoding steps for the benefit to accumulate
-- **Correct paper implementation matters**: Luong without Eq. 5 had 25.1M params (fc_out doing both fusion AND projection). Adding tanh W_c dropped to 16.4M with cleaner architecture. Always read the full paper, not just the attention equation
-- **BLEU 0.38 is "gist quality"**: Understandable translations with visible errors. Production MT needs subword tokenization (BPE), deeper models, beam search, and 100x more training data
-- **TF confirms PT findings but with infrastructure penalty**: TF Bahdanau (BLEU 0.3368) uses identical architecture but `reset_after=False` forces a non-CuDNN GRU kernel on WSL2, changing gate computation order. Training 17x slower (278 min vs 16 min) due to non-CuDNN kernel + /mnt/c/ filesystem overhead
-- **Each framework showcased unique strengths**: PT (progressive 4-variant exploration with paper-correct implementations, per-length BLEU analysis), TF (Keras subclassed models + tf.GradientTape, tf.cond for graph-safe teacher forcing, @tf.function compilation)
-
-### GANs (Completed)
-
-- **CIFAR-10 dataset**: 50,000 color images (32x32x3), 10 classes, [-1,1] normalization for tanh generator output. First generative model — image synthesis, not classification
-- **Convolutional architecture is the dominant factor in GAN image quality**: DCGAN's FID (30.57) dwarfs Vanilla MLP (261.47) — an 8.5x improvement. Meanwhile, loss function choice (BCE vs Wasserstein: 31 vs 55 at 100 epochs) and conditional generation (31 → 148) both made quality worse. For deployment, simple DCGAN + BCE is the pragmatic choice
-- **WGAN-GP trades quality for stability at fixed training budgets**: Wasserstein distance smoothly decreasing (11.5 → 1.4) is the only meaningful GAN training metric — BCE losses oscillate meaninglessly. But n_critic=5 means 5x fewer generator updates, so DCGAN wins on quality at 100 epochs
-- **WSL2 filesystem is the TF bottleneck, not compute**: TF DCGAN took 79 min vs PT's 5.3 min (15x slower) on the same RTX 4090. The data lives on Windows `/mnt/c/` — every batch read goes through 9P protocol translation. Moving data to Linux filesystem would close much of this gap
-- **FID computation requires framework alignment**: `compute_fid` uses PyTorch InceptionV3, which runs CPU-only in the WSL2 TF venv. Cross-framework metric tools need careful environment planning
-- **Generator architectures are parameter-efficient**: DCGAN generator (1.07M params) produces recognizable 32x32 images — compare to CNN's ResNet-20 (4.35M params) for classification on the same resolution
-- **PT pipeline was exploration, TF was comparison**: PT trained 4 variants progressively (Vanilla → DCGAN → WGAN-GP → cGAN), each motivated by the previous one's limitations. TF reproduced the best variant (DCGAN) for framework comparison — honest and defensible
-- **Each framework showcased unique strengths**: PT (4-variant progressive build, GPU FID, all loss types), TF (Keras Sequential + tf.GradientTape custom loop, @tf.function graph compilation, WSL2 GPU)
-
-### LSTM (Completed)
-
-- **Two datasets, two showcases**: ECG5000 (augmented, 5-class heartbeat) and IMDB Sentiment (25K reviews, binary). First model with multiple datasets per pipeline — demonstrates both time-series augmentation and NLP sequence classification
-- **Data augmentation is the #1 tool for imbalanced sequence data**: Time-series augmentation (jitter, scaling, time warp) broke the 0.55 macro F1 ceiling that no architecture change could breach in RNN #12. GRU on augmented data: 0.5950 F1 (+0.047 over original). LSTM added only +0.008 on top. Augmentation drove 85% of the total improvement
-- **LSTM adds minimal value over GRU for short sequences**: At 140 ECG timesteps, LSTM's macro F1 is only +0.008 over GRU (PT) and +0.020 (TF). The cell state pathway doesn't accumulate meaningfully different information at this sequence length. Cell state visualization confirms: smooth gradual accumulation vs hidden state's sharp gating, but both lead to the same classification
-- **Sequence length has diminishing returns for IMDB**: Accuracy jumps +3.2% from 100 to 200 tokens, but only +0.1% from 200 to 300 and +0.1% from 300 to 400. Practical implication: you can cut sequence length by 33% with <0.1% accuracy loss
-- **BiLSTM underperformed on both datasets**: Pre-padding means backward LSTM processes uninformative padding tokens first (IMDB), and ECG's peak divergence at sequence end makes the backward pass redundant. Unidirectional LSTM-128 consistently wins
-- **Embedding layers dominate NLP model size**: 10K vocab x 128 dims = 5.1 MB (87% of total 5.9 MB). Increasing LSTM hidden size has marginal impact on model size — the embedding is the bottleneck
-- **CPU is viable for TF baseline confirmation**: ECG trained in 8 min, IMDB in 24 min on CPU. But experimentation (architecture sweeps, ablations) requires GPU — TF CPU makes sweeps impractical (5+ hours for 8 models)
-- **PT and TF achieve comparable accuracy**: ECG: PT 0.603 vs TF 0.607 F1. IMDB: PT 87.8% vs TF 86.5% (fewer epochs on CPU). The accuracy gap is within noise for ECG and explained by training duration for IMDB
-- **Each framework showcased unique strengths**: PT (architecture sweep + sequence length ablation + cell state extraction via manual forward pass), TF (Keras model.fit with class_weight + mask_zero embedding + concise callback API)
-
-### RNN (Completed)
-
-- **ECG5000 dataset**: 5,000 heartbeat recordings, 140 timesteps, 5 classes (Normal, R-on-T PVC, PVC, SP, UB). Severe class imbalance (121.6x ratio). First sequence model — healthcare AI portfolio piece
-- **Macro F1 is the only honest metric**: 91.8% accuracy sounds great, but macro F1 of 0.55 reveals the model fails on 3/5 classes. Accuracy is misleading when 58% of data is one class. Always report class-weighted metrics for imbalanced data
-- **Vanishing gradients didn't vanish**: At 140 timesteps and 2 layers, both vanilla RNN and GRU show healthy gradients (ratio 1.2-4.2x). The theoretical vanishing gradient problem requires much longer sequences (hundreds/thousands of steps) to manifest dramatically
-- **GRU barely beats vanilla RNN on short sequences**: Macro F1 improvement of +0.002 (PT) and +0.002 (TF). Gating matters more for longer temporal dependencies than ECG's 140 timesteps
-- **Different frameworks pick different winners**: PT chose GRU-128 (unidirectional), TF chose BiGRU-64 (bidirectional). Both achieve similar macro F1 (~0.54-0.55). Framework implementation details (random init, training dynamics) influence architecture selection
-- **The performance ceiling is data, not architecture**: 19 PVC, 39 SP, 5 UB training samples. No RNN variant (vanilla, GRU, bidirectional, deeper) can fix this. Data augmentation is the next step (Model #13 LSTM)
-- **CPU is fine for small sequence datasets**: TF trained in 218s on CPU vs PT's 4s on GPU. WSL2 GPU setup friction isn't worth it when training takes minutes. Decision rule: check PT training time first
-- **Each framework showcased unique strengths**: PT (manual training loop with flexible early stopping, GPU acceleration), TF (Keras model.fit with class_weight dict, custom MacroF1Callback, Bidirectional layer wrapper)
-
-### CNN (Completed)
-
-- **CIFAR-100 dataset**: 60,000 color images (32x32x3), 100 fine classes in 20 superclasses, perfectly balanced (500/class). First classification CNN — 10x harder than CIFAR-10
-- **Progressive improvement from 56.9% to 80.1%**: Systematic experimentation through 10 training cells — plain CNN baseline, architecture sweep (Wide wins), refinement (cosine LR), ResNet-20 introduction, optimizer discovery (SGD >> Adam), full cosine cycles, and modern regularization (CutMix + label smoothing)
-- **SGD with momentum is the single biggest gain (+12.8%)**: Adam's adaptive per-parameter learning rates interfere with ResNet's batch normalization dynamics. SGD lr=0.05 with weight decay 5e-4 trained the full 200-epoch cosine cycle while Adam early-stopped at epoch 37-51
-- **CutMix collapsed overfitting from 22% to 5% gap**: Replaced patches with real image content from other classes, forcing partial-feature learning. More effective than Cutout (which replaces with zeros) or label smoothing alone
-- **ResNet-20 is the sweet spot for CIFAR-100 at 32x32**: ResNet-32 (7.45M params) matched ResNet-20 (4.35M) at 77.4%. Longer training (300ep vs 200ep) compensates for less depth at equal accuracy with half the parameters
-- **Cosine annealing must complete its full cycle**: Early stopping with cosine LR is counterproductive — stops training while LR is still high (62.5% at epoch 69/300 vs 77.4% at epoch 276/300). Best results always in final 10-15% of training
-- **TF matches PT accuracy (79.5% vs 80.1%) but is 11x slower**: Manual GradientTape loop with per-batch augmentation has significant Python-level overhead. Not a fundamental TF limitation — `model.fit()` + `@tf.function` would be faster, but CutMix required manual loop
-- **First TF model on GPU via WSL2**: TF 2.11+ dropped native Windows GPU. WSL2 Ubuntu + CUDA libraries enables GPU access. One-time setup that benefits all 9 remaining models
-- **Superclass analysis validates EDA predictions**: People (girl/boy/man/woman) are the hardest fine classes (F1 ~0.54-0.63) — exactly as EDA average-image analysis predicted. Reptiles and aquatic mammals are the hardest superclasses. Trees and flowers are easiest across both frameworks
-- **Each framework showcased unique strengths**: PT (progressive architecture experimentation with 10 training steps, label smoothing support), TF (Keras Functional API for ResNet, WSL2 GPU setup, documented eager mode performance characteristics)
-
-### Autoencoders (Completed)
-
-- **CIFAR-10 dataset**: 60,000 color images (32x32x3 = 3,072 features), 10 classes. Self-supervised reconstruction task — labels used for evaluation only, never training
-- **PyTorch conv denoising AE dominates**: MSE 0.0037 with 64-128-256 filters + 256-dim latent (2.8M params). 3.6x better than SK's dense AE (0.0133) with fewer parameters (2.8M vs 3.3M). Conv layers exploit spatial locality that dense layers cannot
-- **Denoising is a powerful training strategy**: The conv AE trained on noisy inputs (σ=0.2) removes 86.9% of noise while maintaining clean reconstruction quality. Even at σ=0.5 (heavy noise), denoised output (0.0099) beats SK's clean dense reconstruction (0.0133)
-- **TF CPU cannot handle conv autoencoders on color images**: Repeated system crashes (exit code 0xC0000005) with 50K, 15K, and even subset training. TF's CPU memory allocator cannot manage conv layer activation maps + gradients on Windows. Dense AE worked fine — the issue is specific to convolutional architectures
-- **Dense AE results are consistent across frameworks**: SK (0.0133 on 10K), TF (0.0096 on 15K), PT (0.0091 on 50K). Differences explained by training data volume, not framework quality
-- **Reconstruction quality ≠ classification quality**: Dense AE (worse MSE) learns more class-separable latent features than conv AE (better MSE). KNN accuracy: PT dense 40.3% > PT conv 36.2% > TF 35.4% > SK 34.3%. Tighter bottlenecks force semantic compression
-- **Architecture sweep identifies optimal conv design**: Large (64-128-256, lat=256) beats Medium (32-64-128, lat=128) by 31%, Wide (64-128-256, lat=128) by 28%, and Small (32-64, lat=64) by 56%. Deeper encoder + larger latent dim is the winning combination
-- **Scikit-Learn retired after this model**: MLPRegressor as AE works but is fundamentally limited — full-batch only, no conv layers, no mini-batch training. Future models (CNN, RNN, etc.) continue with PyTorch and TensorFlow only
-- **Each framework showcased a unique strength**: SK (bottleneck dimension sweep), PT (conv denoising AE + architecture sweep + noise level sweep), TF (CPU limitation documentation — when GPU matters)
-
-### Deep Neural Networks (Completed)
-
-- **UCI HAR dataset**: 10,299 samples, 561 pre-engineered sensor features, 6 activity classes. Subject-wise train/test split (21/9 subjects, no data leakage)
-- **PyTorch GPU leads accuracy (96.03%)** with 256-128 RegularizedDNN (BatchNorm + Dropout + ReduceLROnPlateau). SK second (94.91%, 128-64 MLPClassifier), TF CPU third (94.23%, 128-64 Keras Sequential)
-- **Regularization is the differentiator**: Same 128-64 architecture jumps +1.0% with BatchNorm + Dropout + LR scheduling in both PT and TF. SK's MLPClassifier cannot express BatchNorm or per-layer Dropout, giving DL frameworks a structural advantage
-- **Activation function is nearly irrelevant on pre-engineered features**: ReLU (94.40%), Tanh (94.37%), Logistic (94.77%) all within 0.4% — the real difference is convergence speed (ReLU 30 epochs vs Logistic 73)
-- **Wider architectures benefit from GPU + regularization**: PT's 256-128 (178K params) hits 96.03%, but the same architecture underperformed on TF CPU (92.70%). GPU training dynamics differ from CPU for BatchNorm + wider layers
-- **Keras callbacks are the code simplicity winner**: 5 lines of callback configuration replaces ~40 lines of PyTorch manual training loop for identical functionality (EarlyStopping + ReduceLROnPlateau + restore_best_weights)
-- **Inference speed hierarchy**: PT GPU (0.35 µs) >> SK (0.65 µs) >> TF CPU (31.68 µs). Keras `model.predict()` has per-call Python overhead; production would use TF Serving
-- **SITTING vs STANDING is the performance ceiling**: Misclassifications between these classes persist regardless of framework (SK: 72, PT: 75, TF: 117). Sensor profiles are nearly identical when the phone is in a pocket
-- **No-Framework retired after PCA** — DNN onward uses only 3 frameworks (SK, PT, TF)
-- **Each framework showcased a unique strength**: SK (activation function comparison), PT (BatchNorm + Dropout + LR scheduling), TF (Keras callbacks — minimal code for full training pipeline)
-
-### PCA (Completed)
-
-- **All 4 frameworks produce identical results**: 0.9085 explained variance, 0.0951 reconstruction MSE, 0.8599 downstream KNN accuracy at 150 components. The eigendecomposition algorithm is truly implementation-agnostic
-- **First dimensionality reduction model**: Fashion-MNIST compressed from 784 → 150 features (5.2x compression) with only 1.3% accuracy loss (87.32% full → 85.99% reduced)
-- **Population vs sample covariance is a non-issue**: NF/PT/TF use 1/n, SK uses 1/(n-1) — shifts 90%/95% thresholds (137/256 vs SK's different values) but component ordering and downstream accuracy are identical
-- **PyTorch GPU fastest across the board**: 0.11s training (1.7x vs SK, 2.1x vs NF), 0.39 µs/sample inference. GPU matmul for covariance + CUDA LAPACK eigh pays off even at 784×784 scale
-- **9.1x GPU speedup on eigendecomposition**: `torch.linalg.eigh` on RTX 4090 vs CPU for 784×784 matrix (50-run benchmark). This is the floor — larger matrices show bigger wins
-- **tf.function provides modest 1.10x speedup**: PCA is dominated by a single LAPACK eigh call, so graph compilation has little to fuse. The real benefit is lower timing variance (3.31 ms vs 12.01 ms std)
-- **Memory tracking is misleading for PT/TF**: tracemalloc shows 0.00/0.02 MB because both frameworks manage memory outside Python's allocator. Actual GPU memory was 599 MB (PyTorch), and TF's CPU allocation is comparable to NF's 191 MB
-- **Eigendecomposition and SVD produce identical PCA**: Verified numerically in NF showcase — max eigenvalue diff 1.53e-05, max projection diff 2.43e-03 across 60K samples. Different LAPACK routines, same math
-- **Each framework showcased a unique strength**: SK (IncrementalPCA for out-of-core), NF (eigen vs SVD equivalence), PT (GPU vs CPU eigendecomposition), TF (eager vs tf.function graph mode)
-
-### Support Vector Machines (Completed)
-
-- **All from-scratch frameworks match** — accuracy 0.8611, F1 0.8990, AUC 0.9105 (NF, PyTorch, TensorFlow). Scikit-Learn slightly different (0.8606 acc, 0.8942 F1, 0.9164 AUC) due to optimized SMO vs our dual gradient descent
-- **MAGIC Gamma Telescope dataset**: 18,905 samples, 10 continuous features, binary classification (gamma vs hadron). StandardScaler critical for kernel distances
-- **Polynomial kernel wins over RBF for this dataset**: SK tuning selected poly (degree=3, C=10). RBF slightly better in from-scratch implementations (87.0% vs 86.1%) but poly was locked in from SK tuning for fair comparison
-- **Dual gradient descent works at 15K scale**: Projected gradient ascent with adaptive LR via quadratic line search converges to obj=231.83 consistently across NF, PyTorch, and TF — algorithm is implementation-agnostic
-- **GPU acceleration dominates SVM**: PyTorch GPU (9.03s) is 17.7x faster than NF (160s) and 9.7x faster than TF CPU (85.77s). The O(n^2) kernel matrix-vector product each iteration is embarrassingly parallel
-- **TF eager CPU beats raw NumPy**: 85.77s vs 160s (1.9x faster) for the same algorithm — TF's C++ matmul kernels are more optimized than NumPy's BLAS bindings
-- **Inference speed hierarchy**: PyTorch GPU (0.59 us) >> TF CPU (15.55 us) >> SK (36.63 us) >> NF (153.57 us). GPU prediction with batched matmul is 260x faster than NumPy loops
-- **Platt calibration is framework-agnostic**: Shared `svm_utils.py` handles {0,1}↔{-1,+1} label conversion and sigmoid probability calibration across all from-scratch frameworks. Sign convention fix (negative gradient) was the key insight
-- **75.5% support vectors indicates incomplete convergence**: 11,426 SVs (0 at bound) vs SK's 5,343 (35.3%) — dual gradient descent hasn't fully converged at 3000 iterations, but accuracy matches. Educational implementation, not production optimization
-
-### Decision Trees / Random Forests (Completed)
-
-- **First ensemble method** — single DT memorizes training data (depth 43, 6,211 leaves, 99.4% train accuracy), RF of 100 bagged trees fixes overfitting through variance reduction without manual pruning
-- **Bank Marketing dataset**: 41,188 samples, 19 features (10 categorical, 9 numeric), 88.7/11.3 class imbalance. `duration` dropped for data leakage
-- **F1 > accuracy for imbalanced data**: 85.5% accuracy sounds good but tuned RF recall of 60.1% means 40% of subscribers still missed. GridSearchCV with F1 scoring produces better-balanced models
-- **Economic indicators dominate**: euribor3m, nr.employed, emp.var.rate consistently top features across both DT and RF — client demographics matter less than macroeconomic conditions
-- **Pure Python is 83x slower than Cython**: 100-tree RF takes 29 min from scratch vs sklearn's 21s. The sorted-scan split search is the bottleneck — each node sorts feature values and evaluates all thresholds in pure Python loops
-- **Gini and Entropy are interchangeable**: 99.5% prediction agreement, same root split, same feature rankings. Theoretical differences negligible in practice
-- **OOB matches test accuracy within 0.5%**: manual OOB computation confirms 1-1/e theory (36.8 avg OOB trees/sample) — free validation without holdout sets
-- **First deployment integration**: MLflow experiment tracking + model export (joblib) for FastAPI serving — establishes pattern for all future models
-- **GPU acceleration has a natural boundary for trees**: PyTorch's hybrid CPU/GPU approach (recursive dicts on CPU, `torch.sort` + `torch.cumsum` split search on GPU) yields 16% training speedup over pure Python — modest because GPU kernel launch overhead partially offsets parallelism at 32K samples
-- **Inference overhead from architecture mismatch**: PyTorch inference (279.79 us/sample) is slower than No-Framework (169.46 us/sample) because flattening 100 tree dicts to GPU tensors per call adds conversion overhead that outweighs GPU prediction speed
-- **Model size halves with torch tensors**: 29.47 MB (PyTorch) vs 55.23 MB (No-Framework) for identical tree structures — fewer intermediate Python objects when heavy computation happens in-place on GPU
-- **TF eager dispatch kills CPU tree performance**: 199 min training (6.8x slower than No-Framework) for the same algorithm — every tensor op crosses the Python→C++ bridge, and tree recursion triggers millions of these crossings
-- **Vectorization doesn't guarantee CPU speedup**: TF's `tf.cumsum` evaluates all 32,949 thresholds simultaneously, yet NumPy's sequential for-loop with O(1) incremental updates is 1.06x faster — memory allocation overhead for intermediate tensors outweighs computation savings
-- **Model size is structure-driven, not framework-driven**: TF (29.50 MB) and PyTorch (29.47 MB) are nearly identical because both store the same Python dict trees — the 47% reduction vs No-Framework comes from tree structure differences, not tensor representation
-
-### Naive Bayes (Completed)
-
-- **All 4 frameworks produce identical metrics** — accuracy 0.6683, macro F1 0.6394, log-loss 1.5576, Brier 0.6008, ECE 0.3229. Probabilistic metrics (log-loss, Brier, ECE) now complement accuracy/F1
-- **Two datasets, two variants**: GaussianNB on Breast Cancer (89.5% accuracy, 30 continuous features) validates the baseline; MultinomialNB on 20 Newsgroups (66.8% accuracy, 10K TF-IDF features) is the main event
-- **PyTorch GPU fastest across the board**: 0.03s training, 3.50 μs/sample inference — GPU's cuBLAS matmul dominates the (7532, 10000) × (10000, 20) prediction
-- **Float64 required for GaussianNB**: float32 caused NaN log-loss and ECE mismatch in PyTorch due to `torch.zeros()` defaulting to float32 regardless of input dtype. TF avoided this with list + `tf.stack()` pattern
-- **TensorFlow CPU-only limitation**: TF 2.11+ dropped native Windows GPU, resulting in 7.62 μs/sample (2x slower than PyTorch GPU, but competitive with No-Framework/sklearn)
-- **Each framework showcased a unique strength**: Scikit-Learn (CalibratedClassifierCV — ECE 0.32→0.14), No-Framework (log-sum-exp trick), PyTorch (CPU vs GPU matmul — 2.8x), TensorFlow (tf.function eager vs graph — 1.12x)
-- **Model size halves per abstraction layer**: sklearn 3.05 MB (diagnostic arrays) → No-Framework 1.53 MB (float64) → PyTorch/TF 0.76 MB (float32)
-
-### K-Means Clustering (Completed)
-
-- **First unsupervised model** — no labels during training. Evaluation shifts from accuracy/F1 to inertia, silhouette score, and ARI
-- **Metrics match across all 4 frameworks** (inertia ~9,976, silhouette ~0.3064, ARI ~0.6684) — algorithm is implementation-agnostic
-- **K=3 vs K=7 tradeoff**: Silhouette peaks at K=3 (3 natural geometric groupings), but K=7 matches ground truth bean types for ARI evaluation
-- **Scikit-Learn fastest (0.06s)**, PyTorch GPU (0.34s), No-Framework (1.02s), TensorFlow CPU slowest (2.01s) — GPU minimal benefit at 10K samples
-- **TensorFlow slowest due to CPU + eager overhead**: 33x slower than Scikit-Learn, even 2x slower than No-Framework's pure NumPy
-- **torch.compile limited on Windows**: TorchInductor backend doesn't fully support Windows in PyTorch 2.5.1. Manual broadcasting was 1.9x faster than torch.cdist
-- **torch.vmap works**: 1.15x speedup for parallel n_init runs. Modest at this scale but demonstrates vectorized map pattern
-- **New `results.py` utility**: Automated cross-framework comparison — `add_result()` collects results as each framework finishes, `print_comparison()` displays aligned table
-
-### K-Nearest Neighbors (Completed)
-
-- **All 4 frameworks achieve identical accuracy** (93.77%) — proving KNN results are implementation-agnostic
-- **Scikit-Learn's KD-tree wins**: O(log n) lookups beat brute-force GPU computation for 464K training samples (57s vs 100s)
-- **GPU helps but isn't magic**: PyTorch GPU (1,164/sec) is 776x faster than No-Framework (1.5/sec) but still slower than Scikit-Learn's optimized trees (2,000/sec)
-- **TensorFlow limited by Windows GPU support**: TF 2.11+ dropped native Windows GPU, forcing CPU-only execution (110/sec). WSL2 planned for neural networks
-- **No tf.cdist equivalent**: TensorFlow requires chunked broadcasting for pairwise distances, creating memory management challenges PyTorch avoids with `torch.cdist`
-- **Rare classes struggle across all frameworks**: Cottonwood/Willow (0.47% of data) consistently has lowest F1 (~0.81)
-
-### Logistic Regression (Completed)
-
-- **All 4 frameworks achieve similar recall** (82-83%) on fraud detection — consistent results across implementations
-- **Scikit-Learn dominates speed**: L-BFGS optimizer converges in 0.32s (57x faster than No-Framework)
-- **Class imbalance is the real challenge**: 98.9% accuracy is misleading; precision (12%) matters more than accuracy for fraud detection
-- **SMOTE + filtering works well**: Oversampling then filtering unrealistic samples creates balanced training without losing model quality
-- **TensorFlow slowest for simple models**: 52.95s due to full-batch overhead, but `model.fit()` provides simplest code
-
-### Linear Regression (Completed)
-
-- **All 4 frameworks achieve identical accuracy** (R²≈0.50, RMSE≈$10,100) — proving framework choice doesn't affect model quality for equivalent algorithms
-- **Scikit-Learn is best for simple ML**: Normal Equation solves instantly (0.03s), 90% less code than manual implementation
-- **No-Framework builds understanding**: Manual gradient descent reveals the math behind the magic (but 0.38s vs 0.03s)
-- **PyTorch/TensorFlow have overhead for simple tasks**: Autograd and Keras abstraction add time (3.4s and 23.6s) but provide foundation for neural networks
-- **Memory vs Speed tradeoff**: No-Framework uses least memory (2MB), Scikit-Learn trades memory for speed (15MB), PyTorch uses most (54MB)
-
-### General Insights
-
-- High-level frameworks (Scikit-Learn) accelerate development for standard tasks but hide mechanics
-- Deep learning libraries (PyTorch/TensorFlow) offer control over modern architectures while providing tools like autograd/optimizers
-- From-scratch builds solidify fundamentals but scale poorly for complex models
-- Framework choice depends on data type, team needs, and deployment goals
-
-## Future Plans
-
-- ~~Complete Linear Regression across all 4 frameworks~~
-- ~~Complete Logistic Regression across all 4 frameworks~~
-- ~~Complete KNN across all 4 frameworks~~
-- ~~Complete K-Means across all 4 frameworks~~
-- ~~Complete Naive Bayes across all 4 frameworks~~
-- ~~Complete Decision Trees/Random Forest across all 4 frameworks~~
-- ~~Complete Support Vector Machine across all 4 frameworks~~
-- ~~Complete Principal Component Analysis across all 4 frameworks~~
-- ~~Complete Deep Neural Networks across 3 frameworks~~
-- ~~Complete Autoencoders across 3 frameworks~~
-- ~~Complete CNN across 2 frameworks~~
-- ~~Complete RNN across 2 frameworks~~
-- ~~Complete LSTM across 2 frameworks~~
-- ~~Complete GANs across 2 frameworks~~
-- ~~Complete Attention Mechanisms across 2 frameworks~~
-- ~~Complete Transformers across 2 frameworks~~
-- ~~Complete Vision Transformers across 2 frameworks~~
-- ~~Complete Graph Neural Networks across 2 frameworks~~
-- ~~Complete Variational Autoencoders across 2 frameworks~~
-- ~~Complete Q-Learning across 2 frameworks~~
-
-> **Modeling phase complete (#01-#20).** All four learning paradigms covered: supervised (#01-#06, #09-#13, #15-#18) + unsupervised (#04, #08, #10) + generative (#14, #19) + reinforcement (#20).
-
-- Deploy all best-performing models end-to-end (see Deployment Roadmap below)
-- Explore real-world datasets beyond toys
-- Compare inference speed and memory on larger inputs
-
-## Deployment Roadmap
-
-**Strategy**: For each model type, the best-performing framework is prepped for deployment during the model comparison phase. Full deployment executes after all models are complete.
-
-### Models Staged for Deployment
-
-| Model | Framework | Status | Why This Framework |
-|-------|-----------|--------|-------------------|
-| Decision Trees / RF | Scikit-Learn | MLflow tracked + joblib exported | Fastest (21s), best F1 (0.48), GridSearchCV tuned |
-| SVM | Scikit-Learn | MLflow tracked + joblib exported | Best calibration (AUC 0.9164, log-loss 0.3486), fewest SVs (5,343) |
-| PCA | Scikit-Learn | MLflow tracked + joblib exported | IncrementalPCA for scalability, SVD-based (lowest memory 11.74 MB), sklearn Pipeline integration |
-| DNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (96.03%), GPU-accelerated RegularizedDNN with BatchNorm + Dropout |
-| Autoencoders | PyTorch | MLflow tracked + torch.save exported | Best reconstruction (MSE 0.0037), conv denoising AE with 86.9% noise removal, GPU-accelerated |
-| CNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (80.1%), ResNet-20 from scratch, CutMix + label smoothing + Nesterov SGD |
-| RNN | PyTorch | MLflow tracked + torch.save exported | Best accuracy (91.8%), GRU-128 on GPU, 4.32 µs/sample inference |
-| LSTM | PyTorch | MLflow tracked + torch.save exported | Best on both datasets: ECG (0.60 F1), IMDB (87.8% acc, 0.946 AUC). Two models staged. |
-| GANs | PyTorch | MLflow tracked + torch.save exported | Best FID (30.57), 15x faster training, GPU FID computation. DCGAN generator staged. |
-| Attention | PyTorch | MLflow tracked + torch.save exported | Best BLEU (0.3803), Bahdanau additive attention, 16.7M params. TF confirmed (0.3368). |
-| Transformers (Translation) | PyTorch | MLflow tracked + torch.save exported | PT staged for portable `.pt` format; TF BLEU (0.4456) beats PT (0.3625) on quality. +17% over #15 Bahdanau. |
-| Transformers (Classification) | PyTorch | MLflow tracked + torch.save exported | PT staged for serving; TF 92.20% edges PT 91.22%. DistilBERT fine-tune (94.45%) documented in PT local metrics. |
-| Vision Transformers (ViT) | PyTorch | MLflow tracked + torch.save exported | PT V3 DeiT Distillation (67.48%, CNN #11 teacher) is the servable artifact. V4 Pre-trained (91.16%) purged — 327 MB exceeded GitHub 100 MB limit. TF V2 (63.60%) confirmed recipe cross-framework. |
-| Graph Neural Networks (GNN) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V3 GAT on Cora (0.8310, matches Velickovic 2018) + ogbn-arxiv (OGB 0.7025). From-scratch attention. TF V1 GCN within 0.6pp cross-framework. V4 GIN tuned via Optuna (20 trials). |
-| Variational Autoencoders (VAE) | PyTorch | MLflow tracked + torch.save exported | Two datasets staged: PT V1 Vanilla on MNIST (NLL 101.98 nats, 0.11 nat parity vs TF) + PT V5 VQ-VAE+PixelCNN prior on CIFAR-10 (FID 117.27, beats V4 random-codes 202 by -85). DALL-E 1 two-stage recipe at portfolio scale. V5 deployment requires both V4 + V5 checkpoints (1.52M total params). |
-| Q-Learning (RL Basics) | PyTorch | MLflow tracked + torch.save / np.save exported | Three envs staged: PT V1 Tabular (Taxi-v4 +8.38, bit-identical TF parity) + PT V2 Vanilla DQN (CartPole-v1 +500.00 perfect 3/3 seeds, TF 19% gap from framework RNG paths) + PT V4 Dueling DQN (LunarLander-v3 +207 cross-seed, 2/3 solved). V5 PER honest negative result (0/3 seeds). Deployment artifact pattern: `state -> action`. |
-
-### Deployment Stack (executes after all models complete)
-
-1. **Model Serving**: FastAPI endpoints per model with request/response validation
-2. **Containerization**: Docker + Docker Compose for reproducible environments
-3. **Experiment Tracking**: MLflow for all deployed models (metrics, artifacts, model registry)
-4. **CI/CD**: Automated testing + deployment pipeline
-5. **Monitoring**: Logging, health checks, prediction drift detection
-6. **Documentation**: OpenAPI/Swagger auto-generated API docs
+- [`deployment/README.md`](deployment/README.md) — phase progress + architecture + per-service progress
+- [`deployment/docs/dependency-strategy.md`](deployment/docs/dependency-strategy.md) — Python/pip-tools/version-pinning rationale
+- Per-service READMEs land at [`deployment/services/<svc>/README.md`](deployment/services/) as each service ships
 
 ## License
 
-MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE) for details.

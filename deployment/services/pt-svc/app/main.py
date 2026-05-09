@@ -14,20 +14,25 @@ Port convention across services:
     pt-svc      -> 8002    (this service)
     tf-svc      -> 8003
 
-WHAT THIS FILE CONTAINS NOW (after Step 2.4c):
+WHAT THIS FILE CONTAINS NOW (after Step 3.4):
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
-    - Lifespan event that loads the DNN + scaler at startup
+    - Middleware stack (request_id + structured logging + metrics)
+    - Lifespan event that loads the DNN + scaler AND the DCGAN
+      generator at startup (sequential, ~100ms each)
     - /health (liveness) - cheap, never does work
-    - /ready (readiness) - returns 503 until the DNN is loaded;
-      200 with model_name + model_version once loaded
+    - /ready (readiness) - returns 503 until BOTH models are loaded;
+      200 with a per-model `models` dict once loaded
+    - /predict/dnn (D2 router)
+    - /metrics (Prometheus scrape endpoint)
 
 WHAT WILL BE ADDED LATER:
-    - Step 2.5: include POST /predict/dnn router
-    - Step 2.6: middleware stack (request_id + logging + metrics)
+    - Step 3.5: include POST /predict/gan/sample router (D3)
+    - Phase 4: include POST /predict/qlearning/taxi router (D4)
 """
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -36,7 +41,7 @@ from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers import dnn as dnn_router
-from app.services import dnn_loader
+from app.services import dnn_loader, gan_loader
 
 # Configure structured (JSON) logging at module import. Runs ONCE per
 # process. Must happen before any module-level logger is created so
@@ -58,9 +63,21 @@ No shutdown work yet - process exit reclaims the in-memory model.
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
-    FastAPI lifespan: load the DNN + scaler at startup.
+    FastAPI lifespan: load every model this service hosts at startup.
+
+    Loads run SEQUENTIALLY, not in parallel. Each load is ~100 ms
+    (registry query + .pth read + state_dict apply + .eval()), so
+    total startup is ~200 ms - asyncio.gather would save ~100 ms at
+    the cost of harder-to-read error paths. Worth it only if loads
+    were network-bound (e.g., S3 downloads), not local file reads.
+
+    If ANY load fails, the exception propagates out of lifespan,
+    uvicorn logs the traceback, and the process exits non-zero.
+    Docker/k8s see the failure and trigger restart/alerts. /ready
+    will never return 200 in that scenario - the process is dead.
     """
     dnn_loader.load_dnn_model()
+    gan_loader.load_gan_model()
     yield
     # Shutdown - intentionally empty.
 
@@ -119,39 +136,62 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/ready", tags=["health"])
-async def ready() -> dict[str, str | bool]:
+async def ready() -> dict[str, Any]:
     """
     Readiness check - the service can accept traffic.
 
+    pt-svc hosts MULTIPLE models (DNN now, GAN now, Q-learning later),
+    so the response shape reports per-model status keyed by model
+    name. This is a deliberate departure from sklearn-svc's single-
+    model shape - pt-svc was always going to outgrow that contract.
+
     Returns:
-        - HTTP 200 with {status, model_loaded, model_name, model_version}
-          once the lifespan event finishes loading.
-        - HTTP 503 with detail="model_not_loaded" until then. The
-          detail string is grep-friendly for log scrapers.
+        - HTTP 200 with payload:
+            {
+              "status": "ready",
+              "models": {
+                "pt-dnn":         {"loaded": true, "version": "1"},
+                "pt-gan-dcgan":   {"loaded": true, "version": "1"}
+              }
+            }
+          once the lifespan event finishes loading EVERY model.
+        - HTTP 503 with detail="model_not_loaded" while ANY model is
+          still loading. The whole-service-or-nothing semantic is the
+          right call: if /predict/dnn would 503 because DNN isn't
+          ready, the load balancer shouldn't route ANY traffic to the
+          pod. The detail string is grep-friendly for log scrapers.
 
     Used by:
         - Kubernetes readinessProbe
         - Rolling-deploy systems waiting before draining old pods
     """
-    if not dnn_loader.is_loaded():
+    if not (dnn_loader.is_loaded() and gan_loader.is_loaded()):
         raise HTTPException(status_code=503, detail="model_not_loaded")
 
     return {
         "status": "ready",
-        "model_loaded": True,
-        "model_name": dnn_loader.MODEL_NAME,
-        "model_version": dnn_loader.get_model_version(),
+        "models": {
+            dnn_loader.MODEL_NAME: {
+                "loaded": True,
+                "version": dnn_loader.get_model_version(),
+            },
+            gan_loader.MODEL_NAME: {
+                "loaded": True,
+                "version": gan_loader.get_model_version(),
+            },
+        },
     }
 
 
-# Prometheus scrape endpoint
-# Plain GET that returns the current state of all registered metrics
-# in Prometheus text exposition format. We return a raw Response (not
-# Pydantic) because the body is plain text in a specific format -
-# Pydantic JSON serialization would break it. CONTENT_TYPE_LATEST is
-# "text/plain; version=0.0.4; charset=utf-8" which is what Prometheus
-# servers expect.
-
+"""
+Prometheus scrape endpoint
+Plain GET that returns the current state of all registered metrics
+in Prometheus text exposition format. We return a raw Response (not
+Pydantic) because the body is plain text in a specific format -
+Pydantic JSON serialization would break it. CONTENT_TYPE_LATEST is
+"text/plain; version=0.0.4; charset=utf-8" which is what Prometheus
+servers expect.
+"""
 # This path is in EXCLUDED_PATHS in middleware/metrics.py so scrapes
 # don't inflate the very counters they're reading.
 

@@ -9,24 +9,28 @@ WHAT THIS FILE PROVIDES:
     - `FakeStandardScaler` - duck-typed stand-in for sklearn's
       StandardScaler. Exposes `.transform(X)` and `.mean_` /
       `.scale_` attributes so the loader's logging path doesn't break.
-    - `client` - TestClient with the loader cache populated by the
-      fakes. Use for tests expecting "loaded model" state.
-    - `client_unloaded` - TestClient with the cache cleared. Use for
+    - `FakeGenerator` - real nn.Module stand-in for the DCGAN generator.
+      Forward IS z-dependent (different noise -> different output) so
+      future seed-reproducibility tests can verify the seed plumbing
+      without loading the 1M-param real model.
+    - `client` - TestClient with BOTH loader caches populated by the
+      fakes. Use for tests expecting "all loaded" state.
+    - `client_unloaded` - TestClient with BOTH caches cleared. Use for
       503 / unloaded behavior tests.
 
-WHY MOCK THE MODEL:
-    The real DNN + scaler load takes ~2 seconds and requires the
-    MLflow registry + .pth artifact + scaler.pkl on disk - none of
-    which are available in CI environments that pull only source
-    code. Mocking the cache slots directly bypasses MLflow entirely
-    while keeping every other code path (routes, middleware,
-    validation, schema serialization) running for real.
+WHY MOCK THE MODELS:
+    The real DNN + scaler + DCGAN load takes ~2 seconds and requires
+    the MLflow registry + .pth artifacts on disk - none of which are
+    available in CI environments that pull only source code. Mocking
+    the cache slots directly bypasses MLflow entirely while keeping
+    every other code path (routes, middleware, validation, schema
+    serialization) running for real.
 
 LIFESPAN BEHAVIOR:
     `TestClient(app)` (without `with`) does NOT trigger the lifespan
-    event. So our dnn_loader.load_dnn_model() does NOT run during
-    tests - we manually populate _MODEL / _SCALER / _MODEL_VERSION
-    in the fixtures instead.
+    event. So our dnn_loader.load_dnn_model() and
+    gan_loader.load_gan_model() do NOT run during tests - we manually
+    populate the cache slots in the fixtures instead.
 """
 
 from collections.abc import Iterator
@@ -39,7 +43,7 @@ from fastapi.testclient import TestClient
 from torch import nn
 
 from app.main import app
-from app.services import dnn_loader
+from app.services import dnn_loader, gan_loader
 
 
 class FakeDNN(nn.Module):
@@ -95,44 +99,95 @@ class FakeStandardScaler:
         return np.asarray(X, dtype=np.float32)
 
 
+class FakeGenerator(nn.Module):
+    """
+    Real nn.Module stand-in for the DCGAN generator.
+
+    I/O contract matches the real DCGenerator:
+        Input  z:  (batch, 100, 1, 1)  float32
+        Output:    (batch, 3, 32, 32)  float32 in [-1, 1]
+
+    Forward IS z-dependent: different noise produces different output.
+    Critical for future seed-reproducibility tests - if the fake
+    ignored z and returned constants, "POST with seed=42 twice"
+    would always look identical regardless of whether the seed
+    plumbing actually worked. With z-dependence, identical seeds
+    produce identical bytes only when torch.manual_seed() is being
+    called correctly in the router.
+
+    The math is intentionally simple (broadcast + tanh) so test
+    output is deterministic given z, with no Conv2d / BatchNorm /
+    ReLU layers. State_dict has zero entries; FakeGenerator() is
+    stateless apart from the nn.Module scaffold.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        """
+        Deterministic z-dependent output in [-1, 1].
+
+        Takes the first 3 channels of z, broadcasts (1, 1) -> (32, 32),
+        and tanh-bounds. Different z -> different output; same z ->
+        same output to the bit.
+        """
+        first3 = z[:, :3, :, :]              # (B, 3, 1, 1)
+        broadcast = first3.expand(-1, -1, 32, 32)  # (B, 3, 32, 32)
+        return torch.tanh(broadcast)
+
+
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """
-    TestClient with the loader cache pre-populated by FakeDNN +
-    FakeStandardScaler.
+    TestClient with BOTH loader caches pre-populated by fakes.
 
-    Use this fixture in any test expecting a "loaded model" state -
-    the production state after lifespan runs. The router's
-    get_dnn_model() returns the FakeDNN; get_scaler() returns the
-    FakeStandardScaler; get_model_version() returns "1".
+    Use this fixture in any test expecting an "all loaded" state -
+    the production state after lifespan finishes. The DNN loader's
+    get_dnn_model()/get_scaler()/get_model_version() return the
+    FakeDNN/FakeStandardScaler/"1"; the GAN loader's
+    get_gan_model()/get_model_version() return the FakeGenerator/"1".
 
     monkeypatch.setattr swaps the module attribute for the duration
     of THIS test only - automatically restored at teardown. No manual
     cleanup; no risk of state leaking between tests.
     """
-    fake_model: Any = FakeDNN()
-    fake_model.eval()  # Mirror the loader's eval-mode invariant.
+    # DNN loader cache slots
+    fake_dnn: Any = FakeDNN()
+    fake_dnn.eval()  # Mirror the loader's eval-mode invariant.
     fake_scaler: Any = FakeStandardScaler()
-    monkeypatch.setattr(dnn_loader, "_MODEL", fake_model)
+    monkeypatch.setattr(dnn_loader, "_MODEL", fake_dnn)
     monkeypatch.setattr(dnn_loader, "_SCALER", fake_scaler)
     monkeypatch.setattr(dnn_loader, "_MODEL_VERSION", "1")
 
+    # GAN loader cache slots
+    fake_gen: Any = FakeGenerator()
+    fake_gen.eval()
+    monkeypatch.setattr(gan_loader, "_MODEL", fake_gen)
+    monkeypatch.setattr(gan_loader, "_MODEL_VERSION", "1")
+
     # TestClient(app) without `with` does NOT trigger lifespan, so
-    # our manually-populated cache is what get_dnn_model() sees.
+    # our manually-populated caches are what the loaders' getters see.
     yield TestClient(app)
 
 
 @pytest.fixture
 def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     """
-    TestClient with the loader cache CLEARED.
+    TestClient with BOTH loader caches CLEARED.
 
     Use this fixture for tests exercising the "model not loaded"
-    path - /ready returning 503, /predict/dnn returning 503. Mirrors
-    the real-world startup window before the lifespan event finishes.
+    path - /ready returning 503, /predict/dnn returning 503,
+    /predict/gan/sample returning 503. Mirrors the real-world
+    startup window before the lifespan event finishes loading.
     """
+    # DNN loader cache slots
     monkeypatch.setattr(dnn_loader, "_MODEL", None)
     monkeypatch.setattr(dnn_loader, "_SCALER", None)
     monkeypatch.setattr(dnn_loader, "_MODEL_VERSION", None)
+
+    # GAN loader cache slots
+    monkeypatch.setattr(gan_loader, "_MODEL", None)
+    monkeypatch.setattr(gan_loader, "_MODEL_VERSION", None)
 
     yield TestClient(app)

@@ -8,10 +8,10 @@ WHAT THESE TESTS COVER:
           needlessly restart the container during the load window.
 
     /ready:
-        - Returns 200 with full status payload (status, model_loaded,
-          model_name, model_version) when both DNN and scaler are
-          cached.
-        - Returns 503 with detail="model_not_loaded" when the cache is
+        - Returns 200 with the multi-model payload (status + per-model
+          loaded/version dict keyed by model name) when EVERY model
+          is cached.
+        - Returns 503 with detail="model_not_loaded" when ANY cache is
           empty. Mirrors the readinessProbe contract Kubernetes expects.
 
 WHAT THESE TESTS DO NOT COVER:
@@ -54,16 +54,23 @@ def test_health_alive_even_when_model_unloaded(
 
 
 def test_ready_when_loaded(client: TestClient) -> None:
-    """/ready returns 200 with full payload when loaded."""
+    """
+    /ready returns 200 with the multi-model payload when loaded.
+
+    The shape is {"status": "ready", "models": {<name>: {loaded,
+    version}, ...}}. Every model the service hosts must appear in
+    the dict. Versions come from the conftest fixtures (both set to
+    "1" via monkeypatch).
+    """
     response = client.get("/ready")
 
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ready"
-    assert body["model_loaded"] is True
-    assert body["model_name"] == "pt-dnn"
-    # model_version comes from the conftest fixture (set to "1").
-    assert body["model_version"] == "1"
+
+    models = body["models"]
+    assert models["pt-dnn"] == {"loaded": True, "version": "1"}
+    assert models["pt-gan-dcgan"] == {"loaded": True, "version": "1"}
 
 
 def test_ready_when_unloaded(client_unloaded: TestClient) -> None:

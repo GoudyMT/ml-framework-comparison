@@ -1,0 +1,122 @@
+# tf-svc/pyproject.toml
+#
+# This service hosts the TensorFlow translation endpoint: an
+# encoder-decoder Transformer that translates English to Spanish
+# via SentencePiece BPE tokenization. PEP 518 build config + PEP 621
+# project metadata + tool configs (ruff/mypy/pytest) all live here
+# as the single source of truth - pip-tools generates the lock files
+# (requirements*.txt) from this manifest.
+
+[project]
+name = "tf-svc"
+version = "0.1.0"
+description = "FastAPI service for TensorFlow deployments: EN-ES Transformer translation with SentencePiece BPE tokenization"
+requires-python = "==3.12.2"
+
+# RUNTIME dependencies - what the service needs to RUN in production.
+# The web/observability stack (FastAPI/Pydantic/structlog/prometheus)
+# is framework-agnostic and matches the other services in this repo
+# (sklearn-svc, pt-svc). The TensorFlow-specific deps:
+#   - tensorflow: the model runtime that load_weights + forward run on
+#   - sentencepiece: the BPE tokenizer; client text -> token IDs and
+#     token IDs -> Spanish text both go through this library
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.5",
+
+    # TensorFlow CPU-only runtime. Pinned EXACTLY to 2.21.0 to match
+    # the version that trained the registered translation_transformer.
+    # Loading .h5 weights with a mismatched TF version risks subtle
+    # numerical drift in attention/positional-encoding ops or, worse,
+    # silent layer-shape mismatches under Keras's permissive loader.
+    #
+    # No "+cpu" suffix the way torch uses one - TensorFlow doesn't
+    # publish PEP 440 local-version-tagged wheels. On Windows, the
+    # default `pip install tensorflow` wheel has been CPU-only since
+    # TF 2.11 (when Windows GPU support was dropped in favor of WSL2).
+    # We're doing CPU inference only; the lifespan event runs the
+    # model on a single dummy input at startup to JIT-compile the
+    # graph, after which per-request inference is sub-100ms on CPU.
+    "tensorflow==2.21.0",
+
+    # SentencePiece - the BPE tokenizer used for shared EN+ES 8K
+    # vocab. Client English text is encoded as int IDs; the
+    # generated decoder output IDs are decoded back to Spanish text.
+    # Tokenizer model is binary (bpe.model in the registry artifact);
+    # minor sentencepiece versions are model-agnostic so a soft
+    # lower bound is enough.
+    "sentencepiece>=0.2",
+
+    # MLflow - registry client. Shared across all services in this
+    # repo; resolves the production alias and points at the bundled
+    # artifacts.
+    "mlflow>=3.10",
+
+    # NumPy - numerical arrays. TensorFlow tensors interop with
+    # numpy via tensor.numpy() / tf.convert_to_tensor().
+    "numpy>=1.26",
+
+    # Structlog + prometheus_client
+    # Framework-agnostic observability. Same stack and patterns as
+    # sklearn-svc and pt-svc.
+    "structlog>=24.0",
+    "prometheus-client>=0.20",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["app*"]
+exclude = ["tests*"]
+
+
+# Linter + formatter
+
+[tool.ruff]
+line-length    = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",
+    "I",
+    "B",
+    "UP",
+    "C4",
+    "SIM",
+]
+ignore = [
+    "E501",
+]
+
+
+# Static type checker
+
+[tool.mypy]
+python_version       = "3.12"
+strict               = true
+warn_unused_ignores  = true
+ignore_missing_imports = true
+
+
+# Test runner
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths    = ["tests"]
+addopts      = "-v --tb=short"

@@ -112,6 +112,14 @@ python_version       = "3.12"
 strict               = true
 warn_unused_ignores  = true
 ignore_missing_imports = true
+# TensorFlow's published type stubs are minimal - keras.layers.Layer
+# and keras.Model both resolve to `Any`. mypy strict's
+# `disallow_subclassing_any` would block every Layer/Model subclass
+# we declare in app/services/translation_model.py. Relaxing just
+# that one rule keeps the rest of strict mode active where it
+# provides real value (untyped function defs, missing return types,
+# unused ignores all still flagged).
+disallow_subclassing_any = false
 
 
 # Test runner

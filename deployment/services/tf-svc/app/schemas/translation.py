@@ -15,7 +15,7 @@ THE MODEL THIS CONTRACT REFLECTS:
     (manythings.org/anki spa-eng.zip; 144,873 train pairs after
     filtering). Tokenization is BPE via SentencePiece with a shared
     8,000-token vocab covering both languages. The model has
-    d_model=256, 8 heads, 4 encoder layers, 4 decoder layers, and
+    d_model=256, 8 heads, 3 encoder layers, 3 decoder layers, and
     was trained with sequence length 25 BPE tokens.
 
 THE INFERENCE PIPELINE:

@@ -29,12 +29,12 @@ WHY DECODE-AND-COMPARE-PIXELS, NOT BYTE-COMPARE-BASE64:
     coupling the test to PIL's serialization details.
 
 WHY FORWARD-ONLY VERIFICATION:
-    Same logic as the DNN smoke test: reverse-engineering "what z
-    must have been" from the output PNG requires inverting a non-
-    invertible transform (the discriminator's-eye view of the
-    image). Forward-pipelining from a known seed produces an
-    EXPECTED pixel array we can compare against without amplifying
-    any float precision artifacts.
+    Reverse-engineering "what z must have been" from the output PNG
+    requires inverting a non-invertible transform (the generator's
+    output is one-way; recovering the latent from it isn't tractable).
+    Forward-pipelining from a known seed produces an EXPECTED pixel
+    array we can compare against without amplifying any float
+    precision artifacts.
 
 USAGE (from deployment/services/pt-svc/):
     1. Boot the server:
@@ -45,8 +45,8 @@ USAGE (from deployment/services/pt-svc/):
 ASSUMPTIONS:
     - The server is running on localhost:8002 (pt-svc port).
     - The service's loaded DCGenerator is the same artifact as
-      PyTorch/14-gans/results/dcgan_generator.pth (verified at
-      Phase 0 promote_to_registry.py time).
+      PyTorch/14-gans/results/dcgan_generator.pth (verified by
+      promote_to_registry.py when the model was registered).
 """
 
 import sys
@@ -78,7 +78,7 @@ PROJECT_ROOT = SCRIPT_DIR.parents[3]
 WEIGHTS_PATH = PROJECT_ROOT / "PyTorch" / "14-gans" / "results" / "dcgan_generator.pth"
 
 SERVICE_URL  = "http://localhost:8002/predict/gan/sample"
-TIMEOUT_SEC  = 10.0   # GAN forward + encode is slower than DNN; give headroom
+TIMEOUT_SEC  = 10.0   # 10s headroom for forward + denorm + PNG encode
 
 # The seed is the only "knob" the smoke test pins. Any int works as
 # long as both the manual forward AND the service request use the

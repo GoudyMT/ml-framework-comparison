@@ -29,23 +29,23 @@ URL SHAPE:
     fit cleanly under the same `/gan/` namespace without renaming this
     one.
 
-NEW CONCEPTS THIS HANDLER INTRODUCES:
+KEY CONCEPTS:
 
     1. SERVER-SIDE NOISE SAMPLING:
-        Unlike the DNN handler which receives features from the client,
-        the GAN handler GENERATES its own input: a noise vector z drawn
-        from N(0, 1). The client controls only how many to draw and
-        (optionally) a seed for reproducibility. Why server-side: the
-        portfolio demo benefits from "POST {} -> get an image" being
-        trivial. Pushing latent-vector construction onto the caller
-        would add complexity for zero educational gain.
+        The handler GENERATES its own input rather than receiving it
+        from the client: a noise vector z drawn from N(0, 1). The
+        client controls only how many to draw and (optionally) a seed
+        for reproducibility. Why server-side: "POST {} -> get an
+        image" stays trivial for callers. Pushing latent-vector
+        construction onto the caller would add complexity for zero
+        educational gain.
 
     2. torch.manual_seed FOR REPRODUCIBILITY:
         torch.randn() draws from torch's global RNG. Calling
         torch.manual_seed(N) BEFORE torch.randn() makes the noise
         deterministic - same seed -> same z -> same image bytes (down
-        to the byte). This is a TESTABLE property (Phase 3.6 will
-        verify it via decode-and-compare). Note: this seeds ONLY
+        to the byte). This is a TESTABLE property (the test suite
+        verifies it via decode-and-compare). Note: this seeds ONLY
         torch's RNG, not numpy or Python's random module - we don't
         use those here, so torch alone is sufficient.
 

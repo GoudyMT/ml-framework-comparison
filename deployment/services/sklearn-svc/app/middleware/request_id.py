@@ -5,7 +5,8 @@ WHAT THIS DOES:
     Tags every HTTP request with a unique ID, available three ways:
         1. As `request.state.request_id` for handlers + later middleware
         2. As an `X-Request-ID` header on the OUTGOING response
-        3. (Step 1.6b) As a field in every log line for that request
+        3. As a field in every log line for that request (the logging
+           middleware binds it via structlog's merge_contextvars)
 
 WHY THIS EXISTS:
     When something goes wrong in production ("my request was slow at 2:13am"),
@@ -13,11 +14,11 @@ WHY THIS EXISTS:
     Without an ID, you're guessing from timestamps and IPs. With an ID, you
     grep one string across the log system and get the full story.
 
-    The same ID also lets you correlate across services: if sklearn-svc
-    eventually calls pt-svc internally, propagating the ID through the
-    HTTP call means the entire distributed flow is traceable from a single
-    grep. We don't have multi-service flows yet, but we set up the
-    infrastructure now.
+    The same ID also lets you correlate across services: if an upstream
+    caller propagates its X-Request-ID header into requests to this
+    service, the entire distributed flow shares one trace key, greppable
+    across every service's logs. We don't have multi-service flows yet,
+    but we set up the infrastructure now.
 
 DESIGN: TRUST-BUT-VERIFY
     If the client sends `X-Request-ID: <something>`, we'll honor it - but
@@ -29,10 +30,9 @@ DESIGN: TRUST-BUT-VERIFY
     If no header is sent, or it's malformed, we generate a fresh UUID4.
 
 WHY BASEHTTPMIDDLEWARE (vs @app.middleware("http")):
-    BaseHTTPMiddleware is the reusable Starlette base class. Our middleware
-    is its own file in app/middleware/, which means:
+    BaseHTTPMiddleware is the reusable Starlette base class. Putting the
+    middleware in its own file under app/middleware/ means:
         - Tests can import + test it without booting the whole app
-        - pt-svc can import + reuse the SAME middleware (DRY)
         - main.py stays a wiring file, not a middleware definition file
     The @decorator approach is fine for trivial cases; we're not in one.
 """

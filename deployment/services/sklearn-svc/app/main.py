@@ -13,13 +13,14 @@ attribute named `app`. The `--reload` flag auto-restarts the server on file
 changes (DEV ONLY - never use --reload in production; it adds overhead).
 
 WHAT THIS FILE CONTAINS:
-    - The FastAPI() instance with metadata for OpenAPI/Swagger docs
-    - A `lifespan` async context manager that loads the PCA at startup
+    - FastAPI() instance with metadata for OpenAPI/Swagger docs
+    - Middleware stack (request_id + structured logging + metrics)
+    - Lifespan event that loads the PCA at startup
     - /health (liveness) - cheap, never does work
-    - /ready (readiness) - returns 503 until the model is loaded
-
-WHAT WILL BE ADDED LATER:
-    - Step 1.6: middleware (request ID, structured logging, metrics)
+    - /ready (readiness) - 503 until the model is loaded; 200 with
+      model_name + model_version once loaded
+    - Mounted router: /predict/pca
+    - /metrics (Prometheus scrape endpoint)
 """
 
 from collections.abc import AsyncIterator

@@ -2,32 +2,22 @@
 pt-svc - FastAPI application entry point.
 
 Hosts the PyTorch deployment endpoints:
-    - D2: /predict/dnn          (UCI HAR activity classification)
-    - D3: /predict/gan/sample   (DCGAN image generation - later phase)
-    - D4: /predict/qlearning/taxi (Q-table action lookup - later phase)
+    - /predict/dnn         (UCI HAR activity classification)
+    - /predict/gan/sample  (DCGAN image generation)
 
 USAGE (from deployment/services/pt-svc/):
     .venv\\Scripts\\uvicorn.exe app.main:app --reload --port 8002
 
-Port convention across services:
-    sklearn-svc -> 8001
-    pt-svc      -> 8002    (this service)
-    tf-svc      -> 8003
-
-WHAT THIS FILE CONTAINS NOW (after Step 3.5):
+WHAT THIS FILE CONTAINS:
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
     - Middleware stack (request_id + structured logging + metrics)
-    - Lifespan event that loads the DNN + scaler AND the DCGAN
-      generator at startup (sequential, ~100ms each)
+    - Lifespan event that loads every registered model at startup
+      (DNN + scaler, then DCGAN; sequential, ~100ms each)
     - /health (liveness) - cheap, never does work
-    - /ready (readiness) - returns 503 until BOTH models are loaded;
-      200 with a per-model `models` dict once loaded
-    - /predict/dnn         (D2 router)
-    - /predict/gan/sample  (D3 router)
+    - /ready (readiness) - 503 until every model is loaded; 200 with
+      a per-model `models` dict once loaded
+    - Mounted routers: /predict/dnn, /predict/gan/sample
     - /metrics (Prometheus scrape endpoint)
-
-WHAT WILL BE ADDED LATER:
-    - Phase 4: include POST /predict/qlearning/taxi router (D4)
 """
 
 from collections.abc import AsyncIterator
@@ -144,10 +134,10 @@ async def ready() -> dict[str, Any]:
     """
     Readiness check - the service can accept traffic.
 
-    pt-svc hosts MULTIPLE models (DNN now, GAN now, Q-learning later),
-    so the response shape reports per-model status keyed by model
-    name. This is a deliberate departure from sklearn-svc's single-
-    model shape - pt-svc was always going to outgrow that contract.
+    This service hosts multiple models, so the response shape reports
+    per-model status keyed by model name. A multi-model dict is the
+    right shape regardless of how many models are loaded - one entry
+    today scales to N entries with no contract change for clients.
 
     Returns:
         - HTTP 200 with payload:

@@ -15,8 +15,9 @@ WHAT THESE TESTS COVER:
           empty. Mirrors the readinessProbe contract Kubernetes expects.
 
 WHAT THESE TESTS DO NOT COVER:
-    - Real MLflow load path (covered by manual smoke testing in
-      Step 2.8 with a real UCI HAR sample). Tests stay deterministic.
+    - Real MLflow load path (covered by the smoke test scripts that
+      run against a live server with the real registered artifacts).
+      Tests stay deterministic.
     - Performance (covered by metrics endpoint tests + production
       monitoring, not unit tests).
 """

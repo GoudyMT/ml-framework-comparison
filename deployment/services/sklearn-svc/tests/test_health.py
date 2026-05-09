@@ -14,8 +14,9 @@ WHAT THESE TESTS COVER:
           traffic away from a not-yet-warm pod.
 
 WHAT THESE TESTS DO NOT COVER:
-    - The actual MLflow load path (covered by manual smoke testing in
-      Step 1.8 with a real Fashion-MNIST sample). Tests stay deterministic.
+    - The actual MLflow load path (covered by scripts/smoke_test.py
+      against a live server with the real registered artifact). Tests
+      stay deterministic.
     - Performance (covered by metrics endpoint tests + production
       monitoring, not unit tests).
 """

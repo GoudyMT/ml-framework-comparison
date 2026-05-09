@@ -186,9 +186,9 @@ def load_dnn_model() -> None:
     """
     Load the DNN + scaler from the MLflow registry into the cache.
 
-    Called ONCE at service startup (from main.py's lifespan event in
-    Step 2.4c). After this returns, get_dnn_model() and get_scaler()
-    are safe to call. Calling twice is a no-op (idempotency guard).
+    Called ONCE at service startup (from main.py's lifespan event).
+    After this returns, get_dnn_model() and get_scaler() are safe to
+    call. Calling twice is a no-op (idempotency guard).
 
     Raises:
         RuntimeError: If either artifact can't be loaded. Original

@@ -1,10 +1,14 @@
 """
-Phase 0 Step 0.4 - Artifact Load Verification.
+Artifact Load Verification.
 
 Loads each D1-D5 artifact from the consolidated MLflow registry
 (deployment/mlflow.db) using the production alias. Tests use the same
-library calls the eventual services will use - catches artifact rot or
-dependency-missing surprises before Phase 1 scaffolding starts.
+library calls each service will use at runtime - catches artifact rot
+or dependency-missing surprises before any service code runs against
+the registry.
+
+Run this script after every promote_to_registry.py refresh and any
+time the modeling-phase artifacts change on disk.
 
 Usage (from project root):
     .venv\\Scripts\\python.exe deployment\\scripts\\verify_artifacts.py
@@ -119,13 +123,13 @@ def test_tf_translation(artifact_dir: Path) -> str:
         info['bpe_sample_encode'] = encoded[:5]
         info['bpe_full_load'] = 'OK'
     except ImportError:
-        info['bpe_full_load'] = 'SKIPPED (sentencepiece not in .venv - tested in Phase 5 tf-svc)'
+        info['bpe_full_load'] = 'SKIPPED (sentencepiece not in .venv - tested by tf-svc)'
         info['bpe_file_size_kb'] = round(bpe_path.stat().st_size / 1024, 1)
 
     # 3. TF .h5 weights - file existence + size only (TF not in Windows venv)
     weights_path = artifact_dir / 'translation_transformer.weights.h5'
     info['tf_weights_size_mb'] = round(weights_path.stat().st_size / 1024 / 1024, 1)
-    info['tf_full_load'] = 'SKIPPED (tensorflow not in Windows .venv - tested in Phase 5 tf-svc on WSL2)'
+    info['tf_full_load'] = 'SKIPPED (tensorflow not in Windows .venv - tested by tf-svc on WSL2)'
 
     return f"artifacts loaded - {info}"
 

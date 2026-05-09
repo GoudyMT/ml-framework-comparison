@@ -5,7 +5,8 @@ WHAT THIS DOES:
     Tags every HTTP request with a unique ID, available three ways:
         1. As `request.state.request_id` for handlers + later middleware
         2. As an `X-Request-ID` header on the OUTGOING response
-        3. (Step 1.6b) As a field in every log line for that request
+        3. As a field in every log line for that request (the logging
+           middleware binds it via structlog's merge_contextvars)
 
 WHY THIS EXISTS:
     When something goes wrong in production ("my request was slow at 2:13am"),

@@ -17,8 +17,8 @@ THE TRAINING PIPELINE THIS CONTRACT REFLECTS:
         -> denormalize:  (x + 1) * 127.5  -> uint8 [0, 255]
         -> PIL Image.fromarray  -> PNG bytes  -> base64 string
 
-    Unlike PCA/DNN, the *input* to the model is NOT user-provided data;
-    it is server-side noise. The client controls only:
+    The *input* to the model is server-side noise, not user-provided
+    data. The client controls only:
         - how many samples to draw (n_samples)
         - whether to seed the RNG for reproducibility (seed)
 

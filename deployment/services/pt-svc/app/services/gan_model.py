@@ -20,10 +20,10 @@ WHAT THIS FILE IS:
     need any more.
 
 WHY THE ARCHITECTURE LIVES IN CODE:
-    Same reason as DNN: PyTorch state_dicts contain TENSOR VALUES keyed
-    by parameter name (e.g., "main.0.weight" -> shape (100, 256, 4, 4)).
-    They do NOT contain the architectural graph. The deployment service
-    must replicate the trained class exactly. Mismatched architecture
+    PyTorch state_dicts contain TENSOR VALUES keyed by parameter name
+    (e.g., "main.0.weight" -> shape (100, 256, 4, 4)). They do NOT
+    contain the architectural graph - the deployment service must
+    replicate the trained class exactly. Mismatched architecture
     -> load_state_dict raises "Missing key(s)" or "Unexpected key(s)".
 
     The state_dict for our trained DCGAN has 19 tensors, 1,069,827
@@ -51,8 +51,10 @@ INPUT/OUTPUT CONTRACT:
     Output:    (batch, 3, 32, 32)  float32, in [-1, 1] (tanh-bounded)
 
     Denormalization to uint8 [0, 255] for PNG encoding happens in the
-    router, not here - same separation as DNN where softmax happens in
-    the router. This keeps the architecture class identical to training.
+    router, not here. Keeping post-output transformations out of the
+    architecture class means this code stays identical to the training
+    class - any future retraining can swap in the same .pth without
+    touching this file.
 """
 
 from typing import cast
@@ -70,7 +72,7 @@ is "ngf" (number of generator features) with widths ngf*4, ngf*2,
 ngf - which here would be ngf=64. We don't parameterize that because
 the trained weights are tied to these exact widths. Retraining with
 different widths means updating this file and bumping the registry
-version (same rule as DNN's HIDDEN_1/HIDDEN_2).
+version.
 """
 CHANNELS_1: int = 256       # after first ConvTranspose:  (256, 4, 4)
 CHANNELS_2: int = 128       # after second ConvTranspose: (128, 8, 8)

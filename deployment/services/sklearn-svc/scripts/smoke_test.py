@@ -14,13 +14,14 @@ WHAT THIS SCRIPT DOES:
        should match within float32 precision tolerance (~1e-3).
 
 WHY FORWARD-ONLY VERIFICATION:
-    An earlier draft tried to reverse-engineer raw pixels from the
-    already-standardized X_test.npy. That path is precision-lossy:
-    pixels with very small std (e.g., corner pixels in Fashion-MNIST
-    that are usually black) amplify float-rounding errors by ~11x
-    when reverse-standardizing, then PCA's linear combinations
-    propagate those errors across all components. The forward path
-    (raw -> standardize -> PCA) has no such amplification.
+    Reverse-engineering raw pixels from the already-standardized
+    X_test.npy is precision-lossy: pixels with very small std (e.g.,
+    corner pixels in Fashion-MNIST that are usually black) amplify
+    float-rounding errors by ~11x when reverse-standardizing, then
+    PCA's linear combinations propagate those errors across all
+    components. The forward path (raw -> standardize -> PCA) has no
+    such amplification, which is why this script starts from raw
+    pixels rather than the preprocessed X_test.
 
 USAGE (from deployment/services/sklearn-svc/):
     1. Boot the server:

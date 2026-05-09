@@ -170,16 +170,16 @@ uvicorn app.main:app --reload
 
 ## Critical Version Pins from Modeling Phase
 
-When pinning service dependencies, the **inference framework versions must match the training versions** to avoid pickle/state-dict compatibility warnings or silent numerical drift. Pinned values discovered during Phase 0 Step 0.4 artifact verification:
+When pinning service dependencies, the **inference framework versions must match the training versions** to avoid pickle/state-dict compatibility warnings or silent numerical drift. Required pins for each service:
 
 | Service | Library | Training version | Notes |
 |---------|---------|------------------|-------|
-| `sklearn-svc` | scikit-learn | **1.8.0** | Phase 0 verification flagged `InconsistentVersionWarning` when loading with 1.7.2; pin to 1.8.0 in `pyproject.toml` |
+| `sklearn-svc` | scikit-learn | **1.8.0** | Loading the registered scaler/PCA with 1.7.2 raises `InconsistentVersionWarning`; pin to 1.8.0 in `pyproject.toml` |
 | `pt-svc` | torch | 2.5.1+cu121 (CPU wheel for inference) | Production containers use `torch==2.5.1+cpu`; no CUDA in deployment images |
 | `tf-svc` | tensorflow | 2.21.0 | Same as WSL2 modeling-phase env; full GPU not required for inference |
 | `tf-svc` | sentencepiece | (any 0.2+) | Tokenizer model is version-agnostic; minor versions OK |
 
-When the `pyproject.toml` for each service is written in Phase 1+, these exact pins go in `dependencies = [...]`.
+These exact pins live in each service's `pyproject.toml` under `dependencies = [...]`.
 
 ## Migration Path to uv (Future)
 

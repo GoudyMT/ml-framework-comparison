@@ -21,8 +21,8 @@ NOTE ON FAKEDNN OUTPUT:
     rest 0.0. After softmax, that becomes a high probability on
     class 3 (SITTING per CLASS_NAMES order). Tests assert on this
     deterministic mapping, NOT on the actual classification quality
-    of a real DNN - that's verified end-to-end by Step 2.8's smoke
-    test against the real registry artifact.
+    of a real DNN - that's verified end-to-end by scripts/smoke_test.py
+    against the real registry artifact.
 """
 
 from fastapi.testclient import TestClient
@@ -46,7 +46,7 @@ def test_predict_dnn_happy_path(client: TestClient) -> None:
     FakeDNN's deterministic logits (index 3 = 5.0, rest = 0.0)
     produce predicted_class=3 and predicted_label='SITTING' regardless
     of input, so the assertions are stable. Real classification
-    quality is verified by Step 2.8 against the registered model.
+    quality is verified by the smoke test against the registered model.
     """
     response = client.post("/predict/dnn", json=_features_payload(0.0))
 

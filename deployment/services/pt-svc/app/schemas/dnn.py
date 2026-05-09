@@ -64,7 +64,7 @@ CLASS_NAMES: tuple[str, ...] = (
     "LAYING",
 )
 
-# Literal type for the predicted_label field. This is a NEW pattern:
+# Literal type for the predicted_label field.
 #
 # Literal["A", "B", ...] declares "this value must be EXACTLY one of
 # these strings". Pydantic validates it at runtime; mypy validates it

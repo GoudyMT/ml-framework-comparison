@@ -19,8 +19,8 @@ WHY SCHEMAS LIVE IN THEIR OWN FILE (and their own package):
         - Schemas can be imported by tests, docs, or client SDKs without
           dragging in FastAPI / sklearn / mlflow as dependencies
         - Contract changes are reviewed in isolation - one file, one purpose
-        - When the API grows (Phase 2 adds /predict/dnn, etc.) each
-          endpoint gets its own schema file in this package
+        - The package scales: each endpoint added in the future gets its
+          own schema file alongside this one
 
 PYDANTIC v2 NOTES (we pinned >=2.5):
     - BaseModel is the parent class for all schemas
@@ -35,17 +35,18 @@ DESIGN DECISIONS LOCKED FOR THIS ENDPOINT:
       apply the modeling pipeline (divide-by-255 -> StandardScaler -> PCA)
       in app/services/preprocessing.py. Out-of-range values still get
       rejected loudly (likely indicate a client sent the wrong data).
-    - No request echo in response. Clients correlate via the request_id
-      that Step 1.6's middleware adds to logs/headers.
+    - No request echo in response. Clients correlate via the
+      X-Request-ID header (set by the request_id middleware on every
+      response) and the matching field in structured logs.
 """
 
 from pydantic import BaseModel, Field, field_validator
 
-# Constants tied to the trained PCA model (D1 SK PCA, Fashion-MNIST).
+# Constants tied to the trained PCA model (Fashion-MNIST).
 # Pulled from the modeling phase artifacts:
 #   - Input  = 28 x 28 = 784 pixels (flat row-major)
 #   - Output = 150 components (n_components=150 at fit time)
-#   - Variance explained = 0.9085 cumulative (Phase 0.4 verification)
+#   - Variance explained = 0.9085 cumulative
 
 # These are at module level (not inside a class) so they can be imported by
 # the loader, the router, and the tests without re-deriving them.

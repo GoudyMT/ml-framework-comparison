@@ -1,11 +1,16 @@
 # docker-compose.yml - Deployment Phase
-# Service definitions populated incrementally:
-#   - Phase 1 adds sklearn-svc (D1 SK PCA)
-#   - Phases 2-4 expand pt-svc (D2 DNN, D3 GAN, D4 Q-Learning Taxi)
-#   - Phase 5 adds tf-svc (D5 TF Transformer Translation)
-#   - Phase 6 finalizes networking, volumes, env vars
+#
+# Multi-service orchestration. Each service in the `services:` block
+# runs as its own container:
+#   - sklearn-svc: PCA endpoint (/predict/pca)
+#   - pt-svc:      PyTorch endpoints (/predict/dnn, /predict/gan/sample,
+#                  /predict/qlearning/taxi)
+#   - tf-svc:      TensorFlow endpoint (/translate)
+#
+# Networking, volume mounts, and environment variables are finalized
+# once each service has a Dockerfile.
 
 version: "3.9"
 
 services:
-  # Placeholder - filled in at later Phase
+  # Service definitions go here once per-service Dockerfiles exist.

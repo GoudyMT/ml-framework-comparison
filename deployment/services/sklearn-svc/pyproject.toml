@@ -65,10 +65,10 @@ dependencies = [
     # JSON and serialize outgoing responses. v2+ is the Rust-cored fast version.
     "pydantic>=2.5",
 
-    # scikit-learn - PINNED EXACTLY to 1.8.0. Phase 0.4 verification flagged
-    # `InconsistentVersionWarning` when loading our trained PCA with 1.7.2.
-    # Production must match training to avoid pickle compatibility issues
-    # or silent numerical drift in transform output.
+    # scikit-learn - PINNED EXACTLY to 1.8.0 to match the version that fit
+    # the registered scaler + PCA. Loading a pickled estimator with a
+    # mismatched sklearn version triggers `InconsistentVersionWarning` and
+    # can cause silent numerical drift in transform output.
     "scikit-learn==1.8.0",
 
     # joblib - the binary serialization library scikit-learn uses.

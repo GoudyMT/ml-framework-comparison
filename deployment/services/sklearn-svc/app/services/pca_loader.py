@@ -59,7 +59,7 @@ the registry tells us which version is "production" and where its artifact
 lives on disk. We then load the joblib file directly with `joblib.load()`,
 bypassing `mlflow.sklearn.load_model()`.
 
-Why bypass: Phase 0's promote_to_registry.py logged the model with
+Why bypass: promote_to_registry.py logged the model with
 `mlflow.log_artifact(pca_model.joblib)` (raw artifact upload), NOT
 `mlflow.sklearn.log_model(...)` (sklearn-flavor structured directory). So
 the registry points at a bare `pca_model.joblib` file, not a flavored

@@ -16,23 +16,24 @@ LIFECYCLE:
        (cheap dict lookup; no I/O).
     5. Process exit reclaims everything.
 
-WHY ONE ARTIFACT (NOT TWO LIKE DNN):
-    PCA bundled `pca_model.joblib` + `scaler.pkl`. DNN bundled
-    `dnn_model.pth` + `scaler.pkl`. DCGAN needs only `dcgan_generator.pth`
-    because there's no fitted preprocessing state to carry alongside.
-    The training-time normalization (`pixel/127.5 - 1.0` -> [-1, 1])
-    is two named constants, not a fitted artifact - they live in the
-    router as plain numbers, with a comment pointing at
-    `data/processed/gans/preprocessing_info.json` as source-of-truth.
+WHY ONE ARTIFACT, NOT MULTIPLE:
+    DCGAN needs only `dcgan_generator.pth` - there's no fitted
+    preprocessing state to carry alongside the weights. The training-
+    time normalization (`pixel/127.5 - 1.0` -> [-1, 1]) is two named
+    constants, not a fitted artifact; they live inline in the router
+    with a comment pointing at `data/processed/gans/preprocessing_info.json`
+    as the source-of-truth.
 
-    Lesson: "bundle preprocessing alongside the model" is a guideline,
-    not a rule. Bundle when there's fitted state to preserve (a scaler
-    fit on the training split, a tokenizer trained on the corpus).
-    Don't bundle when the entire transform is `(x + 1) * 127.5`.
+    The general rule: bundle preprocessing alongside the model when
+    there's fitted state to preserve (a scaler fit on a training
+    split, a tokenizer trained on a corpus). Don't bundle when the
+    entire transform is `(x + 1) * 127.5`.
 
 KEY PYTORCH CONCEPTS USED HERE:
-    Same as dnn_loader (torch.load + weights_only=True; load_state_dict;
-    model.eval()). One detail worth restating for DCGAN specifically:
+    `torch.load(weights_only=True)` to deserialize the .pth safely,
+    `load_state_dict()` to assemble the model from the saved tensors,
+    `model.eval()` to switch into inference mode. One detail worth
+    highlighting for DCGAN specifically:
 
     BatchNorm2d in eval mode:
         DCGAN's generator has three BatchNorm2d layers (after the
@@ -320,7 +321,7 @@ def is_loaded() -> bool:
 
     Returns:
         True iff load_gan_model() has populated the model cache.
-        Unlike DNN's loader (which checks model + scaler), DCGAN has
-        a single artifact - one cache slot to check.
+        DCGAN has a single artifact (no fitted preprocessing state),
+        so one cache slot is the complete check.
     """
     return _MODEL is not None

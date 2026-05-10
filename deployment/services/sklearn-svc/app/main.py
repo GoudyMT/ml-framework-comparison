@@ -67,9 +67,8 @@ IF THE LOAD FAILS:
   process will exit non-zero. Docker / k8s will detect the failure and
   handle restart / alerting / rollback per their configured policy.
 
-Anything we'd add at SHUTDOWN (after yield) goes here later. For now
-there's nothing to clean up - the model is in-memory only and process
-exit reclaims it.
+Shutdown work (after yield) is intentionally empty - the model is
+in-memory only and process exit reclaims it.
 """
 
 @asynccontextmanager
@@ -82,7 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    # Shutdown - intentionally empty for now.
+    # Shutdown - intentionally empty.
 
 
 # FastAPI application

@@ -33,12 +33,10 @@ WHY MOCK THE MODEL (not load the real one):
 
 LIFESPAN BEHAVIOR:
     `TestClient(app)` (without `with`) does NOT trigger the lifespan
-    event. So our pca_loader.load_pca_model() does NOT run during tests
-    - we manually populate _MODEL et al. in the fixture instead. If a
-    future test needs lifespan to fire, it would use:
-        with TestClient(app) as client: ...
-    For everything we're testing now, the manual-populate approach is
-    cleaner.
+    event. So pca_loader.load_pca_model() does NOT run during tests -
+    the fixture manually populates _MODEL et al. instead. Tests that
+    need lifespan to fire can opt in by using `with TestClient(app) as
+    client:` instead of the bare client fixture.
 """
 
 from collections.abc import Iterator

@@ -30,10 +30,11 @@ LABEL CARDINALITY:
     Each unique combination of label values is a separate time series in
     Prometheus storage. Bounded sets are safe (HTTP method = ~5 verbs,
     status = ~40 codes); unbounded labels (user_id, request body) blow
-    up storage. Our paths are all static so we use request.url.path
-    directly. If we ever add /users/{id}-style routes, we'd switch to
-    request.scope["route"].path to label by the template, not the
-    instantiated path.
+    up storage. Every endpoint in this service uses a static path, so
+    using request.url.path directly is safe. For services with path
+    parameters (e.g., /users/{id}), the labeling needs to use
+    request.scope["route"].path - the template, not the instantiated
+    path - otherwise label cardinality grows unbounded.
 
 EXCLUSIONS:
     The /metrics endpoint itself is NOT instrumented. Otherwise every

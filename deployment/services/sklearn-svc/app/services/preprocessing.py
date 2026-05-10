@@ -13,8 +13,9 @@ WHY A SEPARATE MODULE:
         - Tests can verify the math in isolation, without booting FastAPI
         - The router stays declarative ("validate -> preprocess -> predict
           -> respond") with no inline math
-        - When future endpoints (D5 TF Translation has BPE tokenization)
-          need their own preprocessing, the pattern is established
+        - Endpoints with their own preprocessing (e.g., a sequence model
+          with BPE tokenization) follow the same pattern - one preprocessing
+          module per service alongside the loader
 
 WHY THE SERVICE OWNS PREPROCESSING (not the client):
     The deployed service is the only thing that knows EXACTLY how the

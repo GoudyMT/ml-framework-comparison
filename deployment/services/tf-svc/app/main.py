@@ -9,6 +9,7 @@ USAGE (from deployment/services/tf-svc/):
 
 WHAT THIS FILE CONTAINS:
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
+    - Middleware stack (request_id + structured logging + metrics)
     - Lifespan event that loads the Transformer + tokenizer at
       startup, including a warm-up forward pass to compile TF's
       oneDNN ops before the first user request
@@ -26,8 +27,17 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.middleware.logging import LoggingMiddleware, configure_logging
+from app.middleware.metrics import MetricsMiddleware
+from app.middleware.request_id import RequestIDMiddleware
 from app.routers import translation as translation_router
 from app.services import translation_loader
+
+# Configure structured (JSON) logging at module import. Runs ONCE per
+# process. Must happen before any module-level logger is created so
+# everything emits through the structlog pipeline (including the
+# translation_loader logger that fires during the lifespan event below).
+configure_logging()
 
 
 @asynccontextmanager
@@ -62,6 +72,24 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+"""
+Middleware - run on every request, in REVERSE-add order.
+Starlette executes the LAST add_middleware as the OUTERMOST layer
+(sees the request first, the response last). For incoming requests:
+    request_id (outermost - generates the ID)
+        -> logging   (binds request_id into structlog contextvars,
+                      emits request_started + request_finished)
+            -> metrics (counter + histogram + gauge per request)
+                -> handler
+So we add in REVERSE: innermost first, outermost last. Metrics is
+innermost so its measured latency is just the handler work, not the
+bookkeeping of the outer layers.
+"""
+app.add_middleware(MetricsMiddleware)
+app.add_middleware(LoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 
 """
@@ -139,10 +167,10 @@ Pydantic) because the body is plain text in a specific format -
 Pydantic JSON serialization would break it. CONTENT_TYPE_LATEST is
 "text/plain; version=0.0.4; charset=utf-8" which is what Prometheus
 servers expect.
+
+This path is in EXCLUDED_PATHS in middleware/metrics.py so scrapes
+don't inflate the very counters they're reading.
 """
-# Once the metrics middleware lands, that path is added to its
-# EXCLUDED_PATHS so scrapes don't inflate the very counters they're
-# reading.
 
 
 @app.get("/metrics", tags=["observability"])

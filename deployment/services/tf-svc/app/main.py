@@ -9,12 +9,12 @@ USAGE (from deployment/services/tf-svc/):
 
 WHAT THIS FILE CONTAINS:
     - FastAPI() instance with metadata for OpenAPI/Swagger docs
-    - Lifespan event placeholder (the loader integration lands once
-      app/services/translation_loader.py is in place)
+    - Lifespan event that loads the Transformer + tokenizer at
+      startup, including a warm-up forward pass to compile TF's
+      oneDNN ops before the first user request
     - /health (liveness) - cheap, never does work
-    - /ready (readiness) - currently always returns 503 because no
-      model has been loaded yet; this gets gated on the loader's
-      is_loaded() check once the loader is in place
+    - /ready (readiness) - 503 until both model and tokenizer are
+      loaded; 200 with a per-model `models` dict once loaded
     - /metrics (Prometheus scrape endpoint)
 """
 
@@ -25,20 +25,25 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.services import translation_loader
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
-    FastAPI lifespan: load every model this service hosts at startup.
+    FastAPI lifespan: load the Transformer + tokenizer at startup.
 
-    Currently a no-op pending the loader. Once translation_loader is
-    in place, the body becomes `translation_loader.load_translation_model()`
-    so that:
-      - failures crash the container immediately (k8s/Docker see the
-        non-zero exit and trigger restart/alerts)
-      - /ready stays 503 throughout the load window
-      - the first real request arrives to a fully-warm cache
+    Includes a warm-up forward pass inside the loader so TF's lazy
+    oneDNN op compilation happens here (visible in startup time)
+    rather than on the first user request (where it would look like
+    a 5-10s latency spike).
+
+    If the load fails, the exception propagates out of lifespan,
+    uvicorn logs the traceback, and the process exits non-zero.
+    Docker/k8s see the failure and trigger restart/alerts. /ready
+    will never return 200 in that scenario - the process is dead.
     """
+    translation_loader.load_translation_model()
     yield
     # Shutdown - intentionally empty.
 
@@ -80,19 +85,40 @@ async def ready() -> dict[str, Any]:
     Readiness check - the service can accept traffic.
 
     Returns:
-        - HTTP 503 with detail="model_not_loaded" because no model
-          has been loaded yet. The detail string is grep-friendly
-          for log scrapers.
+        - HTTP 200 with payload:
+            {
+              "status": "ready",
+              "models": {
+                "tf-transformer-translation": {"loaded": true, "version": "1"}
+              }
+            }
+          once the lifespan event finishes loading the Transformer
+          AND the tokenizer (both required for the inference path).
+        - HTTP 503 with detail="model_not_loaded" while either is
+          still loading. The detail string is grep-friendly for log
+          scrapers.
 
-    Once the loader is in place, this becomes 200 with a per-model
-    `models` dict once the lifespan event finishes loading the
-    Transformer + tokenizer; 503 stays for the load window.
+    The multi-model `models` dict shape matches pt-svc's contract -
+    even though this service hosts a single model today, the dict
+    structure scales naturally if a second TF model is ever added
+    (no contract change for clients).
 
     Used by:
         - Kubernetes readinessProbe
         - Rolling-deploy systems waiting before draining old pods
     """
-    raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not translation_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+
+    return {
+        "status": "ready",
+        "models": {
+            translation_loader.MODEL_NAME: {
+                "loaded": True,
+                "version": translation_loader.get_model_version(),
+            },
+        },
+    }
 
 
 # Prometheus scrape endpoint

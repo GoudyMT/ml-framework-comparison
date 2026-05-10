@@ -15,6 +15,7 @@ WHAT THIS FILE CONTAINS:
     - /health (liveness) - cheap, never does work
     - /ready (readiness) - 503 until both model and tokenizer are
       loaded; 200 with a per-model `models` dict once loaded
+    - Mounted router: /translate
     - /metrics (Prometheus scrape endpoint)
 """
 
@@ -25,6 +26,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.routers import translation as translation_router
 from app.services import translation_loader
 
 
@@ -60,6 +62,14 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+"""
+Mount domain routers. Each router groups related endpoints; this
+service hosts a single one (/translate). include_router registers
+its routes on the main app at startup.
+"""
+app.include_router(translation_router.router)
 
 
 # Health check endpoints

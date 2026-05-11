@@ -78,7 +78,10 @@ dependencies = [
     # MLflow - the model registry client. Used to load the PCA from
     # `models:/sk-pca@production`. Pulls in alembic + sqlalchemy for the
     # metadata DB and pandas for some operations (~50 MB of transitive deps).
-    "mlflow>=3.10",
+    # Lower bound 3.12 aligns with pt-svc + tf-svc: the shared
+    # deployment/mlflow.db schema is written by 3.12.0, and older clients
+    # fail the schema-version check at MlflowClient instantiation time.
+    "mlflow>=3.12",
 
     # NumPy - numerical arrays. Required by sklearn + by our request handler
     # which converts incoming JSON lists into numpy arrays for transform().

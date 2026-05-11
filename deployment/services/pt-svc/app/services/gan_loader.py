@@ -91,6 +91,13 @@ GAN_WEIGHTS_FILENAME: str = "dcgan_generator.pth"
 # the container env; dev computes a sensible default below.
 TRACKING_URI_ENV: str = "MLFLOW_TRACKING_URI"
 
+# Optional override env var read by _resolve_artifact_dir() below. Set this
+# when the service runs on a different host than the one that populated the
+# registry, so the absolute paths baked into version.source can be re-anchored
+# under a runtime-known root (e.g., a container's bind-mounted /srv/mlflow).
+# Unset = legacy behavior: use the registered URI verbatim, no relocation.
+ARTIFACT_ROOT_OVERRIDE_ENV: str = "MLFLOW_ARTIFACT_ROOT_OVERRIDE"
+
 
 def _default_tracking_uri() -> str:
     """
@@ -152,6 +159,63 @@ def _file_uri_to_path(uri: str) -> Path:
     ):
         path_str = path_str[1:]
     return Path(path_str)
+
+
+def _resolve_artifact_dir(source_uri: str) -> Path:
+    """
+    Resolve a registered model's source URI to a local artifact directory,
+    optionally re-anchoring under a runtime-supplied root.
+
+    The MLflow registry stores `version.source` as an absolute file:// URI
+    captured at promotion time. When the service runs on a different host
+    than the one that populated the registry (a Linux container reading a
+    Windows-populated mlflow.db, a cloud node reading a CI-populated one),
+    those absolute paths don't exist locally even though the artifact bytes
+    are accessible under a different prefix.
+
+    Setting MLFLOW_ARTIFACT_ROOT_OVERRIDE declares "the host-side prefix in
+    the registry doesn't apply here; my mlruns/ tree lives at this path."
+    The helper extracts everything from `/mlruns/` onwards in the
+    registered URI's path and re-anchors under the override. With the env
+    var unset, behavior is identical to a bare _file_uri_to_path call.
+
+    Args:
+        source_uri: The `file://` URI from version.source.
+
+    Returns:
+        A pathlib.Path pointing at the artifact directory, either as
+        recorded in the registry or as relocated under the override.
+
+    Raises:
+        ValueError: If source_uri isn't a file:// URI (propagated from
+            _file_uri_to_path when no override is in effect).
+        RuntimeError: If the override is set but source_uri's path has
+            no `/mlruns/` segment to anchor against. Indicates a registry
+            layout we don't know how to relocate; the operator should
+            either unset the override or run against a registry whose
+            URIs include /mlruns/.
+    """
+    override = os.environ.get(ARTIFACT_ROOT_OVERRIDE_ENV)
+    if override:
+        # Re-anchor under the override root: extract everything from
+        # `/mlruns/` onwards in the registered URI, prepend override.
+        # Example:
+        #   source_uri = "file:///C:/Users/Max/.../deployment/mlruns/<run-id>/artifacts"
+        #   override   = "/srv/mlflow"
+        #   result     = "/srv/mlflow/mlruns/<run-id>/artifacts"
+        src_path = urlparse(source_uri).path
+        idx = src_path.find("/mlruns/")
+        if idx < 0:
+            raise RuntimeError(
+                f"MLFLOW_ARTIFACT_ROOT_OVERRIDE is set to {override!r} "
+                f"but source URI {source_uri!r} has no '/mlruns/' "
+                f"segment to anchor against. Either unset the override "
+                f"or point it at a registry whose URIs include /mlruns/."
+            )
+        # idx + 1 drops the leading '/' so the join produces a clean
+        # "<override>/mlruns/<run-id>/artifacts" path.
+        return Path(override) / src_path[idx + 1 :]
+    return _file_uri_to_path(source_uri)
 
 
 # Module-level cache
@@ -234,7 +298,7 @@ def load_gan_model() -> None:
         # Step 2: convert file:// URI to a local Path; verify the
         # weights file exists before touching it. Failing fast here
         # gives a single clear error instead of a half-loaded state.
-        artifact_dir = _file_uri_to_path(version.source)
+        artifact_dir = _resolve_artifact_dir(version.source)
         weights_file = artifact_dir / GAN_WEIGHTS_FILENAME
         if not weights_file.is_file():
             raise FileNotFoundError(

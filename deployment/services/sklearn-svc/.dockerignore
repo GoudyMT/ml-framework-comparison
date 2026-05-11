@@ -1,0 +1,90 @@
+# .dockerignore - filters the build context that gets sent to the Docker
+# daemon. Anything matched here is NOT copied into the image and is invisible
+# to COPY instructions in the Dockerfile. Two reasons this matters:
+#   1. Smaller build context = faster builds (less data over the daemon socket)
+#   2. Prevents accidental inclusion of secrets, host venvs, caches, or model
+#      artifacts that would bloat the image or expose sensitive data
+
+# === Version control + repo metadata ===
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# === Documentation - lives outside the image ===
+README.md
+*.md
+docs/
+
+# === Python build / runtime caches ===
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# === Virtual environments - we BUILD a fresh venv inside the image ===
+.venv/
+venv/
+env/
+
+# === Test artifacts - tests run BEFORE build in CI; not needed at runtime ===
+tests/
+test_*.py
+*_test.py
+.pytest_cache/
+
+# === Linter / type-checker caches ===
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# === Local env / secrets - never bake credentials into images ===
+.env
+.env.*
+*.pem
+*.key
+
+# === Docker meta - the image doesn't need to know about itself ===
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# === IDE / editor noise ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS-generated files ===
+.DS_Store
+Thumbs.db
+
+# === Python build / install artifacts ===
+build/
+dist/
+*.egg-info/
+*.egg
+
+# === Logs ===
+*.log
+logs/
+
+# === Scripts directory - smoke tests + promotion utilities, not runtime ===
+scripts/
+
+# === Model artifacts - mounted as volumes from host or pulled from MLflow
+#     registry at startup; never baked in (keeps images small + decouples
+#     model versions from image versions) ===
+*.joblib
+*.pkl
+*.pth
+*.npy
+*.h5
+*.keras
+
+# === Lock-file source + dev requirements - NOT needed in production image
+#     (pyproject.toml only needed for `pip-compile` regen; requirements-dev
+#     contains pytest/ruff/mypy which we don't ship to runtime) ===
+pyproject.toml
+requirements-dev.txt

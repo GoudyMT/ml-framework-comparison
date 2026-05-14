@@ -1,4 +1,4 @@
-# docker-compose.yml - Deployment Phase
+# docker-compose.yml - multi-service deployment orchestration
 
 # Multi-service orchestration. Each service in `services:` runs as its
 # own container; the three services are independent (no inter-service
@@ -46,9 +46,10 @@ services:
       - "8001:8001"
     # Declarative version of `docker run -e`. Tells the loader which SQLite
     # registry to read (mounted from the host below) and what prefix to
-    # substitute when resolving the artifact URIs whose host-Windows paths
-    # don't exist inside the Linux container - the portable-paths refactor
-    # from Phase 6.1 ties this env var to _resolve_artifact_dir().
+    # substitute when resolving artifact URIs whose host-side absolute paths
+    # do not exist inside the container - _resolve_artifact_dir() in each
+    # service's loader reads MLFLOW_ARTIFACT_ROOT_OVERRIDE to relocate the
+    # registered paths under the bind-mount root at request time.
     environment:
       MLFLOW_TRACKING_URI: sqlite:////srv/mlflow/mlflow.db
       MLFLOW_ARTIFACT_ROOT_OVERRIDE: /srv/mlflow

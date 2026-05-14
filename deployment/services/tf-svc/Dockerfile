@@ -64,12 +64,12 @@ USER app
 # EXPOSE is metadata only; the actual publish is `docker run -p` or compose.
 EXPOSE 8003
 
-# HEALTHCHECK against /health every 30s. start-period bumped to 15s (vs 10s
-# in sklearn-svc / pt-svc): the Transformer lifespan runs dummy-forward +
-# load_weights + warm-up forward through TF's eager-mode op compiler on a
-# cold-cache container; host-side wall-clock is ~2.5s but a freshly-pulled
-# container with no warm TF caches can drift a few seconds longer. stdlib
-# urllib keeps the slim image free of a curl dep.
+# HEALTHCHECK against /health every 30s. start-period of 15s (sklearn-svc
+# and pt-svc use 10s) adds headroom for the Transformer's lifespan: dummy-
+# forward + load_weights + warm-up forward all run through TF's eager-mode
+# op compiler on a cold-cache container. Host-side wall-clock is ~2.5s,
+# but a freshly-pulled container with no warm TF caches can drift several
+# seconds longer. stdlib urllib keeps the slim image free of a curl dep.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
   CMD python -c "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8003/health').status == 200 else 1)"
 

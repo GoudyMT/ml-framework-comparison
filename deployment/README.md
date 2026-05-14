@@ -2,7 +2,7 @@
 
 Production-grade FastAPI services for the staged deployment winners from the modeling phase (#01-#20). Demonstrates every distinct deployment pattern the portfolio produced via 5 representative models across 3 framework runtimes.
 
-> **Status: Phase 5 complete - tf-svc D5 Transformer translation endpoint live + verified end-to-end (real Transformer forward bit-matches service output across 5 EN sentences; ~250-500ms per sentence on CPU greedy decode). All five deployment-pattern services now running locally: sklearn-svc, pt-svc, tf-svc. Moving to Phase 6 (containerization + docker compose).** This README will be filled in at Phase 11 once all services are running.
+> **Status: Phase 6 complete - all five deployment-pattern services containerized via per-service Dockerfiles + orchestrated via docker-compose. Bind-mount registry strategy with an `MLFLOW_ARTIFACT_ROOT_OVERRIDE` portable-paths mechanism so the host-Windows registry resolves correctly inside Linux containers. `docker compose up -d --build` brings up sklearn-svc (port 8001), pt-svc (8002), tf-svc (8003); all three reach `(healthy)` within 15s; fresh-shell cold-start smoke verifies all 5 prediction endpoints respond 200. Moving to Phase 7 (MLflow registry stage/alias promotion).** This README will be filled in at Phase 11 once all phases land.
 
 ## Models Deployed
 
@@ -25,13 +25,25 @@ Production-grade FastAPI services for the staged deployment winners from the mod
 
 ## Quick Start
 
-(Filled in at later date once `docker compose up` works end-to-end.)
+```powershell
+# Bring up all three services (sklearn-svc, pt-svc, tf-svc)
+cd deployment
+docker compose up -d --build
 
-```bash
-# Coming soon
-docker compose up
-curl -X POST http://localhost:8000/predict/dnn -d '...'
+# Verify all three are healthy
+docker compose ps
+
+# Hit a prediction endpoint (Fashion-MNIST PCA in this example)
+$payload = @{ features = @(0..783 | ForEach-Object { 100.0 }) } | ConvertTo-Json -Compress
+Invoke-WebRequest -UseBasicParsing `
+  -Uri http://localhost:8001/predict/pca `
+  -Method POST -ContentType 'application/json' -Body $payload
+
+# Tear down (containers + network removed; images stay cached)
+docker compose down
 ```
+
+See [`docs/dependency-strategy.md`](docs/dependency-strategy.md) for the two-lockfile pattern (Linux for Docker, Windows for host dev) and [`docs/volume-mount-strategy.md`](docs/volume-mount-strategy.md) for the registry bind-mount + `MLFLOW_ARTIFACT_ROOT_OVERRIDE` mechanism that keeps artifact paths portable across hosts.
 
 ## Documentation
 
@@ -48,7 +60,7 @@ curl -X POST http://localhost:8000/predict/dnn -d '...'
 - [x] **Phase 3 - D3 PT DCGAN endpoint** (pt-svc: DCGenerator architecture class + state_dict loader, /predict/gan/sample router with server-side noise sampling + optional seed for reproducibility + base64-PNG response, /ready refactored to multi-model dict shape, Pillow promoted from transitive to direct dep, 13 new pytest tests including seed plumbing + decode-and-shape, real DCGAN smoke test bit-exact PASS - 0 pixels differ between manual forward and service round-trip)
 - [x] **Phase 4 - D4 PT Q-Learning Taxi-v4 endpoint** (pt-svc: Q-table loader with shape assertion, /predict/qlearning/taxi router with state-as-int input + action/action_name/q_values response, /ready expanded to report 3 models, FakeQtable test fixture with deterministic state to action cycle, 15 new pytest tests including parametrized action_name mapping across all 6 Gymnasium actions, real Q-table smoke test bit-exact PASS - 0 disagreements across 15 states)
 - [x] **Phase 5 - D5 TF Transformer translation endpoint** (tf-svc: new service from scratch, TF 2.21 CPU runtime + sentencepiece BPE tokenizer, 6-class Transformer architecture (encoder-decoder, 3+3 layers, d_model=256, 11.68M params) hardcoded in translation_model.py to match the registered .h5 weights, multi-artifact loader with warm-up forward pass for oneDNN op compilation, /translate router with greedy autoregressive decode loop (encode-once + decode-many optimization), /ready refactored to multi-model dict shape, full middleware stack copied from sklearn-svc, 23 pytest tests (FakeTokenizer + FakeTransformer fixtures driving decode-loop control), real Transformer smoke test bit-exact PASS - 5/5 sentences string-exact match between manual forward and service forward)
-- [ ] Phase 6 - Containerization (Dockerfiles + docker-compose)
+- [x] **Phase 6 - Containerization** (per-service Dockerfiles for sklearn-svc + pt-svc + tf-svc on python:3.12.2-slim with multi-stage builder/runtime layout, non-root UID 1000, JSON-array CMD for SIGTERM forwarding, stdlib-urllib HEALTHCHECK; portable artifact paths via MLFLOW_ARTIFACT_ROOT_OVERRIDE env var + per-loader _resolve_artifact_dir helpers across 5 loaders, 20 new unit tests across 3 services bringing total to 107/107; two-lockfile pattern per service - requirements.txt Linux-resolved for Docker COPY, requirements-windows.txt for host dev; sklearn-svc mlflow alignment to >=3.12 to match the registry schema written by pt-svc/tf-svc; docker-compose.yml stitching all 3 services on ml-fc-network bridge with bind-mounted registry at /srv/mlflow:ro; volume-mount-strategy.md + dependency-strategy.md architectural docs; fresh-shell cold-start smoke PASS - all 3 images rebuild from layer cache in 13s, all reach healthy in 14s, all 5 prediction endpoints respond 200 through compose orchestration)
 - [ ] Phase 7 - MLflow Model Registry stage promotion
 - [ ] Phase 8 - GitHub Actions CI/CD
 - [ ] Phase 9 - Monitoring + drift-detection middleware

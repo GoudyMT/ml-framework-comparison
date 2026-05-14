@@ -1,16 +1,122 @@
 # docker-compose.yml - Deployment Phase
-#
-# Multi-service orchestration. Each service in the `services:` block
-# runs as its own container:
-#   - sklearn-svc: PCA endpoint (/predict/pca)
-#   - pt-svc:      PyTorch endpoints (/predict/dnn, /predict/gan/sample,
-#                  /predict/qlearning/taxi)
-#   - tf-svc:      TensorFlow endpoint (/translate)
-#
-# Networking, volume mounts, and environment variables are finalized
-# once each service has a Dockerfile.
 
-version: "3.9"
+# Multi-service orchestration. Each service in `services:` runs as its
+# own container; the three services are independent (no inter-service
+# HTTP calls). The compose file stitches together what we already built
+# per-service: the Dockerfiles produce framework-specific images, this
+# file wires them up with consistent env vars, volume mounts, and ports.
+#
+# Working directory for all relative paths: deployment/ (this file's
+# parent). Build contexts like `./services/sklearn-svc` resolve from here.
+
+# Common operations:
+#   docker compose up               # build (if needed) + start all 3 in parallel
+#   docker compose up -d            # detached
+#   docker compose up --build       # force rebuild even if images are cached
+#   docker compose ps               # show all 3 services + their health states
+#   docker compose logs sklearn-svc -f   # tail one service's logs
+#   docker compose down             # stop + remove containers + the named network
+
+# Project name. Without this, compose derives it from the directory name
+# ("deployment"), which would collide if another project ever lives in a
+# directory of that name. Explicit value shows in `docker compose ls` and
+# prefixes auto-generated container names (e.g., ml-fc-deployment-sklearn-svc-1).
+name: ml-fc-deployment
+
 
 services:
-  # Service definitions go here once per-service Dockerfiles exist.
+
+  # ============================================================================
+  # sklearn-svc - SK PCA dimensionality reduction (tabular sklearn pattern)
+  # ============================================================================
+  sklearn-svc:
+    # Build the image from the per-service Dockerfile when `--build` is passed
+    # or when no cached image exists for the tag below. Context dir matches
+    # what standalone `docker build` runs use, so layer caches are shared.
+    build:
+      context: ./services/sklearn-svc
+    # Tag the resulting image. Pinning to ml-fc-sklearn-svc:dev means the cache
+    # is shared with our standalone `docker build --tag ml-fc-sklearn-svc:dev`
+    # invocations; without this directive compose would generate a project-
+    # prefixed name like ml-fc-deployment-sklearn-svc.
+    image: ml-fc-sklearn-svc:dev
+    # Host port 8001 -> container port 8001. Container's uvicorn binds
+    # 0.0.0.0:8001 per the Dockerfile CMD.
+    ports:
+      - "8001:8001"
+    # Declarative version of `docker run -e`. Tells the loader which SQLite
+    # registry to read (mounted from the host below) and what prefix to
+    # substitute when resolving the artifact URIs whose host-Windows paths
+    # don't exist inside the Linux container - the portable-paths refactor
+    # from Phase 6.1 ties this env var to _resolve_artifact_dir().
+    environment:
+      MLFLOW_TRACKING_URI: sqlite:////srv/mlflow/mlflow.db
+      MLFLOW_ARTIFACT_ROOT_OVERRIDE: /srv/mlflow
+    # Bind-mount the deployment/ directory (host) at /srv/mlflow (container),
+    # read-only. The leading `.` resolves to this compose file's parent dir.
+    # :ro keeps the container from mutating the registry by mistake; we only
+    # ever read from it during model load.
+    volumes:
+      - .:/srv/mlflow:ro
+    # Don't auto-restart on crash. Dev default: failures stay visible in
+    # `docker compose ps` and `logs` instead of being silently retried.
+    # Production deployments would typically use `unless-stopped` or
+    # `always` to keep the service up across container exits.
+    restart: "no"
+    # Attach to the shared network defined at the bottom of this file.
+    networks:
+      - ml-fc-network
+
+
+  # ============================================================================
+  # pt-svc - PyTorch DNN classifier + DCGAN generator + Q-learning Q-table
+  # ============================================================================
+  pt-svc:
+    build:
+      context: ./services/pt-svc
+    image: ml-fc-pt-svc:dev
+    ports:
+      - "8002:8002"
+    environment:
+      MLFLOW_TRACKING_URI: sqlite:////srv/mlflow/mlflow.db
+      MLFLOW_ARTIFACT_ROOT_OVERRIDE: /srv/mlflow
+    volumes:
+      - .:/srv/mlflow:ro
+    restart: "no"
+    networks:
+      - ml-fc-network
+
+
+  # ============================================================================
+  # tf-svc - TensorFlow EN->ES Transformer translation
+  # ============================================================================
+  tf-svc:
+    build:
+      context: ./services/tf-svc
+    image: ml-fc-tf-svc:dev
+    ports:
+      - "8003:8003"
+    environment:
+      MLFLOW_TRACKING_URI: sqlite:////srv/mlflow/mlflow.db
+      MLFLOW_ARTIFACT_ROOT_OVERRIDE: /srv/mlflow
+    volumes:
+      - .:/srv/mlflow:ro
+    restart: "no"
+    networks:
+      - ml-fc-network
+
+
+# ============================================================================
+# Networks
+# ============================================================================
+# Shared bridge network the three services attach to. With no `driver:`
+# specified, compose defaults to `bridge` (Linux bridge networking; services
+# can reach each other by service name on this network if cross-service
+# traffic is ever introduced). Currently no inter-service HTTP exists, but
+# the named network groups the three under one entry in `docker network ls`.
+#
+# The `name:` override prevents compose from prefixing the network with the
+# project name (which would give `ml-fc-deployment_ml-fc-network`).
+networks:
+  ml-fc-network:
+    name: ml-fc-network

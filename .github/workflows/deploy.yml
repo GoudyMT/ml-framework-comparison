@@ -1,0 +1,92 @@
+# .github/workflows/deploy.yml
+
+# Manual-trigger placeholder for cloud deployment. Demonstrates the
+# pipeline shape (inputs, image tag selection, environment dispatch)
+# without actually deploying anywhere - cloud account + IAM are out
+# of scope for the local-with-cloud-deployable target.
+
+# When a real cloud-deploy target is wired up, the body of the deploy
+# job replaces the echo + summary steps with the actual cloud-side
+# commands (kubectl apply, terraform apply, gcloud run deploy, az
+# container app update, etc., depending on the chosen target).
+
+name: Deploy
+
+# Manual trigger only. Never automatic - cloud deployments should
+# require explicit operator intent + a paper trail (the workflow_dispatch
+# run page records who clicked the button and which inputs they chose).
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (e.g. latest, sha-abc1234)'
+        required: true
+        default: 'latest'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+
+# Minimal scope. A real deploy would add packages:read (to pull from
+# ghcr.io) plus cloud-provider auth secrets. This placeholder reads
+# only the repo for the workflow file itself.
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Echo the deployment plan into the runner log. This is the
+      # placeholder body - real deploy logic replaces this block with
+      # the actual cloud-side commands (kubectl rollout, terraform
+      # apply, etc.).
+      - name: Display deployment plan
+        run: |
+          echo "=== Deployment Plan ==="
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Image tag:   ${{ inputs.image_tag }}"
+          echo ""
+          echo "Images that would be pulled and run:"
+          echo "  ghcr.io/${{ github.repository }}/sklearn-svc:${{ inputs.image_tag }}"
+          echo "  ghcr.io/${{ github.repository }}/pt-svc:${{ inputs.image_tag }}"
+          echo "  ghcr.io/${{ github.repository }}/tf-svc:${{ inputs.image_tag }}"
+          echo ""
+          echo "=== Placeholder workflow - no actual deployment ==="
+          echo "Real cloud-deploy implementation belongs here. Required pieces:"
+          echo "  - Cloud-account credentials (secrets.AWS_*, GCP_*, AZURE_*)"
+          echo "  - Deployment manifest (k8s YAML, terraform plan, etc.)"
+          echo "  - Rollout command (kubectl rollout, helm upgrade, etc.)"
+          echo "  - Healthcheck verification (curl <service>/health post-rollout)"
+          echo "  - Rollback hook on failure"
+
+      # Write a clean Markdown summary into the workflow run page.
+      # $GITHUB_STEP_SUMMARY is a runner-injected file path that GitHub
+      # renders as Markdown at the top of the run page; useful for
+      # operators reviewing the run after the fact.
+      - name: Write step summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Deployment Plan (Placeholder)
+
+          | Field | Value |
+          | --- | --- |
+          | Environment | \`${{ inputs.environment }}\` |
+          | Image tag | \`${{ inputs.image_tag }}\` |
+          | Triggered by | @${{ github.actor }} |
+
+          **Images that would be pulled and run:**
+
+          - \`ghcr.io/${{ github.repository }}/sklearn-svc:${{ inputs.image_tag }}\`
+          - \`ghcr.io/${{ github.repository }}/pt-svc:${{ inputs.image_tag }}\`
+          - \`ghcr.io/${{ github.repository }}/tf-svc:${{ inputs.image_tag }}\`
+
+          **Note:** This is a placeholder workflow. No actual deployment occurred.
+          A real cloud-deploy implementation would replace the echo + summary
+          steps with the cloud-provider rollout commands.
+          EOF

@@ -1,0 +1,125 @@
+# .github/workflows/ci.yml
+
+# Lint + type-check + test on every PR and every push to main, across all
+# three deployment services. Three parallel matrix jobs (sklearn-svc /
+# pt-svc / tf-svc) run the same step list independently so one service's
+# failure does not block the other two's reporting.
+
+# Green CI is the gate for merging to main when branch protection is
+# configured in repo settings (separate UI, not in the workflow file).
+
+name: CI
+
+# When the workflow runs:
+#   - push to main: validates the tip after merge (catches anything that
+#     slipped past PR review).
+#   - pull_request targeting main: validates the proposed change before
+#     merge; this is the gate developers care about.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Workflow-level permissions. read-only on contents is the minimum to
+# checkout the repo; we do not write back to the repo or push images
+# here (image build + push belongs in a separate workflow file, not
+# in this lint/test workflow).
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Ubuntu runner. Our requirements.txt was generated against
+    # python:3.12.2-slim (debian-bookworm-slim); ubuntu-latest is
+    # debian-flavored and resolves the same manylinux wheels. Pinning
+    # to a specific ubuntu-NN.NN tag would isolate from GitHub's
+    # "latest" pointer update cadence; the small drift is acceptable
+    # given setup-python pins the Python version explicitly below.
+    runs-on: ubuntu-latest
+
+    strategy:
+      # fail-fast: false means a failure in one service does not cancel
+      # the other two. Lets all three services report status independently
+      # in the PR check UI (e.g., sklearn-svc passes, pt-svc fails, tf-svc
+      # passes - all three results visible).
+      fail-fast: false
+      matrix:
+        service: [sklearn-svc, pt-svc, tf-svc]
+
+    # Every `run:` step below executes from the matched service's directory.
+    # Avoids repeating `working-directory:` on every step. Note that the
+    # matrix interpolation works because defaults are evaluated per
+    # matrix-instance, after expansion.
+    defaults:
+      run:
+        working-directory: deployment/services/${{ matrix.service }}
+
+    steps:
+      # Pull the repo into the runner's $GITHUB_WORKSPACE. @v4 is the
+      # current major; fetches the commit being tested by default.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Set up Python 3.12.2 to match the version pinned in each service's
+      # pyproject.toml (requires-python = "==3.12.2") and the
+      # python:3.12.2-slim base image in each Dockerfile. setup-python
+      # caches its own Python binary across workflow runs; setting the
+      # exact version avoids cache hits on a different 3.12.x patch.
+      - name: Setup Python 3.12.2
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.2'
+
+      # Cache pip wheels across workflow runs. The key includes the
+      # requirements.txt hash so any lockfile change invalidates the cache
+      # and forces a fresh install. The restore-keys fallback lets us
+      # reuse a partial cache (same OS + service) when only the lockfile
+      # changed - pip will skip already-cached wheels and only download
+      # the deltas. Expected speedup: 30-60s per run after the first one
+      # primes the cache.
+      - name: Cache pip wheels
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.service }}-${{ hashFiles(format('deployment/services/{0}/requirements.txt', matrix.service)) }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.service }}-
+
+      # Install runtime deps from the Linux-native, hash-locked
+      # requirements.txt. --require-hashes enforces that every wheel
+      # matches the lockfile's recorded sha256 - same supply-chain check
+      # the Dockerfile runs. pip itself is upgraded first because the
+      # runner image's bundled pip can lag behind by a few versions.
+      - name: Install runtime deps (hash-locked)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.txt
+
+      # Install dev tooling. NOT hash-locked - dev tools never ship to
+      # production, so the supply-chain rationale that justifies hash
+      # locking on runtime deps does not apply here. pyproject.toml's
+      # [project.optional-dependencies] dev pins floor versions
+      # (pytest>=8.0 etc.); latest matching patch is fine.
+      - name: Install dev tools
+        run: pip install ruff mypy pytest pytest-asyncio httpx
+
+      # Ruff lint. Config lives in each service's pyproject.toml under
+      # [tool.ruff] and [tool.ruff.lint] - same rule set the polish-period
+      # discipline relies on (E/F/W + I + B + UP + C4 + SIM).
+      - name: Ruff lint
+        run: ruff check app tests
+
+      # Mypy strict type check. Config in pyproject.toml under [tool.mypy]
+      # (strict = true, ignore_missing_imports = true so sklearn/mlflow/tf
+      # don't trip the strict checker on missing type stubs).
+      - name: Mypy strict type check
+        run: mypy app
+
+      # Pytest. Tests monkeypatch each loader's module-level cache slots
+      # so no real MlflowClient is instantiated and no deployment/mlruns/
+      # artifacts are required at CI time - the runner only needs the
+      # source tree plus pip-installable deps. --tb=short keeps failure
+      # output compact in the runner logs.
+      - name: Pytest
+        run: pytest tests --tb=short

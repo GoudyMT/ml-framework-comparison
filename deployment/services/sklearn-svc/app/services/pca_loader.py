@@ -77,7 +77,16 @@ Production-wise, this means: when the artifact format changes, we update
 this loader. The registry contract (name + alias) stays stable.
 """
 MODEL_NAME: str = "sk-pca"
+# DEFAULT alias. Resolved at startup unless the MODEL_ALIAS env var is
+# set, in which case the env var wins. Lets a container be pointed at a
+# non-default alias (canary / staging) without rebuilding the image.
 MODEL_ALIAS: str = "production"
+
+# Env var name read inside load_pca_model() to override the default above
+# at runtime. The actual alias used is logged in pca_load_start +
+# pca_alias_resolved events so operators can verify which alias was
+# queried against the registry.
+ALIAS_OVERRIDE_ENV: str = "MODEL_ALIAS"
 
 # Filenames of the artifacts inside the registered version's artifact
 # directory. promote_to_registry.py logs both files at the top level
@@ -232,6 +241,21 @@ def _resolve_artifact_dir(source_uri: str) -> Path:
     return _file_uri_to_path(source_uri)
 
 
+def _resolve_alias() -> str:
+    """
+    Resolve the alias used to query the registry.
+
+    Reads the MODEL_ALIAS env var (via ALIAS_OVERRIDE_ENV); falls back
+    to the MODEL_ALIAS module constant when the env var is unset or
+    empty. The resolved value is logged in pca_load_start so operators
+    can verify which alias was queried against the registry.
+
+    Returns:
+        The alias string (e.g. "production", "staging").
+    """
+    return os.environ.get(ALIAS_OVERRIDE_ENV) or MODEL_ALIAS
+
+
 
 # Module-level cache
 """
@@ -285,10 +309,13 @@ def load_pca_model() -> None:
     os.environ[TRACKING_URI_ENV] = tracking_uri
     mlflow.set_tracking_uri(tracking_uri)
 
+    # Resolve the model alias: MODEL_ALIAS env var wins, else use the default.
+    alias = _resolve_alias()
+
     log.info(
         "pca_load_start",
         model_name=MODEL_NAME,
-        model_alias=MODEL_ALIAS,
+        model_alias=alias,
         tracking_uri=tracking_uri,
     )
 
@@ -299,12 +326,12 @@ def load_pca_model() -> None:
         # (where .source is a properly-formed file:/// URI).
         client = MlflowClient(tracking_uri=tracking_uri)
         version = client.get_model_version_by_alias(
-            name=MODEL_NAME, alias=MODEL_ALIAS
+            name=MODEL_NAME, alias=alias
         )
         log.info(
             "pca_alias_resolved",
             model_name=MODEL_NAME,
-            model_alias=MODEL_ALIAS,
+            model_alias=alias,
             version=version.version,
             run_id=version.run_id[:8] if version.run_id else None,
         )
@@ -357,7 +384,7 @@ def load_pca_model() -> None:
         # handler in main.py will catch this and Docker/k8s will see
         # the container exit with a clear error in stderr.
         raise RuntimeError(
-            f"Failed to load {MODEL_NAME}@{MODEL_ALIAS} from {tracking_uri}. "
+            f"Failed to load {MODEL_NAME}@{alias} from {tracking_uri}. "
             f"Verify the registry exists and the alias is set."
         ) from exc
 

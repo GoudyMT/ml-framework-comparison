@@ -83,7 +83,16 @@ directly to torch.load / joblib.load, sidestepping known issues
 with MLflow's two-stage download path on Windows.
 """
 MODEL_NAME: str = "pt-dnn"
+# DEFAULT alias. Resolved at startup unless the MODEL_ALIAS env var is
+# set, in which case the env var wins. Lets a container be pointed at a
+# non-default alias (canary / staging) without rebuilding the image.
 MODEL_ALIAS: str = "production"
+
+# Env var name read inside load_dnn_model() to override the default above
+# at runtime. The actual alias used is logged in dnn_load_start +
+# dnn_alias_resolved events so operators can verify which alias was
+# queried against the registry.
+ALIAS_OVERRIDE_ENV: str = "MODEL_ALIAS"
 
 """
 Filenames inside the registered version's artifact directory.
@@ -227,6 +236,21 @@ def _resolve_artifact_dir(source_uri: str) -> Path:
     return _file_uri_to_path(source_uri)
 
 
+def _resolve_alias() -> str:
+    """
+    Resolve the alias used to query the registry.
+
+    Reads the MODEL_ALIAS env var (via ALIAS_OVERRIDE_ENV); falls back
+    to the MODEL_ALIAS module constant when the env var is unset or
+    empty. The resolved value is logged in dnn_load_start so operators
+    can verify which alias was queried against the registry.
+
+    Returns:
+        The alias string (e.g. "production", "staging").
+    """
+    return os.environ.get(ALIAS_OVERRIDE_ENV) or MODEL_ALIAS
+
+
 
 # Module-level cache
 # ---------------------------------------------------------------------------
@@ -276,10 +300,13 @@ def load_dnn_model() -> None:
     os.environ[TRACKING_URI_ENV] = tracking_uri
     mlflow.set_tracking_uri(tracking_uri)
 
+    # Resolve the model alias: MODEL_ALIAS env var wins, else use the default.
+    alias = _resolve_alias()
+
     log.info(
         "dnn_load_start",
         model_name=MODEL_NAME,
-        model_alias=MODEL_ALIAS,
+        model_alias=alias,
         tracking_uri=tracking_uri,
     )
 
@@ -288,12 +315,12 @@ def load_dnn_model() -> None:
         # artifact download yet.
         client = MlflowClient(tracking_uri=tracking_uri)
         version = client.get_model_version_by_alias(
-            name=MODEL_NAME, alias=MODEL_ALIAS
+            name=MODEL_NAME, alias=alias
         )
         log.info(
             "dnn_alias_resolved",
             model_name=MODEL_NAME,
-            model_alias=MODEL_ALIAS,
+            model_alias=alias,
             version=version.version,
             run_id=version.run_id[:8] if version.run_id else None,
         )
@@ -351,7 +378,7 @@ def load_dnn_model() -> None:
         # log the full traceback; Docker/k8s will see the container
         # exit non-zero.
         raise RuntimeError(
-            f"Failed to load {MODEL_NAME}@{MODEL_ALIAS} from "
+            f"Failed to load {MODEL_NAME}@{alias} from "
             f"{tracking_uri}. Verify the registry exists and the "
             f"alias is set."
         ) from exc

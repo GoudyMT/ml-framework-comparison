@@ -2,6 +2,9 @@
 
 U.S. Navy veteran rapidly promoted to E-6 in under 6 years — leading technical teams of up to 44 personnel in high-tempo deployed environments while restoring $7.8M+ in RADAR, navigation, and satellite-communication systems at 94-98% sustained uptime. This portfolio applies that same systems-thinking to ML/AI engineering: **20 models across Scikit-learn, PyTorch, TensorFlow, and from-scratch NumPy** — achieving up to **96.03% accuracy and 0.97 F1**, with production-ready FastAPI deployment pipelines covering GANs, Vision Transformers, GNNs, and reinforcement learning. Currently pursuing a B.A. in Computer Science at SNHU (expected Apr 2027, **3.92 GPA**), targeting high-impact roles in AI/ML engineering and defense technology.
 
+[![CI](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/ci.yml/badge.svg)](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/ci.yml)
+[![Build and Push](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/build.yml/badge.svg)](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/build.yml)
+
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)

@@ -55,10 +55,10 @@ MLflow tracking URI points at a remote DB; `artifact_uri` becomes `s3://...` or 
 MLflow's registry stores `version.source` as an absolute `file://` URI captured at promotion time on the host that ran `promote_to_registry.py`:
 
 ```
-file:///C:/Users/Max/Desktop/Coding/.Projects/2026/ml-framework-comparisons/deployment/mlruns/78fd7c.../artifacts
+file:///<workspace-root>/ml-framework-comparisons/deployment/mlruns/78fd7c.../artifacts
 ```
 
-This URI is correct on the promotion host but invalid inside a Linux container — the host-Windows `C:/Users/Max/...` path does not exist there.
+This URI is correct on the promotion host but invalid inside a Linux container — the host-Windows `<workspace-root>/...` path does not exist there.
 
 ### The solution
 
@@ -85,8 +85,8 @@ When `MLFLOW_ARTIFACT_ROOT_OVERRIDE=/srv/mlflow` is set inside the container, th
 
 | Step | Value |
 |------|-------|
-| Registered URI | `file:///C:/Users/Max/.../deployment/mlruns/78fd7c.../artifacts` |
-| `urlparse(...).path` | `/C:/Users/Max/.../deployment/mlruns/78fd7c.../artifacts` |
+| Registered URI | `file:///<workspace-root>/deployment/mlruns/78fd7c.../artifacts` |
+| `urlparse(...).path` | `/<workspace-root>/deployment/mlruns/78fd7c.../artifacts` |
 | Tail extracted (from `/mlruns/` onwards) | `mlruns/78fd7c.../artifacts` |
 | Re-anchored under override root | `/srv/mlflow/mlruns/78fd7c.../artifacts` |
 

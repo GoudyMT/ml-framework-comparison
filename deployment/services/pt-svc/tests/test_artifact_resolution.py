@@ -29,8 +29,8 @@ LOADERS = pytest.mark.parametrize(
 # can produce. Windows hosts produce file:///C:/... (drive letter retained
 # inside the URI). POSIX hosts produce file:///home/... (no drive letter).
 WINDOWS_SOURCE_URI = (
-    "file:///C:/Users/Max/Desktop/Coding/.Projects/2026/"
-    "ml-framework-comparisons/deployment/mlruns/abc123/artifacts"
+    "file:///C:/workspaces/ml-framework-comparisons/"
+    "deployment/mlruns/abc123/artifacts"
 )
 POSIX_SOURCE_URI = "file:///home/user/deployment/mlruns/abc123/artifacts"
 

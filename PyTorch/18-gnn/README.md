@@ -535,7 +535,7 @@ Dataset artifacts live at `../../data/processed/gnn/` (PyG Planetoid + OGB cache
 
 ```powershell
 # From project root
-cd C:\Users\Max\Desktop\Coding\.Projects\2026\ml-framework-comparisons
+cd ml-framework-comparisons
 
 # Install (PyG CUDA extensions require the -f wheel index in requirements.txt)
 pip install -r PyTorch/18-gnn/requirements.txt

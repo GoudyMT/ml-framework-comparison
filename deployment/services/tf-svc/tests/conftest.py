@@ -32,6 +32,7 @@ LIFESPAN BEHAVIOR:
     instead.
 """
 
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -151,6 +152,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(translation_loader, "_MODEL", fake_model)
     monkeypatch.setattr(translation_loader, "_TOKENIZER", fake_tokenizer)
     monkeypatch.setattr(translation_loader, "_MODEL_VERSION", "1")
+    # Mirror the real load's _LAST_INFERENCE_TS stamp - a freshly-loaded
+    # model is considered active from the moment it is ready, so the
+    # /health/translation endpoint returns 200 without needing a prior
+    # request.
+    monkeypatch.setattr(translation_loader, "_LAST_INFERENCE_TS", time.time())
 
     yield TestClient(app)
 
@@ -167,5 +173,9 @@ def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(translation_loader, "_MODEL", None)
     monkeypatch.setattr(translation_loader, "_TOKENIZER", None)
     monkeypatch.setattr(translation_loader, "_MODEL_VERSION", None)
+    # Reset to module default - the /health/translation endpoint's
+    # is_loaded() check fires first, so this 0.0 only matters if a prior
+    # test left the TS in a non-default state. Explicit reset is defensive.
+    monkeypatch.setattr(translation_loader, "_LAST_INFERENCE_TS", 0.0)
 
     yield TestClient(app)

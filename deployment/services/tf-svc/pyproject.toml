@@ -128,3 +128,19 @@ disallow_subclassing_any = false
 asyncio_mode = "auto"
 testpaths    = ["tests"]
 addopts      = "-v --tb=short"
+# Targeted suppression for two upstream DeprecationWarnings from
+# sentencepiece's SWIG-generated C++ wrapper. SwigPyPacked and
+# SwigPyObject are extension types that do not declare __module__, which
+# Python 3.12+ flags as deprecated under PEP 686 semantics. The fix has
+# to ship in sentencepiece itself (latest 0.2.1 still emits these); the
+# project already uses the newest available release.
+#
+# Each filter is a literal-string match against the exact warning
+# message - NOT a blanket DeprecationWarning suppression. Any other
+# deprecation (in our code, in TensorFlow, in any other dep) still
+# surfaces normally. Drop these entries when sentencepiece ships a
+# fix.
+filterwarnings = [
+    "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
+]

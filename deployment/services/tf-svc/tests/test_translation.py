@@ -258,3 +258,55 @@ def test_translate_records_inference_duration(client: TestClient) -> None:
         '{model_name="tf-transformer-translation"}'
         in body
     )
+
+
+# Per-model freshness endpoint /health/translation
+
+
+def test_health_translation_loaded_fresh_returns_200(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/translation returns 200 with diagnostic body when the model
+    is loaded AND _LAST_INFERENCE_TS is within the staleness threshold.
+    """
+    monkeypatch.delenv("MODEL_INFERENCE_STALENESS_SECONDS", raising=False)
+    response = client.get("/health/translation")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "healthy"
+    assert body["model_name"] == translation_loader.MODEL_NAME
+    assert body["version"] == "1"
+    assert body["staleness_threshold_seconds"] == 3600
+    assert 0.0 <= body["last_inference_age_seconds"] < 5.0
+
+
+def test_health_translation_loaded_stale_returns_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/translation returns 503 inference_stale when the model is
+    loaded but the last inference timestamp is beyond the staleness
+    threshold.
+    """
+    monkeypatch.setenv("MODEL_INFERENCE_STALENESS_SECONDS", "1")
+    monkeypatch.setattr(translation_loader, "_LAST_INFERENCE_TS", 0.0)
+
+    response = client.get("/health/translation")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "inference_stale"}
+
+
+def test_health_translation_unloaded_returns_503(
+    client_unloaded: TestClient,
+) -> None:
+    """
+    /health/translation returns 503 model_not_loaded when either the
+    model or tokenizer cache is empty.
+    """
+    response = client_unloaded.get("/health/translation")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model_not_loaded"}

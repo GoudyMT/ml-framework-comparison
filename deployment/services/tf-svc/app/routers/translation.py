@@ -87,7 +87,7 @@ import time
 import tensorflow as tf
 from fastapi import APIRouter, HTTPException
 
-from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
+from app.middleware.inference_tracking import track_inference
 from app.schemas.translation import (
     TRANSLATION_MAX_LENGTH,
     TranslationRequest,
@@ -159,15 +159,14 @@ async def translate(req: TranslationRequest) -> TranslationResponse:
     src_ids_padded = src_ids + [PAD_IDX] * (TRANSLATION_MAX_LENGTH - len(src_ids))
 
     # Step 2 + 3: encode once + greedy autoregressive decode.
-    # The .time() context manager observes elapsed seconds into the
-    # model_inference_duration_seconds histogram on exit - measures
-    # the full encoder + decoder-loop work as ONE observation per
-    # request (not per decode step). Scope is narrower than the
-    # existing t0 above, which also covers tokenize + detokenize +
-    # response prep.
-    with MODEL_INFERENCE_DURATION_SECONDS.labels(
-        model_name=translation_loader.MODEL_NAME
-    ).time():
+    # track_inference wraps two coupled side effects: observe the
+    # model_inference_duration_seconds histogram (measures the full
+    # encoder + decoder-loop work as ONE observation per request, not
+    # per decode step; narrower than the existing t0 above which also
+    # covers tokenize + detokenize + response prep) AND stamp
+    # translation_loader._LAST_INFERENCE_TS on successful exit (powers
+    # the /health/translation freshness check).
+    with track_inference(translation_loader):
         # Encode the source ONCE. Convert to a (1, MAX_LEN) int32
         # tensor; build the pad mask; call model.encode(). The encoder
         # output is shape (1, MAX_LEN, d_model) and gets cached for

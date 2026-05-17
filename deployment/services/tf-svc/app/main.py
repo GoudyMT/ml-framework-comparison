@@ -27,6 +27,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.middleware import inference_tracking
 from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
@@ -156,6 +157,37 @@ async def ready() -> dict[str, Any]:
                 "version": translation_loader.get_model_version(),
             },
         },
+    }
+
+
+@app.get("/health/translation", tags=["health"])
+async def health_translation() -> dict[str, Any]:
+    """
+    Per-model freshness check for the translation endpoint.
+
+    Returns 200 with diagnostic body when the model is loaded AND the
+    last activity (load or inference) is within the staleness threshold
+    (MODEL_INFERENCE_STALENESS_SECONDS env var, default 3600s). Returns
+    503 detail="model_not_loaded" when the cache is empty, or 503
+    detail="inference_stale" when loaded but past the threshold.
+
+    Differs from /ready: /ready is service-level; /health/translation
+    is per-model + adds a freshness dimension that /ready does not track.
+    """
+    if not translation_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not inference_tracking.is_fresh(translation_loader):
+        raise HTTPException(status_code=503, detail="inference_stale")
+    return {
+        "status": "healthy",
+        "model_name": translation_loader.MODEL_NAME,
+        "version": translation_loader.get_model_version(),
+        "last_inference_age_seconds": round(
+            inference_tracking.get_age(translation_loader), 2
+        ),
+        "staleness_threshold_seconds": (
+            inference_tracking._resolve_staleness_threshold()
+        ),
     }
 
 

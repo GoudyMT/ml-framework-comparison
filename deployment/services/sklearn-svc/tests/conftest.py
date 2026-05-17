@@ -39,6 +39,7 @@ LIFESPAN BEHAVIOR:
     client:` instead of the bare client fixture.
 """
 
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -125,6 +126,10 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(pca_loader, "_VARIANCE_EXPLAINED", 1.0)
     monkeypatch.setattr(pca_loader, "_MODEL_VERSION", "1")
     monkeypatch.setattr(pca_loader, "_SCALER", fake_scaler)
+    # Mirror the real load's _LAST_INFERENCE_TS stamp - a freshly-loaded
+    # model is considered active from the moment it is ready, so the
+    # /health/pca endpoint returns 200 without needing a prior request.
+    monkeypatch.setattr(pca_loader, "_LAST_INFERENCE_TS", time.time())
 
     # Yield a TestClient. Without `with`, lifespan does NOT run - so
     # our manually-set cache is what get_pca_model() sees, not the real
@@ -145,5 +150,9 @@ def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(pca_loader, "_VARIANCE_EXPLAINED", None)
     monkeypatch.setattr(pca_loader, "_MODEL_VERSION", None)
     monkeypatch.setattr(pca_loader, "_SCALER", None)
+    # Reset to module default - the /health/pca endpoint's is_loaded()
+    # check fires first, so this 0.0 only matters if a prior test left
+    # the TS in a non-default state. Explicit reset is defensive.
+    monkeypatch.setattr(pca_loader, "_LAST_INFERENCE_TS", 0.0)
 
     yield TestClient(app)

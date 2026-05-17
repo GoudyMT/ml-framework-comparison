@@ -32,9 +32,11 @@ NOTE ON FAKEPCA OUTPUT:
     these tests.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.pca import INPUT_DIM, OUTPUT_DIM
+from app.services import pca_loader
 
 # Helper - building a 784-float request payload is something every
 # test below does. Centralizing keeps tests focused on the assertion,
@@ -188,3 +190,62 @@ def test_predict_pca_records_inference_duration(client: TestClient) -> None:
     assert (
         'model_inference_duration_seconds_count{model_name="sk-pca"}' in body
     )
+
+
+# Per-model freshness endpoint /health/pca
+
+
+def test_health_pca_loaded_fresh_returns_200(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/pca returns 200 with diagnostic body when the model is loaded
+    AND _LAST_INFERENCE_TS is within the staleness threshold.
+
+    The client fixture stamps a fresh TS at setup; the env var stays at
+    default 3600s. Endpoint returns the model_name + version pulled from
+    the loader plus a measured age + the resolved threshold so operators
+    can diff the two at a glance.
+    """
+    monkeypatch.delenv("MODEL_INFERENCE_STALENESS_SECONDS", raising=False)
+    response = client.get("/health/pca")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "healthy"
+    assert body["model_name"] == pca_loader.MODEL_NAME
+    assert body["version"] == "1"
+    assert body["staleness_threshold_seconds"] == 3600
+    # Age computed at request time; should be tiny (microseconds to
+    # milliseconds) given the fixture stamps the TS at fixture setup.
+    assert 0.0 <= body["last_inference_age_seconds"] < 5.0
+
+
+def test_health_pca_loaded_stale_returns_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/pca returns 503 inference_stale when the model is loaded but
+    the last inference timestamp is beyond the staleness threshold.
+
+    Sets a tight 1-second threshold + an ancient timestamp - guaranteed
+    stale regardless of test-runner wall-clock jitter.
+    """
+    monkeypatch.setenv("MODEL_INFERENCE_STALENESS_SECONDS", "1")
+    monkeypatch.setattr(pca_loader, "_LAST_INFERENCE_TS", 0.0)
+
+    response = client.get("/health/pca")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "inference_stale"}
+
+
+def test_health_pca_unloaded_returns_503(client_unloaded: TestClient) -> None:
+    """
+    /health/pca returns 503 model_not_loaded when the cache is empty -
+    matches /ready's existing 503 body contract for the same condition.
+    """
+    response = client_unloaded.get("/health/pca")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model_not_loaded"}

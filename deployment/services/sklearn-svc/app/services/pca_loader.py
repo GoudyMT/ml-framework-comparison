@@ -38,6 +38,7 @@ LIFECYCLE:
 """
 
 import os
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -223,7 +224,7 @@ def _resolve_artifact_dir(source_uri: str) -> Path:
         # Re-anchor under the override root: extract everything from
         # `/mlruns/` onwards in the registered URI, prepend override.
         # Example:
-        #   source_uri = "file:///C:/Users/Max/.../deployment/mlruns/<run-id>/artifacts"
+        #   source_uri = "file:///<workspace-root>/deployment/mlruns/<run-id>/artifacts"
         #   override   = "/srv/mlflow"
         #   result     = "/srv/mlflow/mlruns/<run-id>/artifacts"
         src_path = urlparse(source_uri).path
@@ -272,6 +273,16 @@ _VARIANCE_EXPLAINED: float | None = None
 _MODEL_VERSION: str | None = None  # Set to e.g. "1" once the alias is resolved
 _SCALER: Any | None = None         # Dict {'mean': ndarray(784), 'std': ndarray(784)}
 
+# Wall-clock timestamp of the most recent activity (load OR inference).
+# Powers the /health/pca endpoint's freshness check. Updated in two
+# places: (1) inline at the end of load_pca_model() so a freshly-loaded
+# model is considered active from the moment it is ready, and (2) on
+# every successful /predict/pca call via inference_tracking.stamp().
+# Module default 0.0 means "no activity yet" - the /health/pca endpoint
+# gates on is_loaded() first, so the 0.0 default only matters in the
+# narrow window between import and the lifespan load.
+_LAST_INFERENCE_TS: float = 0.0
+
 
 # Public API
 
@@ -294,7 +305,7 @@ def load_pca_model() -> None:
           up the same registry).
         - Mutates module-level _MODEL and _VARIANCE_EXPLAINED.
     """
-    global _MODEL, _VARIANCE_EXPLAINED, _MODEL_VERSION, _SCALER
+    global _MODEL, _VARIANCE_EXPLAINED, _MODEL_VERSION, _SCALER, _LAST_INFERENCE_TS
 
     # Idempotency guard: if the cache is already populated, skip.
     # Useful for test suites that call lifespan startup multiple times.
@@ -398,6 +409,12 @@ def load_pca_model() -> None:
     _VARIANCE_EXPLAINED = variance_explained
     _MODEL_VERSION = str(version.version)
     _SCALER = scaler
+
+    # Stamp _LAST_INFERENCE_TS at load completion so a freshly-loaded
+    # model is considered "active" from the moment it is ready - the
+    # /health/pca endpoint returns 200 without needing a prior request.
+    # Subsequent /predict/pca calls re-stamp via track_inference.
+    _LAST_INFERENCE_TS = time.time()
 
     log.info(
         "pca_load_complete",

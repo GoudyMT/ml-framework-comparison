@@ -36,8 +36,8 @@ DEFENSE IN DEPTH:
 
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.inference_tracking import track_inference
 from app.middleware.input_distribution import maybe_log_input_distribution
-from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.pca import OUTPUT_DIM, PCARequest, PCAResponse
 from app.services import pca_loader
 from app.services.preprocessing import apply_preprocessing
@@ -111,13 +111,15 @@ async def predict_pca(req: PCARequest) -> PCAResponse:
     For a single sample this is a few microseconds of matmul - the
     network round-trip dominates total request time, not the math.
 
-    The .time() context manager observes elapsed seconds into the
-    model_inference_duration_seconds histogram on exit - measures the
-    forward only, separate from preprocessing + serialization.
+    track_inference wraps two coupled side effects: observe the
+    model_inference_duration_seconds histogram (measures the forward
+    only, separate from preprocessing + serialization) AND stamp the
+    loader's _LAST_INFERENCE_TS on successful exit (powers the
+    /health/pca freshness check). A raised exception still observes
+    the metric but skips the stamp - a failed inference must not keep
+    the model looking "fresh".
     """
-    with MODEL_INFERENCE_DURATION_SECONDS.labels(
-        model_name=pca_loader.MODEL_NAME
-    ).time():
+    with track_inference(pca_loader):
         components_array = model.transform(X)  # shape (1, OUTPUT_DIM)
 
     """

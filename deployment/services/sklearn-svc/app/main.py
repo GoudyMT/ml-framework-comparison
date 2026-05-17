@@ -25,10 +25,12 @@ WHAT THIS FILE CONTAINS:
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.middleware import inference_tracking
 from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
@@ -207,6 +209,44 @@ async def ready() -> dict[str, str | bool]:
         "model_loaded": True,
         "model_name": pca_loader.MODEL_NAME,
         "model_version": pca_loader.get_model_version(),
+    }
+
+
+@app.get("/health/pca", tags=["health"])
+async def health_pca() -> dict[str, Any]:
+    """
+    Per-model freshness check for the PCA endpoint.
+
+    Returns:
+        - HTTP 200 with diagnostic body when the model is loaded AND the
+          last activity (load or inference) is within the staleness
+          threshold (MODEL_INFERENCE_STALENESS_SECONDS env var, default
+          3600s). Body includes the resolved age + threshold so operators
+          can diff at a glance without a second call.
+        - HTTP 503 detail="model_not_loaded" when the cache is empty -
+          matches /ready's contract for the same condition.
+        - HTTP 503 detail="inference_stale" when the model is loaded but
+          age >= threshold. Distinct cause string lets log scrapers
+          separate "still warming up" from "serving but dead".
+
+    Differs from /ready: /ready is service-level (all-or-nothing across
+    every model in the service); /health/pca is per-model + adds a
+    freshness dimension that /ready does not track.
+    """
+    if not pca_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not inference_tracking.is_fresh(pca_loader):
+        raise HTTPException(status_code=503, detail="inference_stale")
+    return {
+        "status": "healthy",
+        "model_name": pca_loader.MODEL_NAME,
+        "version": pca_loader.get_model_version(),
+        "last_inference_age_seconds": round(
+            inference_tracking.get_age(pca_loader), 2
+        ),
+        "staleness_threshold_seconds": (
+            inference_tracking._resolve_staleness_threshold()
+        ),
     }
 
 

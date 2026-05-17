@@ -43,6 +43,7 @@ import numpy as np
 import torch
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.input_distribution import maybe_log_input_distribution
 from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.dnn import CLASS_NAMES, ClassLabel, DNNRequest, DNNResponse
 from app.services import dnn_loader
@@ -84,6 +85,13 @@ async def predict_dnn(req: DNNRequest) -> DNNResponse:
         scaler = dnn_loader.get_scaler()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="model_not_loaded") from exc
+
+    # Sample the raw input distribution every Nth request (per-model
+    # counter, env-var-configurable interval). Drift-detection signal -
+    # logs summary stats of what clients are sending, before any
+    # preprocessing transforms the values. See input_distribution.py
+    # for the sampling design rationale.
+    maybe_log_input_distribution(req.features, model_name=dnn_loader.MODEL_NAME)
 
     # Step 1: list -> 2D ndarray.
     # Sklearn's transform expects (batch, n_features). reshape(1, -1)

@@ -98,6 +98,34 @@ HTTP_REQUESTS_IN_FLIGHT = Gauge(
     labelnames=["method", "path"],
 )
 
+# Model inference metrics
+"""
+HTTP_REQUEST_DURATION_SECONDS above measures the FULL request
+(validation + preprocessing + inference + response serialization).
+That conflates "model is slow" with "request handling is slow". The
+histogram below isolates just the model-forward work via a .time()
+context manager wrapped around the inference call in each router.
+
+Cardinality is bounded: model_name takes one of 5 values across all
+three services (sk-pca, pt-dnn, pt-gan-dcgan, pt-qlearning-taxi,
+tf-transformer-translation). Adding any new model adds exactly one
+new series per bucket - safe for production storage.
+
+Buckets are tighter at the low end than HTTP_LATENCY_BUCKETS because
+PCA inference is sub-millisecond; the 1s ceiling covers TF
+translation's greedy decode worst-case.
+"""
+MODEL_INFERENCE_DURATION_BUCKETS: tuple[float, ...] = (
+    0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0,
+)
+
+MODEL_INFERENCE_DURATION_SECONDS = Histogram(
+    "model_inference_duration_seconds",
+    "Model-forward inference latency in seconds (excludes request handling).",
+    labelnames=["model_name"],
+    buckets=MODEL_INFERENCE_DURATION_BUCKETS,
+)
+
 # Paths we DON'T instrument. /metrics is the obvious one (avoid the
 # scraper inflating its own counters). /openapi.json and /docs / /redoc
 # are also dev/inspection traffic, not real workload.

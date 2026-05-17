@@ -36,6 +36,7 @@ DEFENSE IN DEPTH:
 
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.pca import OUTPUT_DIM, PCARequest, PCAResponse
 from app.services import pca_loader
 from app.services.preprocessing import apply_preprocessing
@@ -101,8 +102,15 @@ async def predict_pca(req: PCARequest) -> PCAResponse:
     projection: out = (X - pca.mean_) @ pca.components_.T
     For a single sample this is a few microseconds of matmul - the
     network round-trip dominates total request time, not the math.
+
+    The .time() context manager observes elapsed seconds into the
+    model_inference_duration_seconds histogram on exit - measures the
+    forward only, separate from preprocessing + serialization.
     """
-    components_array = model.transform(X)  # shape (1, OUTPUT_DIM)
+    with MODEL_INFERENCE_DURATION_SECONDS.labels(
+        model_name=pca_loader.MODEL_NAME
+    ).time():
+        components_array = model.transform(X)  # shape (1, OUTPUT_DIM)
 
     """
     Convert back to a plain Python list for JSON serialization.

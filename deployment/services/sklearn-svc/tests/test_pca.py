@@ -164,3 +164,27 @@ def test_predict_pca_model_unloaded(client_unloaded: TestClient) -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "model_not_loaded"}
+
+
+# Inference-latency histogram
+
+
+def test_predict_pca_records_inference_duration(client: TestClient) -> None:
+    """
+    A successful /predict/pca records the model_inference_duration_seconds
+    histogram with model_name="sk-pca".
+
+    Verifies the .time() context manager wrapping pca.transform(...) in
+    the router emits a labeled sample. The substring asserted below is the
+    `_count` line prometheus_client auto-generates for any Histogram with
+    at least one observation; without the wrap, this substring never
+    appears in /metrics.
+    """
+    response = client.post("/predict/pca", json=_features_payload(0.0))
+    assert response.status_code == 200, "setup precondition failed"
+
+    body = client.get("/metrics").text
+
+    assert (
+        'model_inference_duration_seconds_count{model_name="sk-pca"}' in body
+    )

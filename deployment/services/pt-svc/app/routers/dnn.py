@@ -43,6 +43,7 @@ import numpy as np
 import torch
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.dnn import CLASS_NAMES, ClassLabel, DNNRequest, DNNResponse
 from app.services import dnn_loader
 
@@ -102,8 +103,18 @@ async def predict_dnn(req: DNNRequest) -> DNNResponse:
     # .float() ensures dtype is float32 (some older sklearn versions
     # return float64). no_grad disables autograd tracking - faster
     # and leaner without changing the math.
+    #
+    # The .time() context manager observes elapsed seconds into the
+    # model_inference_duration_seconds histogram on exit - covers the
+    # forward + softmax + argmax (the model-output extraction), excludes
+    # the scaler.transform above and the response prep below.
     X_tensor = torch.from_numpy(X_scaled).float()
-    with torch.no_grad():
+    with (
+        MODEL_INFERENCE_DURATION_SECONDS.labels(
+            model_name=dnn_loader.MODEL_NAME
+        ).time(),
+        torch.no_grad(),
+    ):
         logits = model(X_tensor)               # shape (1, 6)
         probabilities = torch.softmax(logits, dim=1)[0]  # shape (6,)
         predicted_class = int(logits.argmax(dim=1).item())

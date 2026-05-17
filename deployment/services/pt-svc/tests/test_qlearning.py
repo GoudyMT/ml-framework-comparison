@@ -229,3 +229,34 @@ def test_predict_qlearning_model_unloaded(client_unloaded: TestClient) -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "model_not_loaded"}
+
+
+# Inference-latency histogram
+
+
+def test_predict_qlearning_records_inference_duration(
+    client: TestClient,
+) -> None:
+    """
+    A successful /predict/qlearning/taxi records the
+    model_inference_duration_seconds histogram with
+    model_name="pt-qlearning-taxi".
+
+    Verifies the .time() context manager wrapping the Q-table lookup +
+    argmax in the router emits a labeled sample. Q-learning's inference
+    is the cheapest in the portfolio (one index + one argmax over 6
+    floats); we measure it for consistency with the other endpoints.
+    The substring asserted below is the `_count` line prometheus_client
+    auto-generates for any Histogram with at least one observation.
+    """
+    response = client.post(
+        "/predict/qlearning/taxi", json=_state_payload(42)
+    )
+    assert response.status_code == 200, "setup precondition failed"
+
+    body = client.get("/metrics").text
+
+    assert (
+        'model_inference_duration_seconds_count{model_name="pt-qlearning-taxi"}'
+        in body
+    )

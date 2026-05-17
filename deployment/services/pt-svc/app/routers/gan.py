@@ -91,6 +91,7 @@ import torch
 from fastapi import APIRouter, HTTPException
 from PIL import Image
 
+from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.gan import LATENT_DIM, GANRequest, GANResponse
 from app.services import gan_loader
 
@@ -157,8 +158,18 @@ async def predict_gan_sample(req: GANRequest) -> GANResponse:
     inference). no_grad disables autograd's computation-graph
     tracking - no .backward() will ever run on this output, so the
     bookkeeping is wasted compute and memory.
+
+    The .time() context manager observes elapsed seconds into the
+    model_inference_duration_seconds histogram - measures only the
+    generator forward (narrower than the existing t0 scope, which also
+    covers denormalization + PIL/PNG/base64 encoding).
     """
-    with torch.no_grad():
+    with (
+        MODEL_INFERENCE_DURATION_SECONDS.labels(
+            model_name=gan_loader.MODEL_NAME
+        ).time(),
+        torch.no_grad(),
+    ):
         out = model(z)  # shape (n, 3, 32, 32) in [-1, 1]
 
     # Step 4: denormalize [-1, 1] float -> [0, 255] uint8.

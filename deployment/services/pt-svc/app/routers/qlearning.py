@@ -44,6 +44,7 @@ from typing import cast
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.qlearning import (
     ACTION_NAMES,
     ActionLabel,
@@ -88,15 +89,18 @@ async def predict_qlearning_taxi(req: TaxiRequest) -> TaxiResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="model_not_loaded") from exc
 
-    # Step 1: index the Q-table by state.
-    # qtable shape is (500, 6); req.state is a validated int in
-    # [0, 500). q_row is a 6-element numpy view into qtable.
-    q_row = qtable[req.state]
-
-    # Step 2: argmax over actions. np.argmax returns a numpy int64
-    # by default; cast to plain Python int for clean JSON serialization
-    # (Pydantic accepts numpy ints but they're not strictly JSON-native).
-    action = int(np.argmax(q_row))
+    # Step 1+2: index the Q-table by state, then argmax over actions.
+    # The .time() context manager observes elapsed seconds into the
+    # model_inference_duration_seconds histogram - this is the cheapest
+    # inference in the portfolio (one numpy index + one argmax over 6
+    # floats), measured for consistency with the other endpoints. The
+    # int() cast on argmax converts numpy int64 to plain Python int
+    # for clean JSON serialization.
+    with MODEL_INFERENCE_DURATION_SECONDS.labels(
+        model_name=qlearning_loader.MODEL_NAME
+    ).time():
+        q_row = qtable[req.state]
+        action = int(np.argmax(q_row))
 
     # Step 3: convert numpy floats to Python floats for the response.
     # .tolist() on a 1-d numpy array returns a list of plain floats,

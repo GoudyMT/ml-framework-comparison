@@ -230,3 +230,31 @@ def test_translate_model_unloaded(client_unloaded: TestClient) -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "model_not_loaded"}
+
+
+# Inference-latency histogram
+
+
+def test_translate_records_inference_duration(client: TestClient) -> None:
+    """
+    A successful /translate records the model_inference_duration_seconds
+    histogram with model_name="tf-transformer-translation".
+
+    Verifies the .time() context manager wrapping the encode + greedy
+    decode loop in the router emits a labeled sample. The wrap covers
+    multiple decode-step forward passes per request (one observation per
+    request, not per step), which is the right scope - we want total
+    model time, not per-step. The substring asserted below is the
+    `_count` line prometheus_client auto-generates for any Histogram
+    with at least one observation.
+    """
+    response = client.post("/translate", json={"text": "Hello world"})
+    assert response.status_code == 200, "setup precondition failed"
+
+    body = client.get("/metrics").text
+
+    assert (
+        'model_inference_duration_seconds_count'
+        '{model_name="tf-transformer-translation"}'
+        in body
+    )

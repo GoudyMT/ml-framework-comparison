@@ -87,6 +87,7 @@ import time
 import tensorflow as tf
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.translation import (
     TRANSLATION_MAX_LENGTH,
     TranslationRequest,
@@ -157,38 +158,49 @@ async def translate(req: TranslationRequest) -> TranslationResponse:
     # samples were post-padded (BPE_tokens + <pad>...), so we match.
     src_ids_padded = src_ids + [PAD_IDX] * (TRANSLATION_MAX_LENGTH - len(src_ids))
 
-    # Step 2: encode the source ONCE.
-    # Convert to a (1, MAX_LEN) int32 tensor; build the pad mask;
-    # call model.encode(). The encoder output is shape
-    # (1, MAX_LEN, d_model) and gets cached for the decode loop.
-    src = tf.convert_to_tensor([src_ids_padded], dtype=tf.int32)
-    src_mask = create_pad_mask(src, PAD_IDX)
-    encoder_out = model.encode(src, src_mask, training=False)
+    # Step 2 + 3: encode once + greedy autoregressive decode.
+    # The .time() context manager observes elapsed seconds into the
+    # model_inference_duration_seconds histogram on exit - measures
+    # the full encoder + decoder-loop work as ONE observation per
+    # request (not per decode step). Scope is narrower than the
+    # existing t0 above, which also covers tokenize + detokenize +
+    # response prep.
+    with MODEL_INFERENCE_DURATION_SECONDS.labels(
+        model_name=translation_loader.MODEL_NAME
+    ).time():
+        # Encode the source ONCE. Convert to a (1, MAX_LEN) int32
+        # tensor; build the pad mask; call model.encode(). The encoder
+        # output is shape (1, MAX_LEN, d_model) and gets cached for
+        # the decode loop.
+        src = tf.convert_to_tensor([src_ids_padded], dtype=tf.int32)
+        src_mask = create_pad_mask(src, PAD_IDX)
+        encoder_out = model.encode(src, src_mask, training=False)
 
-    # Step 3: greedy autoregressive decode.
-    # Start with [BOS_IDX]. At each step, build the target as a
-    # (1, len) tensor, run model.decode(), pick the argmax of the
-    # last position's logits, stop on EOS_IDX or after max_length
-    # tokens.
-    generated: list[int] = [BOS_IDX]
-    for _ in range(req.max_length):
-        tgt = tf.convert_to_tensor([generated], dtype=tf.int32)
-        # tgt_mask combines the pad mask (no pads in our growing
-        # target, but the model expects this shape) and the causal
-        # mask (don't attend to future positions). tf.maximum is
-        # the elementwise OR for {0.0, 1.0}-valued masks.
-        tgt_pad_mask = create_pad_mask(tgt, PAD_IDX)
-        tgt_causal = create_causal_mask(tf.shape(tgt)[1])
-        tgt_mask = tf.maximum(tgt_pad_mask, tgt_causal)
-        # logits shape: (1, current_target_len, VOCAB_SIZE).
-        logits = model.decode(tgt, encoder_out, src_mask, tgt_mask, training=False)
-        # The prediction for the NEXT token comes from the LAST
-        # position of the current logits. argmax along the vocab
-        # dimension (-1) gives an int64 scalar; cast to plain int.
-        next_id = int(tf.argmax(logits[0, -1, :]).numpy())
-        if next_id == EOS_IDX:
-            break
-        generated.append(next_id)
+        # Greedy autoregressive decode. Start with [BOS_IDX]. At each
+        # step, build the target as a (1, len) tensor, run
+        # model.decode(), pick the argmax of the last position's
+        # logits, stop on EOS_IDX or after max_length tokens.
+        generated: list[int] = [BOS_IDX]
+        for _ in range(req.max_length):
+            tgt = tf.convert_to_tensor([generated], dtype=tf.int32)
+            # tgt_mask combines the pad mask (no pads in our growing
+            # target, but the model expects this shape) and the causal
+            # mask (don't attend to future positions). tf.maximum is
+            # the elementwise OR for {0.0, 1.0}-valued masks.
+            tgt_pad_mask = create_pad_mask(tgt, PAD_IDX)
+            tgt_causal = create_causal_mask(tf.shape(tgt)[1])
+            tgt_mask = tf.maximum(tgt_pad_mask, tgt_causal)
+            # logits shape: (1, current_target_len, VOCAB_SIZE).
+            logits = model.decode(
+                tgt, encoder_out, src_mask, tgt_mask, training=False
+            )
+            # The prediction for the NEXT token comes from the LAST
+            # position of the current logits. argmax along the vocab
+            # dimension (-1) gives an int64 scalar; cast to plain int.
+            next_id = int(tf.argmax(logits[0, -1, :]).numpy())
+            if next_id == EOS_IDX:
+                break
+            generated.append(next_id)
 
     # Step 4: strip the leading BOS, then detokenize.
     # n_output_tokens counts the generated tokens AFTER BOS - the

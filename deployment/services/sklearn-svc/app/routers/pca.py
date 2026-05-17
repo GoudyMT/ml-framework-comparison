@@ -36,6 +36,7 @@ DEFENSE IN DEPTH:
 
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.input_distribution import maybe_log_input_distribution
 from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.pca import OUTPUT_DIM, PCARequest, PCAResponse
 from app.services import pca_loader
@@ -87,6 +88,13 @@ async def predict_pca(req: PCARequest) -> PCAResponse:
         scaler = pca_loader.get_scaler()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail="model_not_loaded") from exc
+
+    # Sample the raw input distribution every Nth request (per-model
+    # counter, env-var-configurable interval). Drift-detection signal -
+    # logs summary stats of what clients are sending, before any
+    # preprocessing transforms the values. See input_distribution.py
+    # for the sampling design rationale.
+    maybe_log_input_distribution(req.features, model_name=pca_loader.MODEL_NAME)
 
     """
     Apply the modeling-phase preprocessing pipeline:

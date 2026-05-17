@@ -44,7 +44,7 @@ from typing import cast
 import numpy as np
 from fastapi import APIRouter, HTTPException
 
-from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
+from app.middleware.inference_tracking import track_inference
 from app.schemas.qlearning import (
     ACTION_NAMES,
     ActionLabel,
@@ -90,15 +90,15 @@ async def predict_qlearning_taxi(req: TaxiRequest) -> TaxiResponse:
         raise HTTPException(status_code=503, detail="model_not_loaded") from exc
 
     # Step 1+2: index the Q-table by state, then argmax over actions.
-    # The .time() context manager observes elapsed seconds into the
-    # model_inference_duration_seconds histogram - this is the cheapest
-    # inference in the portfolio (one numpy index + one argmax over 6
-    # floats), measured for consistency with the other endpoints. The
-    # int() cast on argmax converts numpy int64 to plain Python int
-    # for clean JSON serialization.
-    with MODEL_INFERENCE_DURATION_SECONDS.labels(
-        model_name=qlearning_loader.MODEL_NAME
-    ).time():
+    # track_inference wraps two coupled side effects: observe the
+    # model_inference_duration_seconds histogram (the cheapest inference
+    # in the portfolio - one numpy index + one argmax over 6 floats;
+    # measured for consistency with the other endpoints) AND stamp
+    # qlearning_loader._LAST_INFERENCE_TS on successful exit (powers
+    # the /health/qlearning freshness check). The int() cast on argmax
+    # converts numpy int64 to plain Python int for clean JSON
+    # serialization.
+    with track_inference(qlearning_loader):
         q_row = qtable[req.state]
         action = int(np.argmax(q_row))
 

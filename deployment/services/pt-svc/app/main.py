@@ -29,6 +29,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.middleware import inference_tracking
 from app.middleware.logging import LoggingMiddleware, configure_logging
 from app.middleware.metrics import MetricsMiddleware
 from app.middleware.request_id import RequestIDMiddleware
@@ -187,6 +188,86 @@ async def ready() -> dict[str, Any]:
                 "version": qlearning_loader.get_model_version(),
             },
         },
+    }
+
+
+@app.get("/health/dnn", tags=["health"])
+async def health_dnn() -> dict[str, Any]:
+    """
+    Per-model freshness check for the DNN endpoint.
+
+    Returns 200 with diagnostic body when the model is loaded AND the
+    last activity (load or inference) is within the staleness threshold
+    (MODEL_INFERENCE_STALENESS_SECONDS env var, default 3600s). Returns
+    503 detail="model_not_loaded" when the cache is empty, or 503
+    detail="inference_stale" when loaded but past the threshold.
+
+    Differs from /ready: /ready is service-level (all-or-nothing across
+    every model in pt-svc); /health/dnn is per-model + adds a freshness
+    dimension that /ready does not track.
+    """
+    if not dnn_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not inference_tracking.is_fresh(dnn_loader):
+        raise HTTPException(status_code=503, detail="inference_stale")
+    return {
+        "status": "healthy",
+        "model_name": dnn_loader.MODEL_NAME,
+        "version": dnn_loader.get_model_version(),
+        "last_inference_age_seconds": round(
+            inference_tracking.get_age(dnn_loader), 2
+        ),
+        "staleness_threshold_seconds": (
+            inference_tracking._resolve_staleness_threshold()
+        ),
+    }
+
+
+@app.get("/health/gan", tags=["health"])
+async def health_gan() -> dict[str, Any]:
+    """
+    Per-model freshness check for the GAN endpoint. See /health/dnn for
+    the full contract; the gating logic is identical, only the loader
+    module passed to inference_tracking changes.
+    """
+    if not gan_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not inference_tracking.is_fresh(gan_loader):
+        raise HTTPException(status_code=503, detail="inference_stale")
+    return {
+        "status": "healthy",
+        "model_name": gan_loader.MODEL_NAME,
+        "version": gan_loader.get_model_version(),
+        "last_inference_age_seconds": round(
+            inference_tracking.get_age(gan_loader), 2
+        ),
+        "staleness_threshold_seconds": (
+            inference_tracking._resolve_staleness_threshold()
+        ),
+    }
+
+
+@app.get("/health/qlearning", tags=["health"])
+async def health_qlearning() -> dict[str, Any]:
+    """
+    Per-model freshness check for the Q-learning endpoint. See /health/dnn
+    for the full contract; the gating logic is identical, only the loader
+    module passed to inference_tracking changes.
+    """
+    if not qlearning_loader.is_loaded():
+        raise HTTPException(status_code=503, detail="model_not_loaded")
+    if not inference_tracking.is_fresh(qlearning_loader):
+        raise HTTPException(status_code=503, detail="inference_stale")
+    return {
+        "status": "healthy",
+        "model_name": qlearning_loader.MODEL_NAME,
+        "version": qlearning_loader.get_model_version(),
+        "last_inference_age_seconds": round(
+            inference_tracking.get_age(qlearning_loader), 2
+        ),
+        "staleness_threshold_seconds": (
+            inference_tracking._resolve_staleness_threshold()
+        ),
     }
 
 

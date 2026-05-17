@@ -39,6 +39,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.qlearning import ACTION_NAMES, N_ACTIONS, N_STATES
+from app.services import qlearning_loader
 
 # Helper - building a {state: N} payload is repeated.
 
@@ -260,3 +261,55 @@ def test_predict_qlearning_records_inference_duration(
         'model_inference_duration_seconds_count{model_name="pt-qlearning-taxi"}'
         in body
     )
+
+
+# Per-model freshness endpoint /health/qlearning
+
+
+def test_health_qlearning_loaded_fresh_returns_200(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/qlearning returns 200 with diagnostic body when the Q-table is
+    loaded AND _LAST_INFERENCE_TS is within the staleness threshold.
+    """
+    monkeypatch.delenv("MODEL_INFERENCE_STALENESS_SECONDS", raising=False)
+    response = client.get("/health/qlearning")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "healthy"
+    assert body["model_name"] == qlearning_loader.MODEL_NAME
+    assert body["version"] == "1"
+    assert body["staleness_threshold_seconds"] == 3600
+    assert 0.0 <= body["last_inference_age_seconds"] < 5.0
+
+
+def test_health_qlearning_loaded_stale_returns_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/qlearning returns 503 inference_stale when the Q-table is
+    loaded but the last inference timestamp is beyond the staleness
+    threshold.
+    """
+    monkeypatch.setenv("MODEL_INFERENCE_STALENESS_SECONDS", "1")
+    monkeypatch.setattr(qlearning_loader, "_LAST_INFERENCE_TS", 0.0)
+
+    response = client.get("/health/qlearning")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "inference_stale"}
+
+
+def test_health_qlearning_unloaded_returns_503(
+    client_unloaded: TestClient,
+) -> None:
+    """
+    /health/qlearning returns 503 model_not_loaded when the Q-table cache
+    is empty.
+    """
+    response = client_unloaded.get("/health/qlearning")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model_not_loaded"}

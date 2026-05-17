@@ -36,6 +36,7 @@ LIFESPAN BEHAVIOR:
     the fixtures manually populate each loader's cache slots instead.
 """
 
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -185,6 +186,12 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     of THIS test only - automatically restored at teardown. No manual
     cleanup; no risk of state leaking between tests.
     """
+    # Mirror the real load's _LAST_INFERENCE_TS stamp for all 3 loaders -
+    # a freshly-loaded model is considered active from the moment it is
+    # ready, so /health/<model> endpoints return 200 without needing a
+    # prior request.
+    now = time.time()
+
     # DNN loader cache slots
     fake_dnn: Any = FakeDNN()
     fake_dnn.eval()  # Mirror the loader's eval-mode invariant.
@@ -192,16 +199,19 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(dnn_loader, "_MODEL", fake_dnn)
     monkeypatch.setattr(dnn_loader, "_SCALER", fake_scaler)
     monkeypatch.setattr(dnn_loader, "_MODEL_VERSION", "1")
+    monkeypatch.setattr(dnn_loader, "_LAST_INFERENCE_TS", now)
 
     # GAN loader cache slots
     fake_gen: Any = FakeGenerator()
     fake_gen.eval()
     monkeypatch.setattr(gan_loader, "_MODEL", fake_gen)
     monkeypatch.setattr(gan_loader, "_MODEL_VERSION", "1")
+    monkeypatch.setattr(gan_loader, "_LAST_INFERENCE_TS", now)
 
     # Q-learning loader cache slots
     monkeypatch.setattr(qlearning_loader, "_QTABLE", make_fake_qtable())
     monkeypatch.setattr(qlearning_loader, "_MODEL_VERSION", "1")
+    monkeypatch.setattr(qlearning_loader, "_LAST_INFERENCE_TS", now)
 
     # TestClient(app) without `with` does NOT trigger lifespan, so
     # our manually-populated caches are what the loaders' getters see.
@@ -223,13 +233,16 @@ def client_unloaded(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(dnn_loader, "_MODEL", None)
     monkeypatch.setattr(dnn_loader, "_SCALER", None)
     monkeypatch.setattr(dnn_loader, "_MODEL_VERSION", None)
+    monkeypatch.setattr(dnn_loader, "_LAST_INFERENCE_TS", 0.0)
 
     # GAN loader cache slots
     monkeypatch.setattr(gan_loader, "_MODEL", None)
     monkeypatch.setattr(gan_loader, "_MODEL_VERSION", None)
+    monkeypatch.setattr(gan_loader, "_LAST_INFERENCE_TS", 0.0)
 
     # Q-learning loader cache slots
     monkeypatch.setattr(qlearning_loader, "_QTABLE", None)
     monkeypatch.setattr(qlearning_loader, "_MODEL_VERSION", None)
+    monkeypatch.setattr(qlearning_loader, "_LAST_INFERENCE_TS", 0.0)
 
     yield TestClient(app)

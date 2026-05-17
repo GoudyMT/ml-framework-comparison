@@ -44,10 +44,12 @@ NOTE ON FAKEGENERATOR DETERMINISM:
 import base64
 import io
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.schemas.gan import IMAGE_CHANNELS, IMAGE_SIZE, N_SAMPLES_MAX
+from app.services import gan_loader
 
 # Helper - decode a single base64 string to PIL.Image. Used by tests
 # that need to validate the actual image bytes.
@@ -330,3 +332,51 @@ def test_predict_gan_records_inference_duration(client: TestClient) -> None:
         'model_inference_duration_seconds_count{model_name="pt-gan-dcgan"}'
         in body
     )
+
+
+# Per-model freshness endpoint /health/gan
+
+
+def test_health_gan_loaded_fresh_returns_200(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/gan returns 200 with diagnostic body when the model is loaded
+    AND _LAST_INFERENCE_TS is within the staleness threshold.
+    """
+    monkeypatch.delenv("MODEL_INFERENCE_STALENESS_SECONDS", raising=False)
+    response = client.get("/health/gan")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "healthy"
+    assert body["model_name"] == gan_loader.MODEL_NAME
+    assert body["version"] == "1"
+    assert body["staleness_threshold_seconds"] == 3600
+    assert 0.0 <= body["last_inference_age_seconds"] < 5.0
+
+
+def test_health_gan_loaded_stale_returns_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/gan returns 503 inference_stale when the model is loaded but
+    the last inference timestamp is beyond the staleness threshold.
+    """
+    monkeypatch.setenv("MODEL_INFERENCE_STALENESS_SECONDS", "1")
+    monkeypatch.setattr(gan_loader, "_LAST_INFERENCE_TS", 0.0)
+
+    response = client.get("/health/gan")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "inference_stale"}
+
+
+def test_health_gan_unloaded_returns_503(client_unloaded: TestClient) -> None:
+    """
+    /health/gan returns 503 model_not_loaded when the cache is empty.
+    """
+    response = client_unloaded.get("/health/gan")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model_not_loaded"}

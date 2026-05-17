@@ -55,6 +55,7 @@ KEY PYTORCH CONCEPTS USED HERE:
 """
 
 import os
+import time
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -209,7 +210,7 @@ def _resolve_artifact_dir(source_uri: str) -> Path:
         # Re-anchor under the override root: extract everything from
         # `/mlruns/` onwards in the registered URI, prepend override.
         # Example:
-        #   source_uri = "file:///C:/Users/Max/.../deployment/mlruns/<run-id>/artifacts"
+        #   source_uri = "file:///<workspace-root>/deployment/mlruns/<run-id>/artifacts"
         #   override   = "/srv/mlflow"
         #   result     = "/srv/mlflow/mlruns/<run-id>/artifacts"
         src_path = urlparse(source_uri).path
@@ -254,6 +255,16 @@ exactly once per process.
 _MODEL: DCGenerator | None = None
 _MODEL_VERSION: str | None = None  # e.g. "1" once the alias is resolved
 
+# Wall-clock timestamp of the most recent activity (load OR inference).
+# Powers the /health/gan endpoint's freshness check. Updated in two
+# places: (1) inline at the end of load_gan_model() so a freshly-loaded
+# model is considered active from the moment it is ready, and (2) on
+# every successful /predict/gan/sample call via inference_tracking.stamp().
+# Module default 0.0 means "no activity yet" - the /health/gan endpoint
+# gates on is_loaded() first, so the 0.0 default only matters in the
+# narrow window between import and the lifespan load.
+_LAST_INFERENCE_TS: float = 0.0
+
 
 # Public API
 
@@ -276,7 +287,7 @@ def load_gan_model() -> None:
         - Sets MLFLOW_TRACKING_URI in os.environ if it wasn't set.
         - Mutates module-level _MODEL, _MODEL_VERSION.
     """
-    global _MODEL, _MODEL_VERSION
+    global _MODEL, _MODEL_VERSION, _LAST_INFERENCE_TS
 
     # Idempotency: don't re-load if cache is already populated.
     # Useful for tests that re-run startup.
@@ -361,6 +372,12 @@ def load_gan_model() -> None:
 
     _MODEL = model
     _MODEL_VERSION = str(version.version)
+
+    # Stamp _LAST_INFERENCE_TS at load completion so a freshly-loaded
+    # model is considered "active" from the moment it is ready - the
+    # /health/gan endpoint returns 200 without needing a prior request.
+    # Subsequent /predict/gan/sample calls re-stamp via track_inference.
+    _LAST_INFERENCE_TS = time.time()
 
     log.info(
         "gan_load_complete",

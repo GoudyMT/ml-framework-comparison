@@ -25,9 +25,11 @@ NOTE ON FAKEDNN OUTPUT:
     against the real registry artifact.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.dnn import INPUT_DIM, N_CLASSES
+from app.services import dnn_loader
 
 # Helper - building a 561-float payload is repeated in every test.
 
@@ -182,3 +184,52 @@ def test_predict_dnn_records_inference_duration(client: TestClient) -> None:
     assert (
         'model_inference_duration_seconds_count{model_name="pt-dnn"}' in body
     )
+
+
+# Per-model freshness endpoint /health/dnn
+
+
+def test_health_dnn_loaded_fresh_returns_200(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/dnn returns 200 with diagnostic body when the model is loaded
+    AND _LAST_INFERENCE_TS is within the staleness threshold.
+    """
+    monkeypatch.delenv("MODEL_INFERENCE_STALENESS_SECONDS", raising=False)
+    response = client.get("/health/dnn")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "healthy"
+    assert body["model_name"] == dnn_loader.MODEL_NAME
+    assert body["version"] == "1"
+    assert body["staleness_threshold_seconds"] == 3600
+    assert 0.0 <= body["last_inference_age_seconds"] < 5.0
+
+
+def test_health_dnn_loaded_stale_returns_503(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    /health/dnn returns 503 inference_stale when the model is loaded but
+    the last inference timestamp is beyond the staleness threshold.
+    """
+    monkeypatch.setenv("MODEL_INFERENCE_STALENESS_SECONDS", "1")
+    monkeypatch.setattr(dnn_loader, "_LAST_INFERENCE_TS", 0.0)
+
+    response = client.get("/health/dnn")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "inference_stale"}
+
+
+def test_health_dnn_unloaded_returns_503(client_unloaded: TestClient) -> None:
+    """
+    /health/dnn returns 503 model_not_loaded when the cache is empty -
+    matches /ready's existing 503 body contract for the same condition.
+    """
+    response = client_unloaded.get("/health/dnn")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "model_not_loaded"}

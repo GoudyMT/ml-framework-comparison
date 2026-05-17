@@ -43,8 +43,8 @@ import numpy as np
 import torch
 from fastapi import APIRouter, HTTPException
 
+from app.middleware.inference_tracking import track_inference
 from app.middleware.input_distribution import maybe_log_input_distribution
-from app.middleware.metrics import MODEL_INFERENCE_DURATION_SECONDS
 from app.schemas.dnn import CLASS_NAMES, ClassLabel, DNNRequest, DNNResponse
 from app.services import dnn_loader
 
@@ -112,17 +112,14 @@ async def predict_dnn(req: DNNRequest) -> DNNResponse:
     # return float64). no_grad disables autograd tracking - faster
     # and leaner without changing the math.
     #
-    # The .time() context manager observes elapsed seconds into the
-    # model_inference_duration_seconds histogram on exit - covers the
-    # forward + softmax + argmax (the model-output extraction), excludes
-    # the scaler.transform above and the response prep below.
+    # track_inference wraps two coupled side effects: observe the
+    # model_inference_duration_seconds histogram (covers the forward +
+    # softmax + argmax; excludes scaler.transform above and response
+    # prep below) AND stamp dnn_loader._LAST_INFERENCE_TS on successful
+    # exit (powers the /health/dnn freshness check). A raised exception
+    # still observes the metric but skips the stamp.
     X_tensor = torch.from_numpy(X_scaled).float()
-    with (
-        MODEL_INFERENCE_DURATION_SECONDS.labels(
-            model_name=dnn_loader.MODEL_NAME
-        ).time(),
-        torch.no_grad(),
-    ):
+    with track_inference(dnn_loader), torch.no_grad():
         logits = model(X_tensor)               # shape (1, 6)
         probabilities = torch.softmax(logits, dim=1)[0]  # shape (6,)
         predicted_class = int(logits.argmax(dim=1).item())

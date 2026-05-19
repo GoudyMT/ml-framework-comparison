@@ -47,7 +47,7 @@ DESIGN DECISIONS:
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # Module constants
 # ---------------------------------------------------------------------------
@@ -116,7 +116,21 @@ class TaxiRequest(BaseModel):
             "encode from the structured form via "
             "((row*5 + col)*5 + passenger_loc)*4 + dest."
         ),
-        examples=[0, 328, 499],
+    )
+
+    # Three full-request examples (boundary low, mid-episode, boundary
+    # high) replace the previous per-field examples list. Mid-episode
+    # state 328 is the canonical "non-trivial policy lookup" used in
+    # this file's class-level docstring + test data; 0 and 499 are the
+    # terminal-state boundaries (sum(q_values) == 0 for those).
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"state": 0},
+                {"state": 328},
+                {"state": 499},
+            ],
+        },
     )
 
 
@@ -185,4 +199,23 @@ class TaxiResponse(BaseModel):
             "negative). Sum is 0 for terminal states; clients can "
             "detect those via sum(q_values) == 0."
         ),
+    )
+
+    # Full-response example surfaced in the Swagger UI response panel.
+    # Mid-episode state 328 picks action 1 (north) - matches the
+    # canonical example in the request schema for end-to-end symmetry.
+    # The Q-values show a clear winner (9.6 north) with positive
+    # alternatives (south, east, west) and penalty actions (pickup,
+    # dropoff) negative because they would mis-handle the passenger.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "state": 328,
+                    "action": 1,
+                    "action_name": "north",
+                    "q_values": [4.7, 9.6, 2.4, 5.0, -3.1, -2.8],
+                },
+            ],
+        },
     )

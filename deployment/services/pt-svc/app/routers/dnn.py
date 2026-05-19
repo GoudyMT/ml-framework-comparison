@@ -55,6 +55,41 @@ router = APIRouter(prefix="/predict", tags=["dnn"])
     "/dnn",
     response_model=DNNResponse,
     summary="Classify a 561-feature UCI HAR sample into one of 6 activities",
+    description=(
+        "Accepts a 561-element UCI HAR feature vector (each value in "
+        "[-1, 1], the dataset's pre-normalized range), applies the "
+        "StandardScaler from training, then runs the registered DNN "
+        "(561 -> 256 -> 128 -> 6 logits) under `torch.no_grad()`. "
+        "Returns the predicted class index + human-readable label + "
+        "the full 6-element softmax probability distribution so clients "
+        "can apply their own confidence thresholds or display top-k "
+        "predictions. The 6 classes are WALKING / WALKING_UPSTAIRS / "
+        "WALKING_DOWNSTAIRS / SITTING / STANDING / LAYING. Inference "
+        "is sub-millisecond per request."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Successful classification. Body conforms to DNNResponse: "
+                "predicted_class index + predicted_label string + "
+                "probabilities list (length 6, sums to ~1.0)."
+            ),
+        },
+        422: {
+            "description": (
+                "Request validation failed. Common causes: wrong feature "
+                "count (must be exactly 561), feature value outside "
+                "[-1, 1] (UCI's pre-normalized range), or non-numeric "
+                "values in the features list."
+            ),
+        },
+        503: {
+            "description": (
+                "DNN or scaler not loaded; lifespan startup hasn't "
+                "completed. Body: `{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
 )
 async def predict_dnn(req: DNNRequest) -> DNNResponse:
     """

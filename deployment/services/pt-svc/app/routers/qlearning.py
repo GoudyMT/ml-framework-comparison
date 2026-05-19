@@ -60,6 +60,40 @@ router = APIRouter(prefix="/predict", tags=["qlearning"])
     "/qlearning/taxi",
     response_model=TaxiResponse,
     summary="Pick the best action for a Gymnasium Taxi-v4 state",
+    description=(
+        "Tabular Q-learning policy lookup. Indexes the trained Q-table "
+        "(shape (500, 6) - 500 discrete states x 6 actions) by the "
+        "requested integer state, then returns the argmax action + its "
+        "human-readable name + the full 6-element Q-vector for that "
+        "state. The Q-vector lets clients see the runner-up margins "
+        "(why this action over the others) and detect terminal states "
+        "themselves via `sum(q_values) == 0`. Action enum is the "
+        "canonical Gymnasium Taxi-v4 ordering: south / north / east / "
+        "west / pickup / dropoff. Cheapest inference in the portfolio "
+        "(one numpy index + one argmax over 6 floats); the policy IS "
+        "the lookup table."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Successful action lookup. Body conforms to TaxiResponse: "
+                "echoed state + action index + action_name string + "
+                "q_values list (length 6, real-valued, can be negative)."
+            ),
+        },
+        422: {
+            "description": (
+                "Request validation failed. Common causes: state outside "
+                "[0, 500), non-integer state."
+            ),
+        },
+        503: {
+            "description": (
+                "Q-table not loaded; lifespan startup hasn't completed. "
+                "Body: `{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
 )
 async def predict_qlearning_taxi(req: TaxiRequest) -> TaxiResponse:
     """

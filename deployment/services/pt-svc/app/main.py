@@ -88,6 +88,62 @@ app = FastAPI(
         "policy (Gymnasium Taxi-v4). Loads from the consolidated "
         "MLflow registry at `deployment/mlflow.db`."
     ),
+    # OpenAPI contact + license surface in the auto-generated /docs UI
+    # header. Contact points operators at the public repo for issues /
+    # discussions (no email - GitHub handle is the established public
+    # surface). License matches the root LICENSE file + the README badge.
+    contact={
+        "name": "Goudy",
+        "url": "https://github.com/GoudyMT/ml-framework-comparison",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    # Tag descriptions surface as headings in /docs. Order here controls
+    # display order in Swagger UI. Three per-model tags match the
+    # established per-router convention; health + observability group
+    # the cross-cutting endpoints from main.py.
+    openapi_tags=[
+        {
+            "name": "dnn",
+            "description": (
+                "Activity classification endpoint. UCI HAR 561-feature "
+                "vector -> 6-class softmax (WALKING / WALKING_UPSTAIRS / "
+                "WALKING_DOWNSTAIRS / SITTING / STANDING / LAYING)."
+            ),
+        },
+        {
+            "name": "gan",
+            "description": (
+                "Image generation endpoint. DCGAN samples N latent "
+                "vectors and returns N base64-encoded 32x32 RGB PNGs."
+            ),
+        },
+        {
+            "name": "qlearning",
+            "description": (
+                "Tabular Q-learning policy lookup. Maps a Gymnasium "
+                "Taxi-v4 state ID to the argmax action + full Q-vector."
+            ),
+        },
+        {
+            "name": "health",
+            "description": (
+                "Liveness (`/health`), readiness (`/ready`), and per-model "
+                "freshness (`/health/dnn`, `/health/gan`, "
+                "`/health/qlearning`) checks for orchestrator probes."
+            ),
+        },
+        {
+            "name": "observability",
+            "description": (
+                "Prometheus metrics scrape endpoint (`/metrics`). Returns "
+                "HTTP + per-model inference metrics in text exposition "
+                "format. See `docs/monitoring.md` for the metric catalog."
+            ),
+        },
+    ],
     lifespan=lifespan,
 )
 
@@ -124,7 +180,22 @@ app.include_router(qlearning_router.router)
 # on model load completion so traffic doesn't hit a not-yet-warm pod.
 
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Liveness probe - is the process alive?",
+    description=(
+        "Trivial liveness check that does no work: no model load, no DB "
+        "query, no network call. Returns `{\"status\": \"alive\"}` with "
+        "HTTP 200 whenever the process is responding. Used by Kubernetes "
+        "livenessProbe + Docker HEALTHCHECK + load-balancer 'is the "
+        "backend up?' pings. For 'can the service handle traffic?' use "
+        "`/ready` instead."
+    ),
+    responses={
+        200: {"description": "Process is alive and responding."},
+    },
+)
 async def health() -> dict[str, str]:
     """
     Liveness check - the process is alive and responding.
@@ -135,7 +206,37 @@ async def health() -> dict[str, str]:
     return {"status": "alive"}
 
 
-@app.get("/ready", tags=["health"])
+@app.get(
+    "/ready",
+    tags=["health"],
+    summary="Readiness probe - can the service handle traffic?",
+    description=(
+        "All-or-nothing readiness check across all 3 models hosted by "
+        "this service. Returns HTTP 200 with `{status, models: {<name>: "
+        "{loaded, version}}}` once every model (DNN + scaler, DCGAN, "
+        "Q-table) is loaded from the registry. Returns HTTP 503 "
+        "detail=`model_not_loaded` while ANY model is still loading - "
+        "the load balancer shouldn't route traffic to a partially-loaded "
+        "pod, since any individual `/predict/*` call would 503 on the "
+        "missing model. For per-model freshness checks use "
+        "`/health/<model>` instead."
+    ),
+    responses={
+        200: {
+            "description": (
+                "All 3 models loaded; per-model dict in body shows "
+                "loaded=true + version for each (pt-dnn, pt-gan-dcgan, "
+                "pt-qlearning-taxi)."
+            ),
+        },
+        503: {
+            "description": (
+                "At least one model not loaded yet. Body shape: "
+                "`{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
+)
 async def ready() -> dict[str, Any]:
     """
     Readiness check - the service can accept traffic.
@@ -191,7 +292,36 @@ async def ready() -> dict[str, Any]:
     }
 
 
-@app.get("/health/dnn", tags=["health"])
+@app.get(
+    "/health/dnn",
+    tags=["health"],
+    summary="Per-model freshness check for the DNN endpoint",
+    description=(
+        "Per-model health + freshness check that `/ready` cannot express. "
+        "Returns HTTP 200 with diagnostic body when the DNN is loaded "
+        "AND the last activity (load or inference) is within the "
+        "staleness threshold. Returns HTTP 503 detail=`model_not_loaded` "
+        "if the cache is empty, or HTTP 503 detail=`inference_stale` "
+        "if loaded but past the threshold. Threshold is operator-tunable "
+        "via `MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
+        "See `docs/monitoring.md` for the full design."
+    ),
+    responses={
+        200: {
+            "description": (
+                "DNN loaded + recent activity within threshold. Body "
+                "includes age + threshold for at-a-glance comparison."
+            ),
+        },
+        503: {
+            "description": (
+                "Either `model_not_loaded` (cache empty) or "
+                "`inference_stale` (loaded but stale). Detail string "
+                "distinguishes the two causes."
+            ),
+        },
+    },
+)
 async def health_dnn() -> dict[str, Any]:
     """
     Per-model freshness check for the DNN endpoint.
@@ -223,7 +353,37 @@ async def health_dnn() -> dict[str, Any]:
     }
 
 
-@app.get("/health/gan", tags=["health"])
+@app.get(
+    "/health/gan",
+    tags=["health"],
+    summary="Per-model freshness check for the GAN endpoint",
+    description=(
+        "Per-model health + freshness check that `/ready` cannot express. "
+        "Returns HTTP 200 with diagnostic body when the DCGAN generator "
+        "is loaded AND the last activity (load or inference) is within "
+        "the staleness threshold. Returns HTTP 503 "
+        "detail=`model_not_loaded` if the cache is empty, or HTTP 503 "
+        "detail=`inference_stale` if loaded but past the threshold. "
+        "Threshold is operator-tunable via "
+        "`MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
+        "See `docs/monitoring.md` for the full design."
+    ),
+    responses={
+        200: {
+            "description": (
+                "DCGAN loaded + recent activity within threshold. Body "
+                "includes age + threshold for at-a-glance comparison."
+            ),
+        },
+        503: {
+            "description": (
+                "Either `model_not_loaded` (cache empty) or "
+                "`inference_stale` (loaded but stale). Detail string "
+                "distinguishes the two causes."
+            ),
+        },
+    },
+)
 async def health_gan() -> dict[str, Any]:
     """
     Per-model freshness check for the GAN endpoint. See /health/dnn for
@@ -247,7 +407,37 @@ async def health_gan() -> dict[str, Any]:
     }
 
 
-@app.get("/health/qlearning", tags=["health"])
+@app.get(
+    "/health/qlearning",
+    tags=["health"],
+    summary="Per-model freshness check for the Q-learning endpoint",
+    description=(
+        "Per-model health + freshness check that `/ready` cannot express. "
+        "Returns HTTP 200 with diagnostic body when the Taxi-v4 Q-table "
+        "is loaded AND the last activity (load or inference) is within "
+        "the staleness threshold. Returns HTTP 503 "
+        "detail=`model_not_loaded` if the cache is empty, or HTTP 503 "
+        "detail=`inference_stale` if loaded but past the threshold. "
+        "Threshold is operator-tunable via "
+        "`MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
+        "See `docs/monitoring.md` for the full design."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Q-table loaded + recent activity within threshold. Body "
+                "includes age + threshold for at-a-glance comparison."
+            ),
+        },
+        503: {
+            "description": (
+                "Either `model_not_loaded` (cache empty) or "
+                "`inference_stale` (loaded but stale). Detail string "
+                "distinguishes the two causes."
+            ),
+        },
+    },
+)
 async def health_qlearning() -> dict[str, Any]:
     """
     Per-model freshness check for the Q-learning endpoint. See /health/dnn
@@ -284,7 +474,34 @@ servers expect.
 # don't inflate the very counters they're reading.
 
 
-@app.get("/metrics", tags=["observability"])
+@app.get(
+    "/metrics",
+    tags=["observability"],
+    summary="Prometheus metrics scrape endpoint",
+    description=(
+        "Returns the current state of every registered metric in "
+        "Prometheus text exposition format. Scraped on a schedule by a "
+        "Prometheus server (default 15s interval). Body is plain text "
+        "with content-type `text/plain; version=0.0.4; charset=utf-8`. "
+        "Exposes the HTTP four-golden-signals metrics "
+        "(`http_requests_total`, `http_request_duration_seconds`, "
+        "`http_requests_in_flight`) plus the per-model "
+        "`model_inference_duration_seconds` Histogram with one series "
+        "per deployed model (pt-dnn, pt-gan-dcgan, pt-qlearning-taxi). "
+        "See `docs/monitoring.md` for the full metric catalog + sample "
+        "PromQL queries. This endpoint is excluded from request "
+        "instrumentation so scrapes don't inflate the counters they're "
+        "reading."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Prometheus text exposition format. One series per line "
+                "plus `# HELP` and `# TYPE` comment lines per metric."
+            ),
+        },
+    },
+)
 async def metrics() -> Response:
     """
     Expose registered Prometheus metrics in text exposition format.

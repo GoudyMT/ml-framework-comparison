@@ -102,6 +102,41 @@ router = APIRouter(prefix="/predict", tags=["gan"])
     "/gan/sample",
     response_model=GANResponse,
     summary="Generate N CIFAR-10-style 32x32 RGB images via DCGAN",
+    description=(
+        "Server-side noise sampling - the client sends a count (1 to "
+        "16) and optional seed, and the service generates that many "
+        "fresh latent vectors z ~ N(0, 1) of shape (100, 1, 1), runs "
+        "the registered DCGenerator under `torch.no_grad()`, "
+        "denormalizes the (n, 3, 32, 32) output from [-1, 1] to [0, "
+        "255] uint8, and returns each image as a base64-encoded PNG "
+        "string. If a seed is provided, `torch.manual_seed(seed)` runs "
+        "before sampling so the same seed produces the same image "
+        "bytes (bit-exact reproducibility). FID 30.57 on the training "
+        "set. Each PNG is roughly 3 KB; the 16-image cap bounds the "
+        "response payload."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Successful generation. Body conforms to GANResponse: "
+                "list of n_samples base64-encoded 32x32 RGB PNGs + "
+                "generation_time_ms + echoed seed. Decode each string "
+                "via base64 + PIL.Image.open(BytesIO(...))."
+            ),
+        },
+        422: {
+            "description": (
+                "Request validation failed. Common causes: n_samples "
+                "outside [1, 16], non-integer n_samples or seed."
+            ),
+        },
+        503: {
+            "description": (
+                "DCGAN not loaded; lifespan startup hasn't completed. "
+                "Body: `{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
 )
 async def predict_gan_sample(req: GANRequest) -> GANResponse:
     """

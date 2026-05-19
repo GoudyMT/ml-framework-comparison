@@ -37,7 +37,7 @@ DESIGN DECISIONS:
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Module constants
 # ---------------------------------------------------------------------------
@@ -112,7 +112,18 @@ class DNNRequest(BaseModel):
             f"floats in [{FEATURE_MIN}, {FEATURE_MAX}]. The service applies "
             "StandardScaler internally - send the values as UCI provides them."
         ),
-        examples=[[0.0] * INPUT_DIM],
+    )
+
+    # Single source of truth for examples lives at the model level. See
+    # the matching schema in sklearn-svc/pca.py for the rationale -
+    # duplicating between Field.examples and model_config.json_schema_extra
+    # renders the same data twice in Swagger UI.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"features": [0.0] * INPUT_DIM},
+            ],
+        },
     )
 
     @field_validator("features")
@@ -201,6 +212,25 @@ class DNNResponse(BaseModel):
             f"(length {N_CLASSES}). Each value in [0, 1]; full vector "
             "sums to ~1.0."
         ),
+    )
+
+    # Full-response example surfaced in the Swagger UI response panel.
+    # Realistic shape: a high-confidence STANDING prediction with the
+    # mass concentrated on index 4 and small probabilities distributed
+    # across the other 5 classes. Lets clients see what real output
+    # looks like at a glance without booting the service.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "predicted_class": 4,
+                    "predicted_label": "STANDING",
+                    "probabilities": [
+                        0.001, 0.002, 0.001, 0.012, 0.972, 0.012,
+                    ],
+                },
+            ],
+        },
     )
 
     @field_validator("probabilities")

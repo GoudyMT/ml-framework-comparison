@@ -58,7 +58,7 @@ DESIGN DECISIONS:
 
 import base64
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Module constants
 # ---------------------------------------------------------------------------
@@ -114,7 +114,6 @@ class GANRequest(BaseModel):
             f"[{N_SAMPLES_MIN}, {N_SAMPLES_MAX}]. The cap bounds the "
             "response payload (each image is ~3 KB as base64 PNG)."
         ),
-        examples=[1, 4, 16],
     )
 
     seed: int | None = Field(
@@ -125,7 +124,20 @@ class GANRequest(BaseModel):
             "the noise vectors, so the same seed produces the same "
             "images. If omitted (None), output is fresh random each call."
         ),
-        examples=[None, 42, 113],
+    )
+
+    # Three full-request examples surface in the Swagger UI "Example"
+    # dropdown: a fresh single image, a deterministic single image, and
+    # the max-batch deterministic case. Operators can pick one to populate
+    # the "Try it out" body without typing.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"n_samples": 1},
+                {"n_samples": 1, "seed": 42},
+                {"n_samples": 16, "seed": 0},
+            ],
+        },
     )
 
 

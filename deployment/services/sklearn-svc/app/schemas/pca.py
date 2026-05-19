@@ -40,7 +40,7 @@ DESIGN DECISIONS LOCKED FOR THIS ENDPOINT:
       response) and the matching field in structured logs.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Constants tied to the trained PCA model (Fashion-MNIST).
 # Pulled from the modeling phase artifacts:
@@ -94,7 +94,19 @@ class PCARequest(BaseModel):
             "Row-major order (same as numpy's flatten()). The service "
             "handles all preprocessing - no client-side normalization needed."
         ),
-        examples=[[0.0] * INPUT_DIM],  # Swagger shows a 784-zero example
+    )
+
+    # Single source of truth for examples lives at the model level, not
+    # per-field. Swagger UI's "Try it out" panel reads `json_schema_extra
+    # .examples` to prefill the body; duplicating the same vector via a
+    # Field-level `examples=` kwarg renders it twice (once in the field
+    # sidebar, once in the body dropdown) with no added information.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"features": [0.0] * INPUT_DIM},
+            ],
+        },
     )
 
     # @field_validator runs AFTER Field's built-in checks pass.

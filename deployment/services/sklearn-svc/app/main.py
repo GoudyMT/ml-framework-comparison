@@ -111,6 +111,46 @@ app = FastAPI(
         "Loads the PCA from the consolidated MLflow registry to test and practice real world deployment "
         "(`models:/sk-pca@production`)."
     ),
+    # OpenAPI contact + license surface in the auto-generated /docs UI
+    # header. Contact points operators at the public repo for issues /
+    # discussions (no email - GitHub handle is the established public
+    # surface). License matches the root LICENSE file + the README badge.
+    contact={
+        "name": "Goudy",
+        "url": "https://github.com/GoudyMT/ml-framework-comparison",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    # Tag descriptions surface as headings in /docs. Order here controls
+    # display order in Swagger UI. Per-model tags (one per router) match
+    # the established convention from the other services in this repo.
+    openapi_tags=[
+        {
+            "name": "pca",
+            "description": (
+                "Dimensionality-reduction endpoint. Projects a flat "
+                "Fashion-MNIST image (784 pixels) through the registered "
+                "PCA to a 150-component vector."
+            ),
+        },
+        {
+            "name": "health",
+            "description": (
+                "Liveness (`/health`), readiness (`/ready`), and per-model "
+                "freshness (`/health/pca`) checks for orchestrator probes."
+            ),
+        },
+        {
+            "name": "observability",
+            "description": (
+                "Prometheus metrics scrape endpoint (`/metrics`). Returns "
+                "HTTP + per-model inference metrics in text exposition "
+                "format. See `docs/monitoring.md` for the metric catalog."
+            ),
+        },
+    ],
     lifespan=lifespan,
 )
 
@@ -154,7 +194,22 @@ I send real traffic?" A starting-up service is alive but not ready.
 Both are tagged `health` so they group together in the Swagger UI.
 """
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Liveness probe - is the process alive?",
+    description=(
+        "Trivial liveness check that does no work: no model load, no DB "
+        "query, no network call. Returns `{\"status\": \"alive\"}` with "
+        "HTTP 200 whenever the process is responding. Used by Kubernetes "
+        "livenessProbe + Docker HEALTHCHECK + load-balancer 'is the "
+        "backend up?' pings. For 'can the service handle traffic?' use "
+        "`/ready` instead."
+    ),
+    responses={
+        200: {"description": "Process is alive and responding."},
+    },
+)
 async def health() -> dict[str, str]:
     """
     Liveness check - the process is alive and responding.
@@ -174,7 +229,30 @@ async def health() -> dict[str, str]:
     return {"status": "alive"}
 
 
-@app.get("/ready", tags=["health"])
+@app.get(
+    "/ready",
+    tags=["health"],
+    summary="Readiness probe - can the service handle traffic?",
+    description=(
+        "All-or-nothing readiness check. Returns HTTP 200 with "
+        "`{status, model_loaded, model_name, model_version}` once the PCA "
+        "is loaded from the registry and the service can accept "
+        "`/predict/pca` calls. Returns HTTP 503 detail=`model_not_loaded` "
+        "during the startup window before the lifespan event finishes "
+        "loading the model. Used by Kubernetes readinessProbe + rolling-"
+        "deploy systems waiting before draining old pods. For per-model "
+        "freshness checks use `/health/pca` instead."
+    ),
+    responses={
+        200: {"description": "Service is ready; PCA loaded with version echo."},
+        503: {
+            "description": (
+                "PCA not loaded yet. Body shape: "
+                "`{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
+)
 async def ready() -> dict[str, str | bool]:
     """
     Readiness check - the service can accept traffic.
@@ -212,7 +290,40 @@ async def ready() -> dict[str, str | bool]:
     }
 
 
-@app.get("/health/pca", tags=["health"])
+@app.get(
+    "/health/pca",
+    tags=["health"],
+    summary="Per-model freshness check for the PCA endpoint",
+    description=(
+        "Per-model health + freshness check that `/ready` cannot express. "
+        "Returns HTTP 200 with diagnostic body "
+        "(`status`, `model_name`, `version`, `last_inference_age_seconds`, "
+        "`staleness_threshold_seconds`) when the PCA is loaded AND the "
+        "last activity (load or inference) is within the staleness "
+        "threshold. Returns HTTP 503 detail=`model_not_loaded` if the "
+        "cache is empty, or HTTP 503 detail=`inference_stale` if loaded "
+        "but past the threshold. Staleness threshold is operator-tunable "
+        "via `MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s; "
+        "`0` disables the freshness check, leaving loaded-only health). "
+        "See `docs/monitoring.md` for the full design + use cases."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Model loaded + recent activity within threshold. Body "
+                "includes age + threshold for at-a-glance comparison."
+            ),
+        },
+        503: {
+            "description": (
+                "Either `model_not_loaded` (cache empty; lifespan not "
+                "complete) or `inference_stale` (loaded but no activity "
+                "within threshold). Detail string in the JSON body "
+                "distinguishes the two causes for log scrapers."
+            ),
+        },
+    },
+)
 async def health_pca() -> dict[str, Any]:
     """
     Per-model freshness check for the PCA endpoint.
@@ -266,7 +377,32 @@ This endpoint is excluded from MetricsMiddleware instrumentation
 the very counters they're reading.
 """
 
-@app.get("/metrics", tags=["observability"])
+@app.get(
+    "/metrics",
+    tags=["observability"],
+    summary="Prometheus metrics scrape endpoint",
+    description=(
+        "Returns the current state of every registered metric in "
+        "Prometheus text exposition format. Scraped on a schedule by a "
+        "Prometheus server (default 15s interval). Body is plain text "
+        "with content-type `text/plain; version=0.0.4; charset=utf-8`. "
+        "Exposes the HTTP four-golden-signals metrics "
+        "(`http_requests_total`, `http_request_duration_seconds`, "
+        "`http_requests_in_flight`) plus the per-model "
+        "`model_inference_duration_seconds` Histogram. See "
+        "`docs/monitoring.md` for the full metric catalog + sample PromQL "
+        "queries. This endpoint is excluded from request instrumentation "
+        "so scrapes don't inflate the counters they're reading."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Prometheus text exposition format. One series per line "
+                "plus `# HELP` and `# TYPE` comment lines per metric."
+            ),
+        },
+    },
+)
 async def metrics() -> Response:
     """
     Expose registered Prometheus metrics in text exposition format.

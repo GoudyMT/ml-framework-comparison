@@ -59,6 +59,41 @@ router = APIRouter(prefix="/predict", tags=["pca"])
     "/pca",
     response_model=PCAResponse,
     summary="Reduce a 784-dim Fashion-MNIST image to 150 PCA components",
+    description=(
+        "Accepts a flat 784-element list of raw Fashion-MNIST pixel values "
+        "(uint8 range 0-255), applies the standardization scaler from the "
+        "training pipeline (divide-by-255 + StandardScaler), then projects "
+        "through the registered PCA. Returns the 150-component projection "
+        "plus the model's cumulative explained-variance ratio (0.9085 on "
+        "the training set). Inference latency is sub-millisecond for a "
+        "single sample; network round-trip dominates total request time. "
+        "The service owns all preprocessing - clients send raw pixels."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Successful projection. Body conforms to PCAResponse: 150 "
+                "real-valued components + n_components echo + the loaded "
+                "model's cumulative explained-variance ratio."
+            ),
+        },
+        422: {
+            "description": (
+                "Request validation failed. Common causes: wrong feature "
+                "count (must be exactly 784), pixel value outside [0, 255], "
+                "non-numeric values in the features list, or missing body. "
+                "Error body identifies the offending field + value."
+            ),
+        },
+        503: {
+            "description": (
+                "Model not loaded. The lifespan startup either has not "
+                "completed yet or failed to load the PCA from the registry. "
+                "Same body shape as /ready returns for the same condition: "
+                "`{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
 )
 async def predict_pca(req: PCARequest) -> PCAResponse:
     """

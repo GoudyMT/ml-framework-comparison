@@ -52,7 +52,7 @@ DESIGN DECISIONS:
       clients can confirm what was actually translated).
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Module constants
 # ---------------------------------------------------------------------------
@@ -104,13 +104,11 @@ class TranslationRequest(BaseModel):
         description=(
             f"English text to translate. 1 to {TEXT_MAX_LENGTH} chars "
             "after whitespace stripping. The service handles BPE "
-            "tokenization internally."
+            "tokenization internally. Inputs longer than "
+            f"{TRANSLATION_MAX_LENGTH} BPE tokens are silently truncated "
+            "to fit the encoder's positional encoding; check "
+            "`n_input_tokens` in the response to detect truncation."
         ),
-        examples=[
-            "Hello, how are you?",
-            "I love machine learning.",
-            "The cat is on the table.",
-        ],
     )
 
     max_length: int = Field(
@@ -122,7 +120,21 @@ class TranslationRequest(BaseModel):
             "Defaults to the training-time max sequence length. "
             "Decoding may stop earlier if the model produces </s>."
         ),
-        examples=[10, 25],
+    )
+
+    # Three full-request examples (short greeting, longer sentence with
+    # explicit shorter cap, third sentence at default cap) replace the
+    # previous per-field examples lists. Single source of truth at the
+    # model level avoids the Swagger-UI double-rendering that happens
+    # when per-field `examples=` overlaps with model_config examples.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"text": "Hello, how are you?"},
+                {"text": "I love machine learning.", "max_length": 15},
+                {"text": "The cat is on the table."},
+            ],
+        },
     )
 
     @field_validator("text")
@@ -164,10 +176,14 @@ class TranslationResponse(BaseModel):
             into. If this equals TRANSLATION_MAX_LENGTH (25), the
             input was truncated to fit; clients should treat the
             translation as a partial response.
-        n_output_tokens: How many BPE tokens the decoder generated
-            (excluding <s> but including </s> if it was produced).
-            If less than max_length, decoding stopped naturally on
-            </s>; if equal to max_length, decoding hit the cap.
+        n_output_tokens: How many BPE tokens the decoder generated,
+            excluding both <s> and </s>. The router strips <s> from
+            the start of the generated sequence and breaks the decode
+            loop on </s> WITHOUT appending it, so this count reflects
+            only the substantive tokens that fed detokenization. If
+            less than max_length, decoding stopped naturally on </s>;
+            if equal to max_length, decoding hit the cap with no </s>
+            produced.
         generation_time_ms: Wall-clock time the server spent on
             tokenization + encoder + decoder + detokenization, in
             milliseconds. Excludes JSON serialization and network
@@ -213,8 +229,11 @@ class TranslationResponse(BaseModel):
         le=TRANSLATION_MAX_LENGTH,
         description=(
             f"BPE token count of the decoder output, in "
-            f"[0, {TRANSLATION_MAX_LENGTH}]. If less than max_length, "
-            "decoding stopped on </s>; if equal, decoding hit the cap."
+            f"[0, {TRANSLATION_MAX_LENGTH}]. Excludes both <s> (stripped "
+            "by the router) and </s> (router breaks the decode loop on "
+            "</s> without appending it). If less than max_length, "
+            "decoding stopped naturally on </s>; if equal, decoding hit "
+            "the cap with no </s> produced."
         ),
     )
 
@@ -226,4 +245,22 @@ class TranslationResponse(BaseModel):
             "detokenize, in milliseconds. Excludes JSON serialization "
             "and network transit."
         ),
+    )
+
+    # Full-response example surfaced in the Swagger UI response panel.
+    # Matches the canonical "Hello, how are you?" example from the
+    # Request schema for end-to-end symmetry. Token counts + timing
+    # are representative of a real short-greeting translation on CPU.
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "source": "Hello, how are you?",
+                    "translation": "Hola, ¿cómo estás?",
+                    "n_input_tokens": 7,
+                    "n_output_tokens": 6,
+                    "generation_time_ms": 142.3,
+                },
+            ],
+        },
     )

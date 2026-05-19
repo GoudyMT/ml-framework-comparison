@@ -71,6 +71,47 @@ app = FastAPI(
         "from the consolidated MLflow registry at "
         "`deployment/mlflow.db`."
     ),
+    # OpenAPI contact + license surface in the auto-generated /docs UI
+    # header. Contact points operators at the public repo for issues /
+    # discussions (no email - GitHub handle is the established public
+    # surface). License matches the root LICENSE file + the README badge.
+    contact={
+        "name": "Goudy",
+        "url": "https://github.com/GoudyMT/ml-framework-comparison",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    # Tag descriptions surface as headings in /docs. Order here controls
+    # display order in Swagger UI. Single per-model tag for translation
+    # matches the per-router convention used in the other services.
+    openapi_tags=[
+        {
+            "name": "translation",
+            "description": (
+                "English-to-Spanish translation endpoint. Encoder-decoder "
+                "Transformer with SentencePiece BPE tokenization (shared "
+                "EN+ES 8K vocab); greedy autoregressive decode."
+            ),
+        },
+        {
+            "name": "health",
+            "description": (
+                "Liveness (`/health`), readiness (`/ready`), and per-model "
+                "freshness (`/health/translation`) checks for orchestrator "
+                "probes."
+            ),
+        },
+        {
+            "name": "observability",
+            "description": (
+                "Prometheus metrics scrape endpoint (`/metrics`). Returns "
+                "HTTP + per-model inference metrics in text exposition "
+                "format. See `docs/monitoring.md` for the metric catalog."
+            ),
+        },
+    ],
     lifespan=lifespan,
 )
 
@@ -107,7 +148,22 @@ app.include_router(translation_router.router)
 # on model load completion so traffic doesn't hit a not-yet-warm pod.
 
 
-@app.get("/health", tags=["health"])
+@app.get(
+    "/health",
+    tags=["health"],
+    summary="Liveness probe - is the process alive?",
+    description=(
+        "Trivial liveness check that does no work: no model load, no DB "
+        "query, no network call. Returns `{\"status\": \"alive\"}` with "
+        "HTTP 200 whenever the process is responding. Used by Kubernetes "
+        "livenessProbe + Docker HEALTHCHECK + load-balancer 'is the "
+        "backend up?' pings. For 'can the service handle traffic?' use "
+        "`/ready` instead."
+    ),
+    responses={
+        200: {"description": "Process is alive and responding."},
+    },
+)
 async def health() -> dict[str, str]:
     """
     Liveness check - the process is alive and responding.
@@ -118,7 +174,34 @@ async def health() -> dict[str, str]:
     return {"status": "alive"}
 
 
-@app.get("/ready", tags=["health"])
+@app.get(
+    "/ready",
+    tags=["health"],
+    summary="Readiness probe - can the service handle traffic?",
+    description=(
+        "Readiness check covering both the Transformer model AND the "
+        "SentencePiece tokenizer (both must be loaded for `/translate` "
+        "to function). Returns HTTP 200 with `{status, models: {<name>: "
+        "{loaded, version}}}` once both artifacts are loaded from the "
+        "registry. Returns HTTP 503 detail=`model_not_loaded` while "
+        "either is still loading. For per-model freshness check use "
+        "`/health/translation` instead."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Both model + tokenizer loaded. Per-model dict in body "
+                "shows loaded=true + version for tf-transformer-translation."
+            ),
+        },
+        503: {
+            "description": (
+                "Model or tokenizer not loaded yet. Body shape: "
+                "`{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
+)
 async def ready() -> dict[str, Any]:
     """
     Readiness check - the service can accept traffic.
@@ -160,7 +243,39 @@ async def ready() -> dict[str, Any]:
     }
 
 
-@app.get("/health/translation", tags=["health"])
+@app.get(
+    "/health/translation",
+    tags=["health"],
+    summary="Per-model freshness check for the translation endpoint",
+    description=(
+        "Per-model health + freshness check that `/ready` cannot express. "
+        "Returns HTTP 200 with diagnostic body when the Transformer is "
+        "loaded AND the last activity (load or inference) is within the "
+        "staleness threshold. Returns HTTP 503 detail=`model_not_loaded` "
+        "if either the model or tokenizer cache is empty, or HTTP 503 "
+        "detail=`inference_stale` if loaded but past the threshold. "
+        "Threshold is operator-tunable via "
+        "`MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s; "
+        "`0` disables the freshness check, leaving loaded-only health). "
+        "See `docs/monitoring.md` for the full design."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Transformer loaded + recent activity within threshold. "
+                "Body includes age + threshold for at-a-glance comparison."
+            ),
+        },
+        503: {
+            "description": (
+                "Either `model_not_loaded` (cache empty; lifespan not "
+                "complete) or `inference_stale` (loaded but no activity "
+                "within threshold). Detail string in the JSON body "
+                "distinguishes the two causes for log scrapers."
+            ),
+        },
+    },
+)
 async def health_translation() -> dict[str, Any]:
     """
     Per-model freshness check for the translation endpoint.
@@ -205,7 +320,33 @@ don't inflate the very counters they're reading.
 """
 
 
-@app.get("/metrics", tags=["observability"])
+@app.get(
+    "/metrics",
+    tags=["observability"],
+    summary="Prometheus metrics scrape endpoint",
+    description=(
+        "Returns the current state of every registered metric in "
+        "Prometheus text exposition format. Scraped on a schedule by a "
+        "Prometheus server (default 15s interval). Body is plain text "
+        "with content-type `text/plain; version=0.0.4; charset=utf-8`. "
+        "Exposes the HTTP four-golden-signals metrics "
+        "(`http_requests_total`, `http_request_duration_seconds`, "
+        "`http_requests_in_flight`) plus the per-model "
+        "`model_inference_duration_seconds` Histogram "
+        "(model_name=`tf-transformer-translation`). See "
+        "`docs/monitoring.md` for the full metric catalog + sample PromQL "
+        "queries. This endpoint is excluded from request instrumentation "
+        "so scrapes don't inflate the counters they're reading."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Prometheus text exposition format. One series per line "
+                "plus `# HELP` and `# TYPE` comment lines per metric."
+            ),
+        },
+    },
+)
 async def metrics() -> Response:
     """
     Expose registered Prometheus metrics in text exposition format.

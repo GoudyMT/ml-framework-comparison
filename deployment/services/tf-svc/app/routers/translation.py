@@ -109,6 +109,42 @@ router = APIRouter(tags=["translation"])
     "/translate",
     response_model=TranslationResponse,
     summary="Translate an English sentence to Spanish",
+    description=(
+        "Accepts a 1-1000 character English string + optional max_length "
+        "(1-25 BPE tokens to generate; default 25). Tokenizes via "
+        "SentencePiece BPE (shared EN+ES 8K vocab), runs the encoder "
+        "once on the padded source, then performs greedy autoregressive "
+        "decoding: at each step the model emits the highest-probability "
+        "next token until either `</s>` is produced or max_length is "
+        "reached. Returns the post-strip source echo + Spanish output + "
+        "input/output BPE token counts + wall-clock generation time. "
+        "Trained on Tatoeba EN-ES with the encoder-decoder Transformer "
+        "scoring BLEU 0.4456 with beam search. Greedy decode is what "
+        "this endpoint uses for speed; beam search is a future addition."
+    ),
+    responses={
+        200: {
+            "description": (
+                "Successful translation. Body conforms to "
+                "TranslationResponse: source + translation + "
+                "n_input_tokens + n_output_tokens + generation_time_ms."
+            ),
+        },
+        422: {
+            "description": (
+                "Request validation failed. Common causes: empty or "
+                "whitespace-only text, text longer than 1000 chars, "
+                "max_length outside [1, 25]."
+            ),
+        },
+        503: {
+            "description": (
+                "Transformer or tokenizer not loaded; lifespan startup "
+                "hasn't completed. Body: "
+                "`{\"detail\": \"model_not_loaded\"}`."
+            ),
+        },
+    },
 )
 async def translate(req: TranslationRequest) -> TranslationResponse:
     """

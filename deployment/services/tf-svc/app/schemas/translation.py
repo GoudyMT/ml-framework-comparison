@@ -197,6 +197,17 @@ class TranslationResponse(BaseModel):
           "n_output_tokens": 6,
           "generation_time_ms": 142.3
         }
+
+    Note:
+        The translation string in the example above is the idealized
+        best-case output, used for documentation clarity. The trained
+        Transformer is BLEU 0.4456 on the held-out test set, so real
+        decodes for short greetings can differ from the example - the
+        actual model output for "Hello, how are you?" is
+        "ólico, ¿cómo estás?", not "Hola, ¿cómo estás?". Service
+        forward output is bit-exact to a standalone manual forward
+        (parity verified during the modeling phase); the imperfection
+        is the model itself, not a deployment artifact.
     """
 
     source: str = Field(

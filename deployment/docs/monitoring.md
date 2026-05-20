@@ -43,6 +43,16 @@ The latency histogram uses buckets `(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25,
 
 The `/metrics` endpoint, `/openapi.json`, `/docs`, `/redoc`, and `/favicon.ico` are excluded from instrumentation. Without the exclusion, every Prometheus scrape would inflate the counters it is reading — `/metrics` would be the busiest "endpoint" by design.
 
+### HEALTHCHECK noise on `/health`
+
+Docker's HEALTHCHECK directive in each Dockerfile fires every 30 seconds and probes `http://127.0.0.1:<port>/health` via stdlib `urllib`. That probe hits the FastAPI middleware stack like any other request, so `http_requests_total{path="/health"}` accumulates roughly 120 hits per hour per container even with zero external traffic. For client-facing dashboards or alerts that should reflect real user traffic, filter out `path="/health"`:
+
+```promql
+sum(rate(http_requests_total{path!="/health"}[5m])) by (service)
+```
+
+`/ready` and `/health/<model>` are NOT probed by HEALTHCHECK — only `/health` is — so traffic on those endpoints reflects real callers (orchestrators or monitoring) with no HEALTHCHECK noise mixed in.
+
 ## Per-Model Inference Latency
 
 The HTTP latency histogram above measures the FULL request: validation + preprocessing + inference + response serialization. That conflates "the model is slow" with "the request handler is slow." A separate metric isolates just the model-forward work:

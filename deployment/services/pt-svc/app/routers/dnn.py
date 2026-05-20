@@ -54,6 +54,7 @@ router = APIRouter(prefix="/predict", tags=["dnn"])
 @router.post(
     "/dnn",
     response_model=DNNResponse,
+    operation_id="predict_dnn",
     summary="Classify a 561-feature UCI HAR sample into one of 6 activities",
     description=(
         "Accepts a 561-element UCI HAR feature vector (each value in "

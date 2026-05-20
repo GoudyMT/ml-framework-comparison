@@ -83,6 +83,9 @@ def _resolve_staleness_threshold() -> int:
     non-integer env values fall back silently to DEFAULT_STALENESS_SECONDS
     - quiet degradation rather than a startup failure on a typo (health
     freshness is observability, not safety-critical).
+
+    Internal name kept private; consumers should call the public
+    `get_staleness_threshold()` accessor below.
     """
     raw = os.environ.get(STALENESS_OVERRIDE_ENV)
     if raw is None:
@@ -94,6 +97,20 @@ def _resolve_staleness_threshold() -> int:
     if value < 0:
         return DEFAULT_STALENESS_SECONDS
     return value
+
+
+def get_staleness_threshold() -> int:
+    """
+    Public accessor for the resolved staleness threshold in seconds.
+
+    main.py's /health/<model> endpoints call this to populate the
+    `staleness_threshold_seconds` field in the diagnostic response
+    body. Thin delegate over `_resolve_staleness_threshold()` - the
+    private name remains the internal implementation, the public
+    name is what consumers should call so the boundary stays explicit
+    and the rename-the-private-impl path is clear later.
+    """
+    return _resolve_staleness_threshold()
 
 
 def stamp(loader_module: _InferenceLoader) -> None:

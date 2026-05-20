@@ -59,6 +59,7 @@ router = APIRouter(prefix="/predict", tags=["qlearning"])
 @router.post(
     "/qlearning/taxi",
     response_model=TaxiResponse,
+    operation_id="predict_qlearning_taxi",
     summary="Pick the best action for a Gymnasium Taxi-v4 state",
     description=(
         "Tabular Q-learning policy lookup. Indexes the trained Q-table "

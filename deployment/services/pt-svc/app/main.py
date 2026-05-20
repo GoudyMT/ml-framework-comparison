@@ -22,9 +22,9 @@ WHAT THIS FILE CONTAINS:
     - /metrics (Prometheus scrape endpoint)
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Protocol
 
 from fastapi import FastAPI, HTTPException, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -183,6 +183,7 @@ app.include_router(qlearning_router.router)
 @app.get(
     "/health",
     tags=["health"],
+    operation_id="health_check",
     summary="Liveness probe - is the process alive?",
     description=(
         "Trivial liveness check that does no work: no model load, no DB "
@@ -209,6 +210,7 @@ async def health() -> dict[str, str]:
 @app.get(
     "/ready",
     tags=["health"],
+    operation_id="readiness_check",
     summary="Readiness probe - can the service handle traffic?",
     description=(
         "All-or-nothing readiness check across all 3 models hosted by "
@@ -251,8 +253,9 @@ async def ready() -> dict[str, Any]:
             {
               "status": "ready",
               "models": {
-                "pt-dnn":         {"loaded": true, "version": "1"},
-                "pt-gan-dcgan":   {"loaded": true, "version": "1"}
+                "pt-dnn":              {"loaded": true, "version": "1"},
+                "pt-gan-dcgan":        {"loaded": true, "version": "1"},
+                "pt-qlearning-taxi":   {"loaded": true, "version": "1"}
               }
             }
           once the lifespan event finishes loading EVERY model.
@@ -292,9 +295,107 @@ async def ready() -> dict[str, Any]:
     }
 
 
-@app.get(
+# Per-model freshness endpoints
+"""
+Three /health/<model> endpoints, one per deployed model. The handler
+logic is identical across all three - only the loader module passed
+to inference_tracking varies. A factory generates the handler bound
+to one loader; each endpoint registers via app.add_api_route() with
+its own OpenAPI metadata (summary, description, operation_id).
+
+The triplication that lived here through Phase 9 was a real cost: the
+three blocks were one self-edit away from drifting (Phase 10 caught a
+description-string drift between /health/dnn and the other two and had
+to manually re-sync). The factory makes drift impossible; a fourth
+/health/<model> addition is one new app.add_api_route call.
+"""
+
+_HEALTH_RESPONSES: dict[int | str, dict[str, str]] = {
+    200: {
+        "description": (
+            "Model loaded + recent activity within threshold. Body "
+            "includes age + threshold for at-a-glance comparison."
+        ),
+    },
+    503: {
+        "description": (
+            "Either `model_not_loaded` (cache empty) or "
+            "`inference_stale` (loaded but stale). Detail string "
+            "distinguishes the two causes."
+        ),
+    },
+}
+
+
+class _HealthLoader(Protocol):
+    """
+    Structural contract for any loader module the `/health/<model>`
+    factory accepts. Wider than `inference_tracking._InferenceLoader`
+    because the factory also calls `is_loaded()` + `get_model_version()`
+    directly on the loader (inference_tracking only needs the
+    timestamp + name). Defining it here keeps the cross-service
+    middleware Protocol minimal while still giving mypy strict a real
+    contract to enforce at the factory boundary - a future fourth
+    loader missing one of these attributes will fail type-check
+    instead of breaking at request time.
+    """
+
+    MODEL_NAME: str
+    _LAST_INFERENCE_TS: float
+
+    def is_loaded(self) -> bool: ...
+
+    def get_model_version(self) -> str: ...
+
+
+def _make_health_route(
+    loader: _HealthLoader,
+) -> Callable[[], Awaitable[dict[str, Any]]]:
+    """
+    Build a /health/<model> handler bound to one loader module.
+
+    The returned handler returns:
+        - HTTP 200 with diagnostic body when `loader.is_loaded()` AND
+          `inference_tracking.is_fresh(loader)` are both true.
+        - HTTP 503 detail="model_not_loaded" when the cache is empty.
+        - HTTP 503 detail="inference_stale" when loaded but past the
+          staleness threshold (`MODEL_INFERENCE_STALENESS_SECONDS` env
+          var; default 3600s; `0` disables the freshness check).
+
+    The loader must satisfy the `_HealthLoader` Protocol above. Every
+    loader module in this service (dnn_loader, gan_loader,
+    qlearning_loader) does, by exposing the required module-level
+    attributes + accessor functions.
+
+    Differs from /ready: /ready is service-level (all-or-nothing across
+    every model in this service); the handler this factory builds is
+    per-model + adds a freshness dimension /ready does not track.
+    """
+    async def health_endpoint() -> dict[str, Any]:
+        if not loader.is_loaded():
+            raise HTTPException(status_code=503, detail="model_not_loaded")
+        if not inference_tracking.is_fresh(loader):
+            raise HTTPException(status_code=503, detail="inference_stale")
+        return {
+            "status": "healthy",
+            "model_name": loader.MODEL_NAME,
+            "version": loader.get_model_version(),
+            "last_inference_age_seconds": round(
+                inference_tracking.get_age(loader), 2
+            ),
+            "staleness_threshold_seconds": (
+                inference_tracking.get_staleness_threshold()
+            ),
+        }
+    return health_endpoint
+
+
+app.add_api_route(
     "/health/dnn",
+    _make_health_route(dnn_loader),
+    methods=["GET"],
     tags=["health"],
+    operation_id="health_dnn",
     summary="Per-model freshness check for the DNN endpoint",
     description=(
         "Per-model health + freshness check that `/ready` cannot express. "
@@ -306,56 +407,16 @@ async def ready() -> dict[str, Any]:
         "via `MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
         "See `docs/monitoring.md` for the full design."
     ),
-    responses={
-        200: {
-            "description": (
-                "DNN loaded + recent activity within threshold. Body "
-                "includes age + threshold for at-a-glance comparison."
-            ),
-        },
-        503: {
-            "description": (
-                "Either `model_not_loaded` (cache empty) or "
-                "`inference_stale` (loaded but stale). Detail string "
-                "distinguishes the two causes."
-            ),
-        },
-    },
+    responses=_HEALTH_RESPONSES,
 )
-async def health_dnn() -> dict[str, Any]:
-    """
-    Per-model freshness check for the DNN endpoint.
-
-    Returns 200 with diagnostic body when the model is loaded AND the
-    last activity (load or inference) is within the staleness threshold
-    (MODEL_INFERENCE_STALENESS_SECONDS env var, default 3600s). Returns
-    503 detail="model_not_loaded" when the cache is empty, or 503
-    detail="inference_stale" when loaded but past the threshold.
-
-    Differs from /ready: /ready is service-level (all-or-nothing across
-    every model in pt-svc); /health/dnn is per-model + adds a freshness
-    dimension that /ready does not track.
-    """
-    if not dnn_loader.is_loaded():
-        raise HTTPException(status_code=503, detail="model_not_loaded")
-    if not inference_tracking.is_fresh(dnn_loader):
-        raise HTTPException(status_code=503, detail="inference_stale")
-    return {
-        "status": "healthy",
-        "model_name": dnn_loader.MODEL_NAME,
-        "version": dnn_loader.get_model_version(),
-        "last_inference_age_seconds": round(
-            inference_tracking.get_age(dnn_loader), 2
-        ),
-        "staleness_threshold_seconds": (
-            inference_tracking._resolve_staleness_threshold()
-        ),
-    }
 
 
-@app.get(
+app.add_api_route(
     "/health/gan",
+    _make_health_route(gan_loader),
+    methods=["GET"],
     tags=["health"],
+    operation_id="health_gan",
     summary="Per-model freshness check for the GAN endpoint",
     description=(
         "Per-model health + freshness check that `/ready` cannot express. "
@@ -368,48 +429,16 @@ async def health_dnn() -> dict[str, Any]:
         "`MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
         "See `docs/monitoring.md` for the full design."
     ),
-    responses={
-        200: {
-            "description": (
-                "DCGAN loaded + recent activity within threshold. Body "
-                "includes age + threshold for at-a-glance comparison."
-            ),
-        },
-        503: {
-            "description": (
-                "Either `model_not_loaded` (cache empty) or "
-                "`inference_stale` (loaded but stale). Detail string "
-                "distinguishes the two causes."
-            ),
-        },
-    },
+    responses=_HEALTH_RESPONSES,
 )
-async def health_gan() -> dict[str, Any]:
-    """
-    Per-model freshness check for the GAN endpoint. See /health/dnn for
-    the full contract; the gating logic is identical, only the loader
-    module passed to inference_tracking changes.
-    """
-    if not gan_loader.is_loaded():
-        raise HTTPException(status_code=503, detail="model_not_loaded")
-    if not inference_tracking.is_fresh(gan_loader):
-        raise HTTPException(status_code=503, detail="inference_stale")
-    return {
-        "status": "healthy",
-        "model_name": gan_loader.MODEL_NAME,
-        "version": gan_loader.get_model_version(),
-        "last_inference_age_seconds": round(
-            inference_tracking.get_age(gan_loader), 2
-        ),
-        "staleness_threshold_seconds": (
-            inference_tracking._resolve_staleness_threshold()
-        ),
-    }
 
 
-@app.get(
+app.add_api_route(
     "/health/qlearning",
+    _make_health_route(qlearning_loader),
+    methods=["GET"],
     tags=["health"],
+    operation_id="health_qlearning",
     summary="Per-model freshness check for the Q-learning endpoint",
     description=(
         "Per-model health + freshness check that `/ready` cannot express. "
@@ -422,43 +451,8 @@ async def health_gan() -> dict[str, Any]:
         "`MODEL_INFERENCE_STALENESS_SECONDS` env var (default 3600s). "
         "See `docs/monitoring.md` for the full design."
     ),
-    responses={
-        200: {
-            "description": (
-                "Q-table loaded + recent activity within threshold. Body "
-                "includes age + threshold for at-a-glance comparison."
-            ),
-        },
-        503: {
-            "description": (
-                "Either `model_not_loaded` (cache empty) or "
-                "`inference_stale` (loaded but stale). Detail string "
-                "distinguishes the two causes."
-            ),
-        },
-    },
+    responses=_HEALTH_RESPONSES,
 )
-async def health_qlearning() -> dict[str, Any]:
-    """
-    Per-model freshness check for the Q-learning endpoint. See /health/dnn
-    for the full contract; the gating logic is identical, only the loader
-    module passed to inference_tracking changes.
-    """
-    if not qlearning_loader.is_loaded():
-        raise HTTPException(status_code=503, detail="model_not_loaded")
-    if not inference_tracking.is_fresh(qlearning_loader):
-        raise HTTPException(status_code=503, detail="inference_stale")
-    return {
-        "status": "healthy",
-        "model_name": qlearning_loader.MODEL_NAME,
-        "version": qlearning_loader.get_model_version(),
-        "last_inference_age_seconds": round(
-            inference_tracking.get_age(qlearning_loader), 2
-        ),
-        "staleness_threshold_seconds": (
-            inference_tracking._resolve_staleness_threshold()
-        ),
-    }
 
 
 """
@@ -477,6 +471,7 @@ servers expect.
 @app.get(
     "/metrics",
     tags=["observability"],
+    operation_id="metrics",
     summary="Prometheus metrics scrape endpoint",
     description=(
         "Returns the current state of every registered metric in "

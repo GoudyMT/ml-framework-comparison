@@ -101,6 +101,7 @@ router = APIRouter(prefix="/predict", tags=["gan"])
 @router.post(
     "/gan/sample",
     response_model=GANResponse,
+    operation_id="predict_gan_sample",
     summary="Generate N CIFAR-10-style 32x32 RGB images via DCGAN",
     description=(
         "Server-side noise sampling - the client sends a count (1 to "

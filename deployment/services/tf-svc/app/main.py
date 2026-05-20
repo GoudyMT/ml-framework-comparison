@@ -151,6 +151,7 @@ app.include_router(translation_router.router)
 @app.get(
     "/health",
     tags=["health"],
+    operation_id="health_check",
     summary="Liveness probe - is the process alive?",
     description=(
         "Trivial liveness check that does no work: no model load, no DB "
@@ -177,6 +178,7 @@ async def health() -> dict[str, str]:
 @app.get(
     "/ready",
     tags=["health"],
+    operation_id="readiness_check",
     summary="Readiness probe - can the service handle traffic?",
     description=(
         "Readiness check covering both the Transformer model AND the "
@@ -246,6 +248,7 @@ async def ready() -> dict[str, Any]:
 @app.get(
     "/health/translation",
     tags=["health"],
+    operation_id="health_translation",
     summary="Per-model freshness check for the translation endpoint",
     description=(
         "Per-model health + freshness check that `/ready` cannot express. "
@@ -301,7 +304,7 @@ async def health_translation() -> dict[str, Any]:
             inference_tracking.get_age(translation_loader), 2
         ),
         "staleness_threshold_seconds": (
-            inference_tracking._resolve_staleness_threshold()
+            inference_tracking.get_staleness_threshold()
         ),
     }
 
@@ -323,6 +326,7 @@ don't inflate the very counters they're reading.
 @app.get(
     "/metrics",
     tags=["observability"],
+    operation_id="metrics",
     summary="Prometheus metrics scrape endpoint",
     description=(
         "Returns the current state of every registered metric in "

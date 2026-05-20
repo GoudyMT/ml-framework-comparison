@@ -108,6 +108,7 @@ router = APIRouter(tags=["translation"])
 @router.post(
     "/translate",
     response_model=TranslationResponse,
+    operation_id="translate",
     summary="Translate an English sentence to Spanish",
     description=(
         "Accepts a 1-1000 character English string + optional max_length "

@@ -58,6 +58,7 @@ router = APIRouter(prefix="/predict", tags=["pca"])
 @router.post(
     "/pca",
     response_model=PCAResponse,
+    operation_id="predict_pca",
     summary="Reduce a 784-dim Fashion-MNIST image to 150 PCA components",
     description=(
         "Accepts a flat 784-element list of raw Fashion-MNIST pixel values "

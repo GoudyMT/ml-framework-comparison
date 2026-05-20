@@ -5,7 +5,7 @@
 
 Production-grade FastAPI services for the staged deployment winners from the modeling phase (#01-#20). Demonstrates every distinct deployment pattern the portfolio produced via 5 representative models across 3 framework runtimes.
 
-> **Status: Phase 11 in progress.** Phases 0-10 complete: five models deployed across three FastAPI services with MLflow-registry-backed loading, multi-stage Docker images, GitHub Actions CI/CD, full observability surface (`model_inference_duration_seconds` per-model histogram + `input_distribution_sample` drift log + per-model `/health/<model>` freshness with operator-tunable threshold), and exhaustive OpenAPI/Swagger metadata on every endpoint. 195/195 tests pristine; ruff + mypy strict clean. Containerized end-to-end smoke check on 2026-05-19 confirmed every health, prediction, `/metrics`, and `/openapi.json` surface live in the built images. Phase 11 documentation is landing now; this README's final intro consolidation arrives at Phase 11 closeout once the per-service READMEs, runbook, architecture, and adding-a-new-model docs are in place.
+> **Status: Phase 11 complete; Phase 12 (Git close-out) pending.** Five models live across three FastAPI services with MLflow-registry-backed loading, multi-stage Docker images, GitHub Actions CI/CD, complete observability surface (per-model inference-latency histogram + drift-signal log event + per-model freshness endpoints with operator-tunable threshold), exhaustive OpenAPI/Swagger metadata + `operation_id` on every endpoint, and the full operator + architecture documentation set. 195/195 tests pristine; ruff + mypy strict clean. Containerized end-to-end smoke check on 2026-05-19 confirmed every health, prediction, `/metrics`, and `/openapi.json` surface live in the built images. See [`docs/architecture.md`](docs/architecture.md) for design rationale, [`docs/deployment-runbook.md`](docs/deployment-runbook.md) for the clone-to-running guide, [`docs/adding-a-new-model.md`](docs/adding-a-new-model.md) for the extension pattern, and the per-service READMEs at `services/<svc>/README.md` for operator how-tos.
 
 ## Models Deployed
 
@@ -51,10 +51,24 @@ See [`docs/dependency-strategy.md`](docs/dependency-strategy.md) for the two-loc
 
 ## Documentation
 
-- `docs/architecture.md` - design decisions + rationale
-- `docs/deployment-runbook.md` - step-by-step "from clone to running endpoints"
-- `docs/adding-a-new-model.md` - pattern for extending to a 6th model
-- `docs/monitoring.md` - `/metrics` endpoint + log structure
+### Per-service operator guides
+
+- [`services/sklearn-svc/README.md`](services/sklearn-svc/README.md) - D1 PCA service: boot, env vars, endpoints, troubleshooting
+- [`services/pt-svc/README.md`](services/pt-svc/README.md) - PyTorch service (DNN + DCGAN + Q-Learning) covering 3 models in one process
+- [`services/tf-svc/README.md`](services/tf-svc/README.md) - TF Transformer translation: 2-artifact loader + oneDNN warm-up notes
+
+### Architecture + operations
+
+- [`docs/architecture.md`](docs/architecture.md) - design decisions, service topology, framework-runtime boundaries, cross-cutting patterns, explicit out-of-scope table
+- [`docs/deployment-runbook.md`](docs/deployment-runbook.md) - step-by-step clone-to-running procedure with two paths (docker compose + host venv)
+- [`docs/adding-a-new-model.md`](docs/adding-a-new-model.md) - extension pattern walking through a 6th model across all file touches
+
+### Decision deep dives
+
+- [`docs/dependency-strategy.md`](docs/dependency-strategy.md) - two-lockfile pattern, pip-tools workflow, hash-locked installs
+- [`docs/registry-strategy.md`](docs/registry-strategy.md) - aliases vs Stages, direct file-open vs flavor wrappers, `MODEL_ALIAS` override
+- [`docs/volume-mount-strategy.md`](docs/volume-mount-strategy.md) - bind-mount registry, artifact-root override, cross-host portability
+- [`docs/monitoring.md`](docs/monitoring.md) - `/metrics` catalog, sample PromQL, drift-signal log shape, HEALTHCHECK noise note
 
 ## Phase Progress
 
@@ -69,5 +83,5 @@ See [`docs/dependency-strategy.md`](docs/dependency-strategy.md) for the two-loc
 - [x] **Phase 8 - GitHub Actions CI/CD** (three workflows in `.github/workflows/`: `ci.yml` runs ruff + mypy strict + pytest in matrix across 3 services on every PR and push to main with `actions/cache@v4` pip-wheel cache keyed on requirements.txt hash, ~2 min wall-clock; `build.yml` builds + pushes 3 Docker images to `ghcr.io/<owner>/<repo>/<service>:{latest,sha-<short>}` on every push to main via `docker/build-push-action@v6` with `type=gha` layer cache scoped per-service for ~3x speedup on cache-hit runs; `deploy.yml` is a `workflow_dispatch` placeholder demonstrating the cloud-deploy pipeline shape with `image_tag` + `environment` inputs and no actual deploy. Authentication via the workflow-scoped GITHUB_TOKEN; no PAT secrets needed for same-repo ghcr.io pushes. Permissions: minimum scope per workflow (`contents: read` for ci/deploy; +`packages: write` for build). Verified - `0f87dc3` push fired CI cleanly across all 3 matrix jobs (2m 24s); `8af854f` push fired CI + Build successfully (build 6m 24s cold-build, 0% cache; all 3 images live at ghcr.io); `deploy.yml` `workflow_dispatch` tested manually - displays plan in runner log + writes Markdown step summary. CI + Build status badges added to root README.md + this README at the top.)
 - [x] **Phase 9 - Monitoring + drift-detection observability** (`model_inference_duration_seconds` Histogram with `model_name` label across all 5 deployed models via a `track_inference` context manager wrapping each router's forward call; `input_distribution_sample` structlog event sampling whole-vector summary stats every Nth request per PCA + DNN, configurable via `INPUT_DISTRIBUTION_SAMPLE_EVERY`; per-model `/health/<model>` endpoints in main.py per service returning 200 diagnostic body / 503 bare-detail (`model_not_loaded` or `inference_stale`); `MODEL_INFERENCE_STALENESS_SECONDS` env var gating freshness; `_LAST_INFERENCE_TS` stamped at load completion + each inference; full architectural rationale + sample PromQL queries + jq log-tailing patterns in `docs/monitoring.md`; 132/132 -> 195/195 tests pristine across 3 services; CI green on every push)
 - [x] **Phase 10 - OpenAPI/Swagger polish** (per-service FastAPI `contact` + `license_info` + `openapi_tags` metadata; `summary` + `description` + `responses` on every `/health` + `/predict` + `/metrics` endpoint; `model_config(json_schema_extra={"examples": [...]})` Request examples on all 5 schemas plus Response examples on DNN + Q-learning + translation; cross-service polish review caught + fixed 1 real contract bug (`n_output_tokens` description vs router behavior) + 3 cross-service polish items (duplicate `examples=`, GAN seed `None`, pt-svc `/health/<model>` description drift); containerized E2E smoke check 2026-05-19 verified Phase 9 + Phase 10 surface live in built images.)
-- [ ] Phase 11 - Documentation
+- [x] **Phase 11 - Documentation** (full operator + architecture doc set landed: 3 per-service READMEs at `services/<svc>/README.md` covering boot + env vars + endpoint reference + troubleshooting per service; `docs/architecture.md` synthesizing design decisions across all services with explicit out-of-scope table; `docs/deployment-runbook.md` covering both the docker compose path and the host venv path with verification checklist + common failure modes; `docs/adding-a-new-model.md` walking through a 6th model across all 10 file touches; smoke-check observation carryover (monitoring.md HEALTHCHECK noise note, tf-svc translation schema example clarification); cross-doc polish-review sweep tightened naming consistency + scope discipline across all active markdown surface. OpenAPI hardening sub-phase added explicit `operation_id` on all 19 endpoints (clean SDK method names), promoted the private staleness-threshold accessor to public `get_staleness_threshold()`, and refactored pt-svc 3x `/health/<model>` blocks into a `_make_health_route` factory + `_HealthLoader` Protocol (~165 lines of triplication collapse to ~80 lines; the Protocol catches missing loader attributes at type-check time instead of at request time). 195/195 tests pristine across 3 services; ruff + mypy strict clean throughout.)
 - [ ] Phase 12 - Git close-out

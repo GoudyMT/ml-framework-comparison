@@ -31,7 +31,7 @@ Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8003/translate `
   -Body '{"text":"Hello, how are you?"}'
 ```
 
-The response body is UTF-8 JSON; PowerShell's `$response.Content` decodes it as Latin-1, which mojibakes Spanish accents on display. For a faithful view:
+The response body is UTF-8 JSON; PowerShell's `$response.Content` decodes it as Latin-1, which misrenders Spanish accents on display. For a faithful view:
 
 ```powershell
 $r = Invoke-WebRequest -UseBasicParsing -Uri http://localhost:8003/translate `
@@ -120,7 +120,7 @@ Test suite is hermetic — `FakeTransformer` + `FakeTokenizer` fixtures drive de
 | Container exits with `RuntimeError: ... alias 'production' not found` | Registry missing the alias or wrong `MLFLOW_TRACKING_URI` | List aliases via `python ../../scripts/promote_to_registry.py --list` (from `deployment/`); promote/move with `--name tf-transformer-translation --alias production --version <n>` |
 | Container exits with `RuntimeError: tokenizer artifact not found alongside weights` | Promotion uploaded `.h5` but not `.model` (or vice versa) | Both files must live in the same `version.source` directory. Re-promote with `python scripts/promote_to_registry.py --name tf-transformer-translation` ensuring both files are passed |
 | Spanish accents render as `Ã³`, `Â¿` etc. in PowerShell `$r.Content` | UTF-8 → Latin-1 decoding by PowerShell on `Invoke-WebRequest` | Use the explicit decode shown in Quick start: `[System.Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray())`. The wire bytes are correct; this is purely a display issue |
-| Translation output looks low-quality | Model is BLEU 0.4456 — real outputs are often imperfect | The model is what the model is; idealized examples in the schema docs may not match every actual output. See `app/schemas/translation.py` docstrings for the expected character |
+| Translation output looks low-quality | Model is BLEU 0.4456 on the test set; real outputs are often imperfect | Expected behavior for this model. Idealized examples in the schema docs reflect best-case output, not every actual decode; see `app/schemas/translation.py` docstrings for the model's expected character |
 | `/translate` returns 422 `max_length ... not in [1, 25]` | Client requested a longer generation | The 25-token cap matches the training-time positional encoding range (sinusoidal PE only saw positions 0-24); generating beyond that produces noise. Split longer translations client-side |
 
 ## Further reading

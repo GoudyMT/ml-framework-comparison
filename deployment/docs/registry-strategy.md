@@ -43,7 +43,7 @@ model = joblib.load(model_file)   # direct file open
 The MLflow-standard alternative would be:
 
 ```python
-model_uri = f"models:/sk-pca@production"
+model_uri = "models:/sk-pca@production"
 model = mlflow.sklearn.load_model(model_uri)
 ```
 
@@ -131,7 +131,7 @@ Sample log line:
   "run_id": "78fd7c9d",
   "event": "pca_alias_resolved",
   "level": "info",
-  "timestamp": "..."
+  "timestamp": "2026-05-14T19:42:11.503827Z"
 }
 ```
 

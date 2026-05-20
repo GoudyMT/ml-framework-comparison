@@ -133,9 +133,9 @@ Test suite is hermetic — `FakeDNN`, `FakeDCGAN`, and `FakeQtable` fixtures dri
 | Container exits with `RuntimeError: ... alias 'production' not found` for one of the 3 models | One model's alias not set in the registry | List aliases via `python scripts/promote_to_registry.py --list` (from `deployment/scripts/`); promote/move with `--name <model> --alias production --version <n>` |
 | `/ready` returns 503 with `not_all_models_loaded` past 10 s | Slowest loader still resolving — usually DCGAN's state_dict load on first cold-boot | `docker compose logs pt-svc` and look for `dnn_load_start` / `gan_load_start` / `qtable_load_start` events; whichever hasn't emitted its `*_alias_resolved` is the bottleneck |
 | `/predict/gan/sample` returns 422 `n_samples ... not in [1, 16]` | Client over-requesting | The 16-sample cap bounds response payload at ~48 KB (16 × ~3 KB base64 PNGs); split larger requests client-side |
-| `/predict/dnn` returns 422 `features ... not in [-1.0, 1.0]` | Client sent already-scaled features | UCI HAR is pre-normalized; the service applies StandardScaler internally. Send raw publisher-format features in [-1, 1] |
+| `/predict/dnn` returns 422 `features ... not in [-1.0, 1.0]` | Client sent already-scaled features (typically in [-3, 3] after standardization) | The schema enforces `[-1, 1]` strictly at the API boundary, before any internal processing. Send raw publisher-format UCI HAR features (already pre-normalized in `[-1, 1]`); the service applies its own StandardScaler internally |
 | `/predict/qlearning/taxi` returns all-zero `q_values` | Terminal Taxi state queried (100 of 500 are absorbing) | Expected — clients can detect via `sum(q_values) == 0` and call `env.reset()` for a new episode |
-| GAN responses unusually large or memory pressure rising | `n_samples=16` on every request | Base64 PNGs are ~3 KB each; 16 × ~3 KB = ~48 KB per response. If you don't need 16, request fewer to lower the per-request payload + decoder memory pressure |
+| GAN responses unusually large or memory pressure rising | `n_samples=16` on every request | Payload + decoder memory scale linearly with `n_samples`; request fewer if the cap isn't needed |
 
 ## Further reading
 

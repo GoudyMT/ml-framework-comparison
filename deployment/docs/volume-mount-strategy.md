@@ -127,7 +127,7 @@ GitHub Actions runners do not have `deployment/mlruns/` populated by default —
 
 1. **Commit a thin synthetic registry to git for CI use only** — tiny dummy model files plus a small `mlflow.db`. Container tests run against this fixture; production loads from the real registry.
 2. **Pull artifacts from cloud blob storage in CI**, pointed at by a `MLFLOW_TRACKING_URI` secret. Adds a cloud dependency to CI but matches how production would work.
-3. **Mock the loader cache entirely in CI tests** — the current 107/107 host test suite already takes this approach (every fixture monkeypatches the loader's module-level slots so no real `MlflowClient` is ever instantiated).
+3. **Mock the loader cache entirely in CI tests** — the current host test suite already takes this approach (every fixture monkeypatches the loader's module-level slots so no real `MlflowClient` is ever instantiated).
 
 Option 3 is the current default. Option 2 fits when end-to-end container tests run in CI and need to exercise the real load path.
 

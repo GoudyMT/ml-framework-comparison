@@ -1,6 +1,6 @@
 # ML Framework Comparisons: From Scratch to Production-Ready
 
-U.S. Navy veteran rapidly promoted to E-6 in under 6 years — leading technical teams of up to 44 personnel in high-tempo deployed environments while restoring $7.8M+ in RADAR, navigation, and satellite-communication systems at 94-98% sustained uptime. This portfolio applies that same systems-thinking to ML/AI engineering: **20 models across Scikit-learn, PyTorch, TensorFlow, and from-scratch NumPy** — achieving up to **96.03% accuracy and 0.97 F1**, with production-ready FastAPI deployment pipelines covering GANs, Vision Transformers, GNNs, and reinforcement learning. Currently pursuing a B.A. in Computer Science at SNHU (expected Apr 2027, **3.92 GPA**), targeting high-impact roles in AI/ML engineering and defense technology.
+U.S. Navy veteran transitioning to ML/AI engineering. This portfolio brings systems-thinking from deployed-environment electronics maintenance to applied machine learning: **20 models across Scikit-learn, PyTorch, TensorFlow, and from-scratch NumPy** — achieving up to **96.03% accuracy and 0.97 F1** — followed by production-shaped FastAPI deployment pipelines covering GANs, Vision Transformers, GNNs, and reinforcement learning. Currently pursuing a B.A. in Computer Science at SNHU (expected Apr 2027, **3.92 GPA**).
 
 [![CI](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/ci.yml/badge.svg)](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/ci.yml)
 [![Build and Push](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/build.yml/badge.svg)](https://github.com/GoudyMT/ml-framework-comparison/actions/workflows/build.yml)
@@ -49,7 +49,7 @@ U.S. Navy veteran rapidly promoted to E-6 in under 6 years — leading technical
 
 ## Project Rules
 
-1. **Hand-typed models** — no auto-fill, no AI copy-paste
+1. **Hand-typed models** — no auto-completion, no copy-paste
 2. **Same dataset across frameworks** for any given model type, enabling direct metric comparison
 3. **Reproducibility**: fixed random seed (113) across all frameworks
 4. **Identical train/test splits** and metrics for models of the same type

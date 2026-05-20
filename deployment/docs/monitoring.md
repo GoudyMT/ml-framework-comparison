@@ -251,9 +251,9 @@ environment:
 
 ## What This Document Does Not Cover
 
-- **Alerting rules** — translating the PromQL queries above into AlertManager rules + paging integrations (PagerDuty, Opsgenie, Slack). Out of scope; would live in an `alerting.md` once a Prometheus instance is provisioned.
-- **Dashboards** — Grafana panel definitions for the metrics + log queries. Out of scope; the metric names and log event shapes here are the primitives a future dashboard would build on.
-- **Log aggregation backend** — Loki, CloudWatch Logs, Datadog Logs, or similar. The services emit JSON to stdout; how those lines get collected and indexed is a deployment-environment choice, not a service-design choice.
+- **Alerting rules** — translating the PromQL queries above into an AlertManager configuration. Out of scope; would live in an `alerting.md` once a Prometheus instance is provisioned.
+- **Dashboards** — panel definitions for the metrics + log queries in a dashboarding tool. Out of scope; the metric names and log event shapes here are the primitives a future dashboard would build on.
+- **Log aggregation backend** — wherever the JSON-stdout lines get collected and indexed. The services emit; how those lines flow downstream is a deployment-environment choice, not a service-design choice.
 - **Real drift computation** — windowed aggregation of `input_distribution_sample` log lines, PSI / KS calculation, and threshold-based alerting. The log signal is the input; the computation pipeline is a follow-up project.
 - **Per-model alias granularity in metrics** — the `model_name` label maps 1:1 to the loader's `MODEL_NAME` constant. Distinguishing `sk-pca@production` from `sk-pca@canary` in metrics would require either an additional `alias` label or a runtime label-mutation hook. Not implemented today; the operator distinguishes via the structured log line that records the resolved alias at load time (`<svc>_alias_resolved` event from `registry-strategy.md`).
-- **Tracing** — distributed tracing (OpenTelemetry / Jaeger / Zipkin) for cross-service request flows. The `X-Request-ID` middleware lays the groundwork (every request gets a UUID, propagatable across services) but no trace exporter is wired up.
+- **Tracing** — distributed tracing for cross-service request flows. The `X-Request-ID` middleware lays the groundwork (every request gets a UUID, propagatable across services) but no trace exporter is wired up.

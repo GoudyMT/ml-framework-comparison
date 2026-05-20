@@ -30,7 +30,7 @@ Pinned in three places:
 | **pip-tools** | Chosen. Industry-standard, well-documented, deterministic. Splits abstract deps (`requirements.in`) from locked deps (`requirements.txt` with all transitives + hashes). Works with stock pip - no new tool to install in production containers. |
 | **Plain `requirements.txt`** | What the modeling phase used. Insufficient for production: no transitive-dep locking (`pip install -r requirements.txt` resolves transitives at install time, can produce different versions on different machines), no hash verification (supply-chain risk), no dev/prod split. |
 | **Poetry** | Rejected. Cross-platform lock-file edge cases (Windows venv paths sometimes mismatch Linux container paths in poetry.lock metadata). Slower installs. Bundles its own venv manager which conflicts with the project's existing `.venv` convention. |
-| **uv** | Modern faster alternative (Rust-based, built by Astral). Mentioned for awareness; pip-tools is the safer pedagogical choice in 2026 due to broader documentation. **Migration path open**: `uv pip compile` reads pip-tools' `requirements.in` syntax directly, so we can switch later without rewriting source manifests. |
+| **uv** | Modern faster alternative. Mentioned for awareness; pip-tools is the safer pedagogical choice in 2026 due to broader documentation. **Migration path open**: `uv pip compile` reads pip-tools' `requirements.in` syntax directly, so we can switch later without rewriting source manifests. |
 | **conda / mamba** | Rejected. Conda's strength is binary packages with non-Python deps (CUDA, MKL); for our CPU-inference Docker images, pip wheels are sufficient. Mixing conda + pip in containers adds layers without value. |
 
 ### Per-service scope (not project-wide)

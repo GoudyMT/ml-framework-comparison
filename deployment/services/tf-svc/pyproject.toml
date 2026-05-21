@@ -9,7 +9,7 @@
 
 [project]
 name = "tf-svc"
-version = "0.1.0"
+version = "1.0.0"
 description = "FastAPI service for TensorFlow deployments: EN-ES Transformer translation with SentencePiece BPE tokenization"
 requires-python = "==3.12.2"
 

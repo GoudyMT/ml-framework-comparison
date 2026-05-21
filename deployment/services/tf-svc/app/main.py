@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="tf-svc",
-    version="0.1.0",
+    version="1.0.0",
     description=(
         "Deployment service for TensorFlow models: encoder-decoder "
         "Transformer translating English to Spanish (Tatoeba EN-ES, "

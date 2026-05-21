@@ -16,7 +16,7 @@ U.S. Navy veteran transitioning to ML/AI engineering. This portfolio brings syst
 ## Status
 
 1. **Modeling phase complete (#01-#20).** All four learning paradigms covered: supervised + unsupervised + generative + reinforcement.
-2. **Deployment phase IN PROGRESS** — see [`deployment/README.md`](deployment/README.md) for live status.
+2. **Deployment phase COMPLETE** at v1.0.0 — five models live across three FastAPI services. See [`deployment/README.md`](deployment/README.md) for the full surface.
 
 ## Headline Results
 

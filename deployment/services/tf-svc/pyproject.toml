@@ -111,7 +111,20 @@ ignore = [
 python_version       = "3.12"
 strict               = true
 warn_unused_ignores  = true
+
+# tensorflow, sentencepiece, mlflow don't ship type stubs (.pyi files).
+# Without these flags, mypy errors on every `import tensorflow` line. We
+# enforce strict typing on OUR code; missing stubs in libraries are silently
+# ignored.
+#
+# `ignore_missing_imports` suppresses [import-not-found] (module not locatable);
+# `disable_error_code = ["import-untyped"]` suppresses the separate code mypy
+# 1.0+ added for "module exists but has no .pyi stubs / py.typed marker".
+# Both are needed to fully accept the stubless third-party imports above;
+# without the second, every `import sentencepiece` triggers a strict-mode error.
 ignore_missing_imports = true
+disable_error_code     = ["import-untyped"]
+
 # TensorFlow's published type stubs are minimal - keras.layers.Layer
 # and keras.Model both resolve to `Any`. mypy strict's
 # `disallow_subclassing_any` would block every Layer/Model subclass

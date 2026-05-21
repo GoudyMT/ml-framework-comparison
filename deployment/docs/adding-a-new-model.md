@@ -288,7 +288,7 @@ Before committing, run the polish standard:
 .\.venv\Scripts\pytest -q
 ```
 
-All three must pass. Then do a fresh-eyes polish review on the new files (loader + schema + router + main.py edits + tests) — read each file as a stranger would, checking that descriptions match what the code actually does, that schemas don't duplicate metadata across model_config + Field-level surfaces, and that the endpoint summaries in `/docs` read cleanly to someone who has never seen the model before.
+All three must pass. Then re-read the new files (loader + schema + router + main.py edits + tests) as a stranger would: confirm descriptions match what the code actually does, schemas don't duplicate metadata across model_config + Field-level surfaces, and endpoint summaries in `/docs` read cleanly to someone who has never seen the model before.
 
 ## Adding a New Service
 

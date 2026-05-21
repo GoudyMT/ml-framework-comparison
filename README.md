@@ -62,7 +62,7 @@ U.S. Navy veteran transitioning to ML/AI engineering. This portfolio brings syst
 ```bash
 # Clone + install root dependencies
 git clone <repo-url>
-cd ml-framework-comparisons
+cd ml-framework-comparison
 python -m venv .venv && .\.venv\Scripts\activate    # Windows
 pip install -r requirements.txt
 
@@ -110,8 +110,14 @@ Full tree with per-folder annotations: [`docs/modeling/folder-structure.md`](doc
 ### Deployment phase
 
 - [`deployment/README.md`](deployment/README.md) — phase progress + architecture + per-service progress
+- [`deployment/docs/architecture.md`](deployment/docs/architecture.md) — design decisions across all 3 services
+- [`deployment/docs/deployment-runbook.md`](deployment/docs/deployment-runbook.md) — clone-to-running step-by-step procedure
+- [`deployment/docs/adding-a-new-model.md`](deployment/docs/adding-a-new-model.md) — extension pattern for a 6th model
+- [`deployment/docs/monitoring.md`](deployment/docs/monitoring.md) — `/metrics` catalog + drift-signal logs
+- [`deployment/docs/registry-strategy.md`](deployment/docs/registry-strategy.md) — MLflow aliases + direct file-open rationale
+- [`deployment/docs/volume-mount-strategy.md`](deployment/docs/volume-mount-strategy.md) — registry bind-mount + cross-host portability
 - [`deployment/docs/dependency-strategy.md`](deployment/docs/dependency-strategy.md) — Python/pip-tools/version-pinning rationale
-- Per-service READMEs land at [`deployment/services/<svc>/README.md`](deployment/services/) as each service ships
+- Per-service operator READMEs: [`sklearn-svc`](deployment/services/sklearn-svc/README.md), [`pt-svc`](deployment/services/pt-svc/README.md), [`tf-svc`](deployment/services/tf-svc/README.md)
 
 ## License
 

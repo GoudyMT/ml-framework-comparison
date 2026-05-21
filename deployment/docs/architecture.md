@@ -6,7 +6,7 @@ If you want to operate the deployment, read [`deployment-runbook.md`](deployment
 
 ## Goals + Non-Goals
 
-**Goals.** Demonstrate the full deployment surface a real ML engineer touches: registry-backed model loading, framework-runtime isolation, OCI containers, hash-locked supply chain, structured logging + Prometheus metrics + per-model health, CI matrix + image registry push, OpenAPI/Swagger documentation, polish-pass code review. Five models across three frameworks prove the patterns generalize beyond one happy-path example.
+**Goals.** Demonstrate the full deployment surface a real ML engineer touches: registry-backed model loading, framework-runtime isolation, OCI containers, hash-locked supply chain, structured logging + Prometheus metrics + per-model health, CI matrix + image registry push, exhaustive OpenAPI/Swagger documentation. Five models across three frameworks prove the patterns generalize beyond one happy-path example.
 
 **Non-Goals.** No cloud deployment (the `deploy.yml` workflow is a documented placeholder, not a working pipeline). No drift-detection compute (only the upstream log signal — PSI/KS computation is downstream tooling out of scope). No model-quality A/B testing, request-shadowing, canary routing, or feature-flagged rollouts. No web UI for the registry (MLflow's bundled UI plus the CLI is enough). No multi-tenant isolation or per-client rate limiting — the services are single-tenant by design.
 
@@ -111,7 +111,7 @@ Every service exposes the same surface shape:
 
 **Why Pydantic v2 schemas?** Three benefits in one type definition: runtime validation (incoming JSON), static type-checking (mypy strict catches handler bugs), and OpenAPI generation (Swagger UI gets schemas + examples + validation rules for free). The single source of truth means schema + handler + docs can't drift apart.
 
-**Why exhaustive OpenAPI metadata (summary + description + responses per endpoint)?** A `/docs` page that just lists path + method is useless for ops. The Phase 10 polish pass added explicit `summary` (one-line), `description` (paragraph with rationale), and `responses` (status code → meaning) on every endpoint. Operators reading the Swagger UI now see what they need to know without cross-referencing the source.
+**Why exhaustive OpenAPI metadata (summary + description + responses per endpoint)?** A `/docs` page that just lists path + method is useless for ops. Phase 10 added explicit `summary` (one-line), `description` (paragraph with rationale), and `responses` (status code → meaning) on every endpoint. Operators reading the Swagger UI now see what they need to know without cross-referencing the source.
 
 ## Observability
 
@@ -145,7 +145,7 @@ Three patterns appear in every service. They're the deployment-phase equivalent 
 
 **Per-loader `_resolve_*` helpers.** Each loader resolves three things from env vars with sensible defaults: tracking URI, artifact root override, alias. The pattern (`<NAME>_OVERRIDE_ENV` constant + `_resolve_*` private function) is identical across all 5 loaders — predictable to read, predictable to test.
 
-**Byte-identical middleware copies.** `app/middleware/{request_id,logging,metrics,inference_tracking,input_distribution}.py` are byte-for-byte identical across the three services. The duplication is deliberate: shared-library hell (lockstep version bumps, hidden inter-service coupling) is a real cost; copy-now-and-review-on-change is cheap. A cross-service polish review after any non-trivial multi-service change catches drift before it ships — the Phase 10 review surfaced a duplicate `examples=` pattern across the three Request schemas that uniform application had hidden.
+**Byte-identical middleware copies.** `app/middleware/{request_id,logging,metrics,inference_tracking,input_distribution}.py` are byte-for-byte identical across the three services. The duplication is deliberate: shared-library hell (lockstep version bumps, hidden inter-service coupling) is a real cost; copy-now-and-diff-on-change is cheap. A cross-service diff after any change that touches more than one service catches drift before it ships — Phase 10 surfaced a duplicate `examples=` pattern across the three Request schemas that uniform application had hidden.
 
 **Hermetic test fixtures.** Each service has `FakeX` fixtures driving deterministic paths through the routers without loading real artifacts. Tests don't need MLflow, don't need the real registry, don't need GPU. Real-data parity is checked separately via per-service `scripts/smoke_test.py` that needs the service running.
 

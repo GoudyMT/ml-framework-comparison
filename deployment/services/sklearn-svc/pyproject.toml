@@ -30,7 +30,7 @@ name = "sklearn-svc"
 
 # Semantic versioning: MAJOR.MINOR.PATCH.
 # Bump PATCH for bugfixes, MINOR for new features, MAJOR for breaking changes.
-version = "0.1.0"
+version = "1.0.0"
 
 # One-line description shown in package indexes + deployment dashboards.
 description = "FastAPI service for D1 SK PCA - Fashion-MNIST dimensionality reduction"

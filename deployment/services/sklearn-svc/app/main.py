@@ -103,7 +103,7 @@ OpenAPI/Swagger UI at /docs. Things to know:
 """
 app = FastAPI(
     title="sklearn-svc",
-    version="0.1.0",
+    version="1.0.0",
     description=(
         "Deployment service for D1: SK PCA dimensionality reduction "
         "(Fashion-MNIST, 150 components, 90.85% explained variance). "

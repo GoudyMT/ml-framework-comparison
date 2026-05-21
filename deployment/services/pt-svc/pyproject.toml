@@ -9,7 +9,7 @@
 
 [project]
 name = "pt-svc"
-version = "0.1.0"
+version = "1.0.0"
 description = "FastAPI service for PyTorch deployments: DNN classifier, DCGAN image generator, tabular Q-learning policy"
 requires-python = "==3.12.2"
 

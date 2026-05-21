@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="pt-svc",
-    version="0.1.0",
+    version="1.0.0",
     description=(
         "Deployment service for PyTorch models: DNN classifier (UCI HAR "
         "activity recognition, 96.03% test accuracy), DCGAN image "
